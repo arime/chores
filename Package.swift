@@ -18,7 +18,12 @@ let package = Package(
         ),
         .testTarget(
             name: "ChoresCoreTests",
-            dependencies: ["ChoresCore"],
+            dependencies: [
+                "ChoresCore",
+                // Direct dependency so error-mapping tests can construct a real
+                // PostgrestError rather than a look-alike.
+                .product(name: "Supabase", package: "supabase-swift")
+            ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
