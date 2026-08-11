@@ -1,0 +1,97 @@
+import Foundation
+
+/// A completion write that has not yet reached the server.
+public enum OutboxOperation: Codable, Equatable, Sendable {
+    case complete(familyID: UUID, profileID: UUID, choreID: UUID,
+                  dueOn: CalendarDay, completedBy: UUID)
+    case uncomplete(profileID: UUID, choreID: UUID, dueOn: CalendarDay)
+
+    /// Identifies the completion row this operation targets — the same tuple the
+    /// database's uniqueness constraint uses.
+    struct Key: Hashable, Sendable {
+        let profileID: UUID
+        let choreID: UUID
+        let dueOn: CalendarDay
+    }
+
+    var key: Key {
+        switch self {
+        case let .complete(_, profileID, choreID, dueOn, _):
+            return Key(profileID: profileID, choreID: choreID, dueOn: dueOn)
+        case let .uncomplete(profileID, choreID, dueOn):
+            return Key(profileID: profileID, choreID: choreID, dueOn: dueOn)
+        }
+    }
+
+    var isComplete: Bool {
+        if case .complete = self { return true }
+        return false
+    }
+}
+
+/// A durable, ordered queue of completion writes.
+///
+/// Replay is safe because the server upserts on (profile_id, chore_id, due_on),
+/// so this holds no deduplication bookkeeping — the only cleverness is collapsing
+/// a pending pair that cancels itself out.
+public actor Outbox {
+
+    private let fileURL: URL
+    private let backend: ChoresBackend
+    private var queue: [OutboxOperation]
+
+    public init(directory: URL, backend: ChoresBackend) {
+        self.fileURL = directory.appendingPathComponent("outbox.json")
+        self.backend = backend
+        // A corrupt queue is treated as empty: losing a pending tick is recoverable,
+        // crashing on launch is not.
+        self.queue = (try? Data(contentsOf: fileURL))
+            .flatMap { try? ChoresJSON.decoder.decode([OutboxOperation].self, from: $0) } ?? []
+    }
+
+    public var pendingCount: Int { queue.count }
+
+    public func enqueue(_ operation: OutboxOperation) {
+        // If an unsent operation targets the same row in the opposite direction, the
+        // server never observed either — drop both rather than sending a write and
+        // then immediately undoing it.
+        if let index = queue.lastIndex(where: { $0.key == operation.key }),
+           queue[index].isComplete != operation.isComplete {
+            queue.remove(at: index)
+        } else {
+            queue.append(operation)
+        }
+        persist()
+    }
+
+    /// Sends queued operations in order, stopping at the first failure so ordering
+    /// is preserved. Returns how many were sent.
+    @discardableResult
+    public func flush() async -> Int {
+        var sent = 0
+        while let operation = queue.first {
+            do {
+                switch operation {
+                case let .complete(familyID, profileID, choreID, dueOn, completedBy):
+                    try await backend.complete(familyID: familyID, profileID: profileID,
+                                               choreID: choreID, dueOn: dueOn,
+                                               completedBy: completedBy)
+                case let .uncomplete(profileID, choreID, dueOn):
+                    try await backend.uncomplete(profileID: profileID, choreID: choreID,
+                                                 dueOn: dueOn)
+                }
+                queue.removeFirst()
+                sent += 1
+                persist()
+            } catch {
+                break
+            }
+        }
+        return sent
+    }
+
+    private func persist() {
+        guard let data = try? ChoresJSON.encoder.encode(queue) else { return }
+        try? data.write(to: fileURL, options: .atomic)
+    }
+}
