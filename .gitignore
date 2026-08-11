@@ -26,6 +26,7 @@ Packages/
 Package.resolved
 
 # Secrets — Supabase keys, signing config
+App/Chores/Secrets.xcconfig
 .env
 .env.*
 !.env.example
