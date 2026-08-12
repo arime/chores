@@ -8,6 +8,11 @@ struct RootView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @State private var session: SessionViewModel
+    /// Set once this device resolves to a profile. If it later resolves to
+    /// nothing, that is a lost session rather than a fresh device — a different
+    /// screen with a different remedy.
+    @AppStorage(AppEnvironment.hasBeenClaimedKey) private var hasBeenClaimed = false
+    @State private var isReclaiming = false
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -20,8 +25,18 @@ struct RootView: View {
             case .loading:
                 ProgressView()
             case .unclaimed:
-                OnboardingView(environment: environment) {
-                    await session.refresh()
+                if !hasBeenClaimed {
+                    OnboardingView(environment: environment) {
+                        await session.refresh()
+                    }
+                } else if isReclaiming {
+                    NavigationStack {
+                        ClaimCodeView(environment: environment) {
+                            await session.refresh()
+                        }
+                    }
+                } else {
+                    LostSessionView { isReclaiming = true }
                 }
             case .parent(let profile):
                 ParentRootView(environment: environment, profile: profile)
@@ -32,6 +47,15 @@ struct RootView: View {
             }
         }
         .task { await session.start() }
+        .onChange(of: session.state) { _, newState in
+            switch newState {
+            case .parent, .child:
+                hasBeenClaimed = true
+                isReclaiming = false
+            default:
+                break
+            }
+        }
         .onChange(of: scenePhase) { _, newPhase in
             // Anything queued while offline goes out as soon as the app is frontmost.
             guard newPhase == .active else { return }

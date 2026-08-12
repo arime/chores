@@ -28,7 +28,16 @@ final class AppEnvironment {
         return arguments.contains(uiTestFlag) || arguments.contains(uiTestKidFlag)
     }
 
+    /// Set once a device resolves to a profile. Lives here so the UI-test reset
+    /// below and `RootView`'s `@AppStorage` cannot drift apart.
+    static let hasBeenClaimedKey = "device.hasBeenClaimed"
+
     static func live() -> AppEnvironment {
+        if isUITesting {
+            // The simulator keeps defaults between runs, and every UI test starts
+            // from a device that has never been set up.
+            UserDefaults.standard.removeObject(forKey: hasBeenClaimedKey)
+        }
         if ProcessInfo.processInfo.arguments.contains(uiTestKidFlag) {
             let backend = InMemoryChoresBackend()
             backend.seedClaimedChild(childName: "Kid",
