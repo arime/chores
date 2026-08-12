@@ -18,7 +18,27 @@ final class AppEnvironment {
     /// Supabase stack required, no state carried between runs, no network flake.
     static let uiTestFlag = "-ui-testing"
 
+    /// Starts already claimed as a child, with chores scheduled for every day of
+    /// the week. Reaching kid mode for real takes two devices — a parent generates
+    /// a code, the child types it — which one UI test process cannot do.
+    static let uiTestKidFlag = "-ui-testing-kid"
+
+    static var isUITesting: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains(uiTestFlag) || arguments.contains(uiTestKidFlag)
+    }
+
     static func live() -> AppEnvironment {
+        if ProcessInfo.processInfo.arguments.contains(uiTestKidFlag) {
+            let backend = InMemoryChoresBackend()
+            backend.seedClaimedChild(childName: "Kid",
+                                     choreNames: ["Bins", "Dishes"],
+                                     onISOWeekdays: Array(1...7))
+            return AppEnvironment(
+                backend: backend,
+                directory: FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString))
+        }
         if ProcessInfo.processInfo.arguments.contains(uiTestFlag) {
             return .preview()
         }

@@ -29,8 +29,8 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
         var expiresAt: Date
     }
 
-    private let store: Store
-    private var sessionUserID: UUID?
+    let store: Store
+    var sessionUserID: UUID?
 
     public init() { self.store = Store() }
     private init(sharing store: Store) { self.store = store }
@@ -38,7 +38,7 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
     /// A second client against the same shared state.
     public func newDevice() -> InMemoryChoresBackend { InMemoryChoresBackend(sharing: store) }
 
-    private func withStore<T>(_ body: (Store) throws -> T) rethrows -> T {
+    func withStore<T>(_ body: (Store) throws -> T) rethrows -> T {
         store.lock.lock()
         defer { store.lock.unlock() }
         return try body(store)
