@@ -11,13 +11,35 @@ done what.
 
 ## Status
 
-Design approved; implementation not yet started.
+Feature-complete for v1 and ready to archive. Not yet released.
 
 See [`docs/superpowers/specs/2026-08-10-household-chores-app-design.md`](docs/superpowers/specs/2026-08-10-household-chores-app-design.md)
 for the full design: data model, auth and claim flow, RLS policies, UX for both modes,
 offline behaviour, and testing strategy.
 
+## Layout
+
+- `Sources/ChoresCore/` — models, schedule resolution, offline cache and outbox, view
+  models. Everything testable from the command line lives here.
+- `App/` — the Xcode project: SwiftUI screens for both modes, plus the XCUITest suite.
+- `supabase/` — migrations and the pgTAP suite that guards row-level security.
+
+## Running the tests
+
+    swift test                                    # 111 unit tests
+    supabase test db                              # 15 pgTAP assertions (needs Docker)
+    xcodebuild -project App/Chores.xcodeproj -scheme Chores \
+      -destination 'platform=iOS Simulator,name=iPhone 17' test   # 13 UI tests
+
+The UI tests launch with `-ui-testing`, which swaps Supabase for an in-memory backend:
+no stack required, no state carried between runs.
+
+## Building the app
+
+`App/Chores/Secrets.swift` holds the Supabase URL and anon key. It is gitignored — copy
+`App/Chores/Secrets.swift.example` and fill it in.
+
 ## Database migrations
 
 Migrations live in `supabase/migrations/` and are applied manually — nothing in this repo
-runs `supabase db push` on your behalf.
+runs `supabase db push` on your behalf. See [`docs/RELEASING.md`](docs/RELEASING.md).
