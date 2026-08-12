@@ -3,7 +3,6 @@ import ChoresCore
 
 // Temporary destinations so each task in the plan is independently buildable.
 // Each is deleted by the task that replaces it:
-//   OnboardingView          → Task 14
 //   ParentRootView          → Task 16
 //   ParentTodayView         → Task 19
 //   ParentWeekView          → Task 20
@@ -12,12 +11,6 @@ import ChoresCore
 //   KidRootView             → Task 21
 //   KidWeekView             → Task 22
 //   BackendUnavailableView  → Task 24 (which deletes this file)
-
-struct OnboardingView: View {
-    let environment: AppEnvironment
-    let onFinished: () async -> Void
-    var body: some View { Text("Onboarding") }
-}
 
 struct ParentRootView: View {
     let environment: AppEnvironment
