@@ -1,17 +1,12 @@
-//
-//  ChoresApp.swift
-//  Chores
-//
-//  Created by Ari Metsähalme on 12.8.2026.
-//
-
 import SwiftUI
 
 @main
 struct ChoresApp: App {
+    @State private var environment = AppEnvironment.live()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView(environment: environment)
         }
     }
 }
