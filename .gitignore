@@ -26,7 +26,7 @@ Packages/
 Package.resolved
 
 # Secrets — Supabase keys, signing config
-App/Chores/Secrets.xcconfig
+App/Chores/Secrets.swift
 .env
 .env.*
 !.env.example
