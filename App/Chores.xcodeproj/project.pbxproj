@@ -10,14 +10,30 @@
 		CC0000000000000000000003 /* ChoresCore in Frameworks */ = {isa = PBXBuildFile; productRef = CC0000000000000000000002 /* ChoresCore */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		DD0000000000000000000009 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 44116C3C302C395100A67454 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 44116C43302C395100A67454;
+			remoteInfo = Chores;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		44116C44302C395100A67454 /* Chores.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Chores.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD0000000000000000000002 /* ChoresUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChoresUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		44116C46302C395100A67454 /* Chores */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Chores;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000003 /* ChoresUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ChoresUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -38,6 +54,7 @@
 			isa = PBXGroup;
 			children = (
 				44116C46302C395100A67454 /* Chores */,
+				DD0000000000000000000003 /* ChoresUITests */,
 				44116C45302C395100A67454 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +63,7 @@
 			isa = PBXGroup;
 			children = (
 				44116C44302C395100A67454 /* Chores.app */,
+				DD0000000000000000000002 /* ChoresUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -76,6 +94,27 @@
 			productReference = 44116C44302C395100A67454 /* Chores.app */;
 			productType = "com.apple.product-type.application";
 		};
+		DD0000000000000000000001 /* ChoresUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DD0000000000000000000005 /* Build configuration list for PBXNativeTarget "ChoresUITests" */;
+			buildPhases = (
+				DD0000000000000000000004 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DD0000000000000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DD0000000000000000000003 /* ChoresUITests */,
+			);
+			name = ChoresUITests;
+			packageProductDependencies = (
+			);
+			productName = ChoresUITests;
+			productReference = DD0000000000000000000002 /* ChoresUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -88,6 +127,10 @@
 				TargetAttributes = {
 					44116C43302C395100A67454 = {
 						CreatedOnToolsVersion = 26.0.1;
+					};
+					DD0000000000000000000001 = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = 44116C43302C395100A67454;
 					};
 				};
 			};
@@ -109,6 +152,7 @@
 			projectRoot = "";
 			targets = (
 				44116C43302C395100A67454 /* Chores */,
+				DD0000000000000000000001 /* ChoresUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -131,7 +175,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DD0000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DD0000000000000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 44116C43302C395100A67454 /* Chores */;
+			targetProxy = DD0000000000000000000009 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		44116C4D302C395200A67454 /* Debug */ = {
@@ -319,6 +378,40 @@
 			};
 			name = Release;
 		};
+		DD0000000000000000000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.arime.ChoresUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Chores;
+			};
+			name = Debug;
+		};
+		DD0000000000000000000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.arime.ChoresUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Chores;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -336,6 +429,15 @@
 			buildConfigurations = (
 				44116C50302C395200A67454 /* Debug */,
 				44116C51302C395200A67454 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DD0000000000000000000005 /* Build configuration list for PBXNativeTarget "ChoresUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DD0000000000000000000006 /* Debug */,
+				DD0000000000000000000007 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

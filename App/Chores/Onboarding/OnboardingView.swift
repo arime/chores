@@ -25,12 +25,14 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .accessibilityIdentifier("onboarding.parent")
 
                 NavigationLink("I have a code") {
                     ClaimCodeView(environment: environment, onFinished: onFinished)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .accessibilityIdentifier("onboarding.child")
             }
             .padding(32)
         }

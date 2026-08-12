@@ -3,7 +3,6 @@ import ChoresCore
 
 // Temporary destinations so each task in the plan is independently buildable.
 // Each is deleted by the task that replaces it:
-//   ParentRootView          → Task 16
 //   ParentTodayView         → Task 19
 //   ParentWeekView          → Task 20
 //   ChoresView              → Task 17
@@ -12,10 +11,26 @@ import ChoresCore
 //   KidWeekView             → Task 22
 //   BackendUnavailableView  → Task 24 (which deletes this file)
 
-struct ParentRootView: View {
-    let environment: AppEnvironment
-    let profile: Profile
-    var body: some View { Text("Parent: \(profile.displayName)") }
+struct ParentTodayView: View {
+    let store: FamilyStore
+    var body: some View { Text("Today") }
+}
+
+struct ParentWeekView: View {
+    let store: FamilyStore
+    var body: some View { Text("Week") }
+}
+
+struct ChoresView: View {
+    let store: FamilyStore
+    let backend: any ChoresBackend
+    var body: some View { Text("Chores") }
+}
+
+struct ScheduleEditorView: View {
+    let store: FamilyStore
+    let backend: any ChoresBackend
+    var body: some View { Text("Schedule") }
 }
 
 struct KidRootView: View {

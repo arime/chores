@@ -18,6 +18,7 @@ struct ClaimCodeView: View {
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .font(.system(.title2, design: .monospaced))
+                    .accessibilityIdentifier("claimCode.code")
             } header: {
                 Text("Your code")
             } footer: {
@@ -43,6 +44,7 @@ struct ClaimCodeView: View {
                     }
                 }
                 .disabled(model.isBusy)
+                .accessibilityIdentifier("claimCode.submit")
             }
         }
         .navigationTitle("Enter code")
