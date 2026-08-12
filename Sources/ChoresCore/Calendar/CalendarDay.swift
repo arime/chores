@@ -80,3 +80,21 @@ extension CalendarDay: Codable {
         try container.encode(String(format: "%04d-%02d-%02d", year, month, day))
     }
 }
+
+extension CalendarDay {
+    /// e.g. "Monday 10 August". Rendered in the family's timezone and the device locale.
+    public func formattedLong(in timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
+        return formatter.string(from: date(in: timeZone))
+    }
+
+    /// e.g. "10 Aug".
+    public func formattedShort(in timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.setLocalizedDateFormatFromTemplate("dMMM")
+        return formatter.string(from: date(in: timeZone))
+    }
+}
