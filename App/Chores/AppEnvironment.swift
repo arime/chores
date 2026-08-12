@@ -14,7 +14,14 @@ final class AppEnvironment {
         self.outbox = Outbox(directory: directory, backend: backend)
     }
 
+    /// UI tests launch with this flag so they run against in-memory fakes: no
+    /// Supabase stack required, no state carried between runs, no network flake.
+    static let uiTestFlag = "-ui-testing"
+
     static func live() -> AppEnvironment {
+        if ProcessInfo.processInfo.arguments.contains(uiTestFlag) {
+            return .preview()
+        }
         guard let url = URL(string: Secrets.supabaseURL), !Secrets.supabaseAnonKey.isEmpty else {
             fatalError("""
                 Secrets.swift is missing or incomplete.

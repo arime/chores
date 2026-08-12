@@ -16,10 +16,12 @@ struct CreateFamilyView: View {
             Section("Household") {
                 TextField("Family name", text: $model.familyName)
                     .textInputAutocapitalization(.words)
+                    .accessibilityIdentifier("createFamily.familyName")
             }
             Section("You") {
                 TextField("Your name", text: $model.parentName)
                     .textInputAutocapitalization(.words)
+                    .accessibilityIdentifier("createFamily.parentName")
             }
 
             if let error = model.errorMessage {
@@ -41,6 +43,7 @@ struct CreateFamilyView: View {
                     }
                 }
                 .disabled(model.isBusy)
+                .accessibilityIdentifier("createFamily.submit")
             }
         }
         .navigationTitle("New family")
