@@ -1,0 +1,42 @@
+import SwiftUI
+import ChoresCore
+
+struct OnboardingView: View {
+    let environment: AppEnvironment
+    let onFinished: () async -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Spacer()
+
+                Image(systemName: "checklist")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.tint)
+                Text("Chores")
+                    .font(.largeTitle.bold())
+                Text("Set up this device.")
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                NavigationLink("I'm a parent") {
+                    CreateFamilyView(environment: environment, onFinished: onFinished)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
+                NavigationLink("I have a code") {
+                    ClaimCodeView(environment: environment, onFinished: onFinished)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            }
+            .padding(32)
+        }
+    }
+}
+
+#Preview {
+    OnboardingView(environment: .preview(), onFinished: {})
+}
