@@ -22,7 +22,7 @@ struct ClaimCodeView: View {
             } header: {
                 Text("Your code")
             } footer: {
-                Text("Ask a parent to open Manage → Children and show you a code.")
+                Text("Ask a parent to open Manage → People and show you a code.")
             }
 
             if let error = model.errorMessage {

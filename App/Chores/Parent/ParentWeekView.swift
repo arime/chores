@@ -69,7 +69,7 @@ struct ParentWeekView: View {
                     if children.isEmpty {
                         ContentUnavailableView("No children yet",
                                                systemImage: "person.2",
-                                               description: Text("Add them under Manage → Children."))
+                                               description: Text("Add them under Manage → People."))
                             .padding(.top, 40)
                     }
                 }

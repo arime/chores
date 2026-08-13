@@ -51,7 +51,7 @@ struct ParentTodayView: View {
                 if children.isEmpty {
                     ContentUnavailableView("No children yet",
                                            systemImage: "person.2",
-                                           description: Text("Add them under Manage → Children."))
+                                           description: Text("Add them under Manage → People."))
                 }
             }
             .navigationTitle(store.today.formattedLong(in: store.timeZone))

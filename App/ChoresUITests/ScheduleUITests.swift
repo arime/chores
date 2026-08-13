@@ -28,6 +28,26 @@ final class ScheduleUITests: ParentUITestCase {
                       "copying a day should carry its assignments across")
     }
 
+    /// A second parent is an equal, not a delegate: role is what every RLS policy
+    /// asks about, so claiming this code grants the full set.
+    func testParentCanAddAnotherParentAndShowThemACode() {
+        let app = launchIntoParentMode()
+
+        addParent(app, named: "Bo")
+
+        // The list distinguishes the caller from the parent being set up.
+        XCTAssertTrue(app.staticTexts["This device"].exists,
+                      "the caller's own row should say so")
+        XCTAssertTrue(app.staticTexts["Not set up"].exists,
+                      "a parent who hasn't claimed a device yet should say so")
+
+        app.buttons["people.parent.Bo"].tap()
+        let code = app.staticTexts["claimCodeSheet.code"]
+        XCTAssertTrue(code.waitForExistence(timeout: 5),
+                      "a second parent needs a code to claim their device")
+        XCTAssertEqual(code.label.count, 6, "claim codes are six characters")
+    }
+
     /// Without this the only way back into a family from a wiped parent device is
     /// hand-writing a row into claim_codes.
     func testParentCanGetARecoveryCodeForTheirOwnDevice() {

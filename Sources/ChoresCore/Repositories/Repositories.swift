@@ -35,9 +35,13 @@ public protocol ChoresBackend: Sendable {
 
     func fetchSnapshot(familyID: UUID, weekOf day: CalendarDay) async throws -> FamilySnapshot
 
-    // MARK: Children
+    // MARK: People
 
     func addChild(familyID: UUID, name: String, color: String, sortOrder: Int) async throws -> Profile
+    /// A second parent. They get the full set of parent powers the moment they
+    /// claim a device, because every policy asks `is_parent()` rather than
+    /// naming a particular one.
+    func addParent(familyID: UUID, name: String) async throws -> Profile
     func updateProfile(_ profile: Profile) async throws
     func generateClaimCode(profileID: UUID) async throws -> String
 

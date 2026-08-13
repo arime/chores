@@ -44,9 +44,9 @@ struct ManageView: View {
             List {
                 Section {
                     NavigationLink {
-                        ChildrenView(store: store, backend: backend)
+                        PeopleView(store: store, backend: backend, me: parent)
                     } label: {
-                        Label("Children", systemImage: "person.2")
+                        Label("People", systemImage: "person.2")
                     }
                     NavigationLink {
                         ChoresView(store: store, backend: backend)

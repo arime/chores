@@ -45,6 +45,41 @@ import Foundation
         #expect(claimed?.role == .child)
     }
 
+    @Test func aSecondParentClaimsIntoParentMode() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInAnonymouslyIfNeeded()
+        let familyID = try await backend.createFamily(
+            familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
+        let other = try await backend.addParent(familyID: familyID, name: "Other parent")
+        let code = try await backend.generateClaimCode(profileID: other.id)
+
+        let device = backend.newDevice()
+        try await device.signInAnonymouslyIfNeeded()
+        _ = try await device.claimProfile(code: code)
+
+        let claimed = try await device.currentProfile()
+        #expect(claimed?.id == other.id)
+        // Role is what routes the app to parent mode, and what every RLS policy
+        // asks about — so this is the whole of "they have parent powers".
+        #expect(claimed?.role == .parent)
+    }
+
+    @Test func bothParentsAppearInTheSnapshot() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInAnonymouslyIfNeeded()
+        let familyID = try await backend.createFamily(
+            familyName: "Koti", parentName: "Ari", timezone: "Europe/Helsinki")
+        _ = try await backend.addParent(familyID: familyID, name: "Bo")
+        _ = try await backend.addChild(familyID: familyID, name: "Kid",
+                                       color: "#FF8800", sortOrder: 0)
+
+        let snapshot = try await backend.fetchSnapshot(
+            familyID: familyID, weekOf: CalendarDay(year: 2026, month: 8, day: 13))
+
+        #expect(snapshot.parents.map(\.displayName) == ["Ari", "Bo"])
+        #expect(snapshot.children.map(\.displayName) == ["Kid"])
+    }
+
     @Test func claimCodeEntryIsCaseAndWhitespaceInsensitive() async throws {
         let backend = InMemoryChoresBackend()
         try await backend.signInAnonymouslyIfNeeded()

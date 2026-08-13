@@ -72,7 +72,7 @@ struct ScheduleEditorView: View {
 
                 if children.isEmpty {
                     Section {
-                        Text("Add a child under Manage → Children first.")
+                        Text("Add a child under Manage → People first.")
                             .foregroundStyle(.secondary)
                     }
                 }
