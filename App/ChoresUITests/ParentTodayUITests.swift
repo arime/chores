@@ -26,7 +26,7 @@ final class ParentTodayUITests: ParentUITestCase {
                       "the ring should count today's chores as none done yet")
     }
 
-    func testParentCanMarkAChoreDoneFromToday() {
+    func testTappingAChoreTogglesItFromToday() {
         let app = launchIntoParentMode()
 
         addChild(app, named: "Kid")
@@ -36,25 +36,16 @@ final class ParentTodayUITests: ParentUITestCase {
         app.tabBars.buttons["Today"].tap()
         XCTAssertTrue(app.staticTexts["0 of 1 done"].waitForExistence(timeout: 5))
 
-        let row = app.cells.containing(.staticText, identifier: "Dishes").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeLeft()
-
-        let markDone = app.buttons["Mark done"]
-        XCTAssertTrue(markDone.waitForExistence(timeout: 5),
-                      "a parent should be able to tick a chore off from Today, not only "
-                      + "from the day detail behind the week grid")
-        markDone.tap()
+        let row = app.buttons["Dishes"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5),
+                      "the whole row should be the tap target, not a swipe action")
+        row.tap()
 
         XCTAssertTrue(app.staticTexts["1 of 1 done"].waitForExistence(timeout: 5),
                       "the ring should count it straight away")
 
-        // And it can be taken back off from the same screen.
-        row.swipeLeft()
-        let undo = app.buttons["Undo"]
-        XCTAssertTrue(undo.waitForExistence(timeout: 5))
-        undo.tap()
-
+        // The same tap takes it back off.
+        row.tap()
         XCTAssertTrue(app.staticTexts["0 of 1 done"].waitForExistence(timeout: 5))
     }
 
