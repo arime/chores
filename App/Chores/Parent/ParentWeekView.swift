@@ -6,6 +6,8 @@ import ChoresCore
 /// completions.
 struct ParentWeekView: View {
     let store: FamilyStore
+    /// Passed through to `DayDetailView`, which records it as `completed_by`.
+    let parent: Profile
 
     @State private var selection: WeekSelection?
 
@@ -77,7 +79,8 @@ struct ParentWeekView: View {
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { await store.refresh() }
             .navigationDestination(item: $selection) { selected in
-                DayDetailView(store: store, child: selected.child, day: selected.day)
+                DayDetailView(store: store, child: selected.child, day: selected.day,
+                              parent: parent)
             }
         }
     }

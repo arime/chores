@@ -5,6 +5,9 @@ import ChoresCore
 /// showing how much of today is done.
 struct ParentTodayView: View {
     let store: FamilyStore
+    /// Recorded as `completed_by` when a parent ticks something off on a child's
+    /// behalf, so the audit trail says who actually did it.
+    let parent: Profile
 
     private var children: [Profile] { store.snapshot?.children ?? [] }
 
@@ -36,10 +39,19 @@ struct ParentTodayView: View {
                                         Task {
                                             await store.setCompleted(
                                                 false, chore: item.chore, profileID: child.id,
-                                                on: store.today, actor: child.id)
+                                                on: store.today, actor: parent.id)
                                         }
                                     }
                                     .tint(.orange)
+                                } else {
+                                    Button("Mark done") {
+                                        Task {
+                                            await store.setCompleted(
+                                                true, chore: item.chore, profileID: child.id,
+                                                on: store.today, actor: parent.id)
+                                        }
+                                    }
+                                    .tint(.green)
                                 }
                             }
                         }
