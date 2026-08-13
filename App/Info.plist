@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged with the keys Xcode generates (GENERATE_INFOPLIST_FILE is still YES).
+  It exists solely for the ATS exception below, which has no INFOPLIST_KEY_
+  build-setting equivalent because it is a nested dictionary.
+
+  It sits beside the project rather than inside Chores/ so the file-system
+  synchronized folder does not also copy it into the bundle as a resource.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!--
+		  Debug builds talk to the Supabase stack running on the developer's Mac
+		  over plain HTTP. This permits cleartext to local-network names only
+		  (.local and loopback) — never to arbitrary hosts, unlike
+		  NSAllowsArbitraryLoads. The hosted project is HTTPS and unaffected.
+		-->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+</dict>
+</plist>
