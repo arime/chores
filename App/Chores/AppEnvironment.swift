@@ -23,9 +23,16 @@ final class AppEnvironment {
     /// a code, the child types it — which one UI test process cannot do.
     static let uiTestKidFlag = "-ui-testing-kid"
 
+    /// An empty backend on a device that remembers being claimed — the state
+    /// `LostSessionView` exists for. Unreachable otherwise in a test, since the
+    /// in-memory backend starts empty on every launch.
+    static let uiTestLostSessionFlag = "-ui-testing-lost-session"
+
     static var isUITesting: Bool {
         let arguments = ProcessInfo.processInfo.arguments
-        return arguments.contains(uiTestFlag) || arguments.contains(uiTestKidFlag)
+        return arguments.contains(uiTestFlag)
+            || arguments.contains(uiTestKidFlag)
+            || arguments.contains(uiTestLostSessionFlag)
     }
 
     /// Set once a device resolves to a profile. Lives here so the UI-test reset
@@ -53,12 +60,17 @@ final class AppEnvironment {
     }
 
     static func live() -> AppEnvironment {
+        let arguments = ProcessInfo.processInfo.arguments
         if isUITesting {
-            // The simulator keeps defaults between runs, and every UI test starts
-            // from a device that has never been set up.
-            UserDefaults.standard.removeObject(forKey: hasBeenClaimedKey)
+            // The simulator keeps defaults between runs, so pin the flag rather
+            // than inheriting whatever the last test left behind.
+            if arguments.contains(uiTestLostSessionFlag) {
+                UserDefaults.standard.set(true, forKey: hasBeenClaimedKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: hasBeenClaimedKey)
+            }
         }
-        if ProcessInfo.processInfo.arguments.contains(uiTestKidFlag) {
+        if arguments.contains(uiTestKidFlag) {
             let backend = InMemoryChoresBackend()
             backend.seedClaimedChild(childName: "Kid",
                                      choreNames: ["Bins", "Dishes"],
@@ -68,7 +80,7 @@ final class AppEnvironment {
                 directory: FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString))
         }
-        if ProcessInfo.processInfo.arguments.contains(uiTestFlag) {
+        if arguments.contains(uiTestFlag) || arguments.contains(uiTestLostSessionFlag) {
             return .preview()
         }
         let (urlString, anonKey) = credentials
