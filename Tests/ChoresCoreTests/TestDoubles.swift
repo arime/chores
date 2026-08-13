@@ -34,6 +34,9 @@ class ForwardingBackend: ChoresBackend, @unchecked Sendable {
         try await inner.addChild(familyID: familyID, name: name, color: color,
                                  sortOrder: sortOrder)
     }
+    func addParent(familyID: UUID, name: String) async throws -> Profile {
+        try await inner.addParent(familyID: familyID, name: name)
+    }
     func updateProfile(_ profile: Profile) async throws {
         try await inner.updateProfile(profile)
     }
@@ -106,6 +109,9 @@ final class UnavailableBackend: ChoresBackend, @unchecked Sendable {
     }
     func addChild(familyID: UUID, name: String, color: String,
                   sortOrder: Int) async throws -> Profile {
+        throw ChoresBackendError.projectUnavailable
+    }
+    func addParent(familyID: UUID, name: String) async throws -> Profile {
         throw ChoresBackendError.projectUnavailable
     }
     func updateProfile(_ profile: Profile) async throws {

@@ -113,12 +113,19 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
         }
     }
 
-    // MARK: Children
+    // MARK: People
 
     public func addChild(familyID: UUID, name: String, color: String,
                          sortOrder: Int) async throws -> Profile {
         let profile = Profile(id: UUID(), familyID: familyID, displayName: name,
                               role: .child, color: color, sortOrder: sortOrder)
+        withStore { $0.profiles[profile.id] = profile }
+        return profile
+    }
+
+    public func addParent(familyID: UUID, name: String) async throws -> Profile {
+        let profile = Profile(id: UUID(), familyID: familyID, displayName: name,
+                              role: .parent, color: "#8E8E93", sortOrder: 0)
         withStore { $0.profiles[profile.id] = profile }
         return profile
     }

@@ -29,6 +29,13 @@ public struct FamilySnapshot: Codable, Equatable, Sendable {
             .sorted { ($0.sortOrder, $0.displayName) < ($1.sortOrder, $1.displayName) }
     }
 
+    /// A family may have more than one. Every policy asks `is_parent()` rather
+    /// than naming a particular profile, so they are equals.
+    public var parents: [Profile] {
+        profiles.filter { $0.role == .parent }
+            .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+    }
+
     public var activeChores: [Chore] {
         chores.filter { !$0.isArchived }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }

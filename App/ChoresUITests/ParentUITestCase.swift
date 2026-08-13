@@ -45,13 +45,23 @@ class ParentUITestCase: XCTestCase {
 
     func addChild(_ app: XCUIApplication, named name: String) {
         app.tabBars.buttons["Manage"].tap()
-        app.buttons["Children"].tap()
-        XCTAssertTrue(app.buttons["Add child"].waitForExistence(timeout: 5))
-        app.buttons["Add child"].tap()
+        app.buttons["People"].tap()
+        XCTAssertTrue(app.buttons["people.addChild"].waitForExistence(timeout: 5))
+        app.buttons["people.addChild"].tap()
         fillAlert(app, text: name, confirm: "Add")
         XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 5),
                       "the new child should appear in the list")
         app.navigationBars.buttons.element(boundBy: 0).tap()
+    }
+
+    func addParent(_ app: XCUIApplication, named name: String) {
+        app.tabBars.buttons["Manage"].tap()
+        app.buttons["People"].tap()
+        XCTAssertTrue(app.buttons["people.addParent"].waitForExistence(timeout: 5))
+        app.buttons["people.addParent"].tap()
+        fillAlert(app, text: name, confirm: "Add")
+        XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 5),
+                      "the new parent should appear in the list")
     }
 
     func addChore(_ app: XCUIApplication, named name: String) {

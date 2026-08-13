@@ -18,7 +18,7 @@ struct LostSessionView: View {
         ContentUnavailableView {
             Label("This device isn't set up", systemImage: "person.crop.circle.badge.questionmark")
         } description: {
-            Text("Ask a parent to open Manage → Children and show you a new code.")
+            Text("Ask a parent to open Manage → People and show you a new code.")
         } actions: {
             VStack(spacing: 16) {
                 Button("Enter a code") { onReclaim() }

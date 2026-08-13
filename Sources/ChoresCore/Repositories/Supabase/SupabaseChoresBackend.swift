@@ -14,13 +14,19 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
     ///   an ephemeral store so runs cannot leak into each other and so two
     ///   instances can act as two separate devices.
     public init(url: URL, anonKey: String, sessionStorage: (any AuthLocalStorage)? = nil) {
-        var options = SupabaseClientOptions(
-            db: .init(encoder: ChoresJSON.encoder, decoder: ChoresJSON.decoder))
-        if let sessionStorage {
-            options = SupabaseClientOptions(
-                db: .init(encoder: ChoresJSON.encoder, decoder: ChoresJSON.decoder),
-                auth: .init(storage: sessionStorage))
-        }
+        // Opt in early to the session handling supabase-swift will default to in
+        // its next major version. The legacy path refreshes before emitting the
+        // initial session and reports a runtime issue for it, which breaks into
+        // the debugger on every launch.
+        let auth: SupabaseClientOptions.AuthOptions =
+            if let sessionStorage {
+                .init(storage: sessionStorage, emitLocalSessionAsInitialSession: true)
+            } else {
+                .init(emitLocalSessionAsInitialSession: true)
+            }
+        let options = SupabaseClientOptions(
+            db: .init(encoder: ChoresJSON.encoder, decoder: ChoresJSON.decoder),
+            auth: auth)
         self.client = SupabaseClient(supabaseURL: url, supabaseKey: anonKey, options: options)
     }
 
@@ -125,6 +131,21 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
         try await run {
             let payload = NewProfile(familyID: familyID, displayName: name,
                                      role: "child", color: color, sortOrder: sortOrder)
+            let rows: [Profile] = try await client
+                .from("profiles").insert(payload).select().execute().value
+            guard let created = rows.first else {
+                throw ChoresBackendError.underlying("insert returned no row")
+            }
+            return created
+        }
+    }
+
+    public func addParent(familyID: UUID, name: String) async throws -> Profile {
+        try await run {
+            // Colour and sort order only drive the child-facing rings and
+            // ordering, so parents take the defaults.
+            let payload = NewProfile(familyID: familyID, displayName: name,
+                                     role: "parent", color: "#8E8E93", sortOrder: 0)
             let rows: [Profile] = try await client
                 .from("profiles").insert(payload).select().execute().value
             guard let created = rows.first else {
