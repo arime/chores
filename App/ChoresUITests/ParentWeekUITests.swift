@@ -21,19 +21,10 @@ final class ParentWeekUITests: ParentUITestCase {
         XCTAssertEqual(cell.label, "0 of 1 done")
         cell.tap()
 
-        XCTAssertTrue(app.staticTexts["Dishes"].waitForExistence(timeout: 5),
+        let row = app.buttons["Dishes"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5),
                       "the day detail should list what is scheduled")
-
-        // Swipe the row itself, not the label inside it — swipe actions belong to
-        // the cell.
-        let row = app.cells.containing(.staticText, identifier: "Dishes").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        row.swipeLeft()
-
-        let markDone = app.buttons["Mark done"]
-        XCTAssertTrue(markDone.waitForExistence(timeout: 5),
-                      "today is completable, so the parent should be offered Mark done")
-        markDone.tap()
+        row.tap()
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
 

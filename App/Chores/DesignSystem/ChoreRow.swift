@@ -1,8 +1,9 @@
 import SwiftUI
 import ChoresCore
 
-/// The kid's tap target. The whole row is the button — an 11-year-old should not
-/// have to hit a checkbox.
+/// The whole row is the button — an 11-year-old should not have to hit a
+/// checkbox, and a parent reaches for the same thing. Used by both modes so that
+/// ticking a chore off means one gesture everywhere.
 struct ChoreRow: View {
     let item: ChoreForDay
     let isEnabled: Bool

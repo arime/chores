@@ -25,33 +25,14 @@ struct ParentTodayView: View {
                             Text("Nothing today").foregroundStyle(.secondary)
                         }
                         ForEach(chores) { item in
-                            HStack {
-                                Image(systemName: item.isCompleted
-                                      ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(item.isCompleted ? .green : .secondary)
-                                Text(item.chore.name)
-                                    .strikethrough(item.isCompleted)
-                                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
-                            }
-                            .swipeActions {
-                                if item.isCompleted {
-                                    Button("Undo") {
-                                        Task {
-                                            await store.setCompleted(
-                                                false, chore: item.chore, profileID: child.id,
-                                                on: store.today, actor: parent.id)
-                                        }
-                                    }
-                                    .tint(.orange)
-                                } else {
-                                    Button("Mark done") {
-                                        Task {
-                                            await store.setCompleted(
-                                                true, chore: item.chore, profileID: child.id,
-                                                on: store.today, actor: parent.id)
-                                        }
-                                    }
-                                    .tint(.green)
+                            // Today is completable by definition, so no eligibility
+                            // check here — unlike the day detail behind the week grid.
+                            ChoreRow(item: item, isEnabled: true) {
+                                Task {
+                                    await store.setCompleted(
+                                        !item.isCompleted, chore: item.chore,
+                                        profileID: child.id, on: store.today,
+                                        actor: parent.id)
                                 }
                             }
                         }
