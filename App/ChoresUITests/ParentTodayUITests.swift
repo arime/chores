@@ -26,6 +26,38 @@ final class ParentTodayUITests: ParentUITestCase {
                       "the ring should count today's chores as none done yet")
     }
 
+    func testParentCanMarkAChoreDoneFromToday() {
+        let app = launchIntoParentMode()
+
+        addChild(app, named: "Kid")
+        addChore(app, named: "Dishes")
+        assign(app, chore: "Dishes", to: "Kid", onISOWeekday: todayISOWeekday)
+
+        app.tabBars.buttons["Today"].tap()
+        XCTAssertTrue(app.staticTexts["0 of 1 done"].waitForExistence(timeout: 5))
+
+        let row = app.cells.containing(.staticText, identifier: "Dishes").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.swipeLeft()
+
+        let markDone = app.buttons["Mark done"]
+        XCTAssertTrue(markDone.waitForExistence(timeout: 5),
+                      "a parent should be able to tick a chore off from Today, not only "
+                      + "from the day detail behind the week grid")
+        markDone.tap()
+
+        XCTAssertTrue(app.staticTexts["1 of 1 done"].waitForExistence(timeout: 5),
+                      "the ring should count it straight away")
+
+        // And it can be taken back off from the same screen.
+        row.swipeLeft()
+        let undo = app.buttons["Undo"]
+        XCTAssertTrue(undo.waitForExistence(timeout: 5))
+        undo.tap()
+
+        XCTAssertTrue(app.staticTexts["0 of 1 done"].waitForExistence(timeout: 5))
+    }
+
     func testChildWithNothingScheduledSaysSo() {
         let app = launchIntoParentMode()
 

@@ -6,6 +6,8 @@ struct DayDetailView: View {
     let store: FamilyStore
     let child: Profile
     let day: CalendarDay
+    /// Recorded as `completed_by`: the parent did this, not the child.
+    let parent: Profile
 
     var body: some View {
         List {
@@ -27,7 +29,7 @@ struct DayDetailView: View {
                             Task {
                                 await store.setCompleted(false, chore: item.chore,
                                                          profileID: child.id, on: day,
-                                                         actor: child.id)
+                                                         actor: parent.id)
                             }
                         }
                         .tint(.orange)
@@ -36,7 +38,7 @@ struct DayDetailView: View {
                             Task {
                                 await store.setCompleted(true, chore: item.chore,
                                                          profileID: child.id, on: day,
-                                                         actor: child.id)
+                                                         actor: parent.id)
                             }
                         }
                         .tint(.green)

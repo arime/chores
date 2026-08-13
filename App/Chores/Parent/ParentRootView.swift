@@ -19,10 +19,10 @@ struct ParentRootView: View {
 
     var body: some View {
         TabView {
-            ParentTodayView(store: store)
+            ParentTodayView(store: store, parent: profile)
                 .tabItem { Label("Today", systemImage: "checklist") }
 
-            ParentWeekView(store: store)
+            ParentWeekView(store: store, parent: profile)
                 .tabItem { Label("Week", systemImage: "calendar") }
 
             ManageView(store: store, backend: environment.backend)
