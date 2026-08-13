@@ -28,6 +28,21 @@ final class ScheduleUITests: ParentUITestCase {
                       "copying a day should carry its assignments across")
     }
 
+    /// Without this the only way back into a family from a wiped parent device is
+    /// hand-writing a row into claim_codes.
+    func testParentCanGetARecoveryCodeForTheirOwnDevice() {
+        let app = launchIntoParentMode()
+
+        app.tabBars.buttons["Manage"].tap()
+        XCTAssertTrue(app.buttons["manage.ownCode"].waitForExistence(timeout: 5))
+        app.buttons["manage.ownCode"].tap()
+
+        let code = app.staticTexts["claimCodeSheet.code"]
+        XCTAssertTrue(code.waitForExistence(timeout: 5),
+                      "a parent should be able to mint a code for their own profile")
+        XCTAssertEqual(code.label.count, 6, "claim codes are six characters")
+    }
+
     func testArchivingRemovesAChoreFromTheActiveList() {
         let app = launchIntoParentMode()
 

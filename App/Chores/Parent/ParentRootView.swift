@@ -25,7 +25,7 @@ struct ParentRootView: View {
             ParentWeekView(store: store, parent: profile)
                 .tabItem { Label("Week", systemImage: "calendar") }
 
-            ManageView(store: store, backend: environment.backend)
+            ManageView(store: store, backend: environment.backend, parent: profile)
                 .tabItem { Label("Manage", systemImage: "gearshape") }
         }
         .task { await store.start() }
@@ -35,27 +35,50 @@ struct ParentRootView: View {
 struct ManageView: View {
     let store: FamilyStore
     let backend: any ChoresBackend
+    let parent: Profile
+
+    @State private var isShowingOwnCode = false
 
     var body: some View {
         NavigationStack {
             List {
-                NavigationLink {
-                    ChildrenView(store: store, backend: backend)
-                } label: {
-                    Label("Children", systemImage: "person.2")
+                Section {
+                    NavigationLink {
+                        ChildrenView(store: store, backend: backend)
+                    } label: {
+                        Label("Children", systemImage: "person.2")
+                    }
+                    NavigationLink {
+                        ChoresView(store: store, backend: backend)
+                    } label: {
+                        Label("Chores", systemImage: "list.bullet")
+                    }
+                    NavigationLink {
+                        ScheduleEditorView(store: store, backend: backend)
+                    } label: {
+                        Label("Schedule", systemImage: "calendar.badge.clock")
+                    }
                 }
-                NavigationLink {
-                    ChoresView(store: store, backend: backend)
-                } label: {
-                    Label("Chores", systemImage: "list.bullet")
-                }
-                NavigationLink {
-                    ScheduleEditorView(store: store, backend: backend)
-                } label: {
-                    Label("Schedule", systemImage: "calendar.badge.clock")
+
+                Section {
+                    Button {
+                        isShowingOwnCode = true
+                    } label: {
+                        Label("Get a code for this device", systemImage: "iphone.and.arrow.forward")
+                    }
+                    .accessibilityIdentifier("manage.ownCode")
+                } footer: {
+                    Text("""
+                        A code is how you move parent access to another device, or get back \
+                        in if this one is wiped or replaced. Make one when you need it — they \
+                        last 7 days.
+                        """)
                 }
             }
             .navigationTitle("Manage")
+            .sheet(isPresented: $isShowingOwnCode) {
+                ClaimCodeSheet(profile: parent, backend: backend, isOwnProfile: true)
+            }
         }
     }
 }
