@@ -36,8 +36,12 @@ no stack required, no state carried between runs.
 
 ## Building the app
 
-`App/Chores/Secrets.swift` holds the Supabase URL and anon key. It is gitignored — copy
-`App/Chores/Secrets.swift.example` and fill it in.
+`App/Chores/Secrets.swift` holds the URL and anon key for both the local stack and the
+hosted project. It is gitignored — copy `App/Chores/Secrets.swift.example` and fill it in.
+
+Debug builds use the local values, Release builds the hosted ones, and ticking `-hosted`
+in the scheme's Run arguments points a Debug build at the hosted project. See
+[`docs/RELEASING.md`](docs/RELEASING.md) for why it splits that way.
 
 ## Database migrations
 

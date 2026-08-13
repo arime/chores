@@ -32,6 +32,26 @@ final class AppEnvironment {
     /// below and `RootView`'s `@AppStorage` cannot drift apart.
     static let hasBeenClaimedKey = "device.hasBeenClaimed"
 
+    /// Ticked in the scheme's Run arguments to point a development build at the
+    /// hosted project. Read only in Debug builds — see `credentials`.
+    static let hostedFlag = "-hosted"
+
+    /// Development builds talk to the Supabase stack on the developer's Mac;
+    /// anything distributed talks to the hosted project.
+    ///
+    /// The discriminator is the build configuration rather than the platform,
+    /// because a phone tethered to Xcode is still development. Release is the
+    /// only configuration an archive can be built from, so a TestFlight build
+    /// cannot be pointed at a laptop by mistake — there is no code path to it.
+    private static var credentials: (url: String, anonKey: String) {
+        #if DEBUG
+        if !ProcessInfo.processInfo.arguments.contains(hostedFlag) {
+            return (Secrets.Local.supabaseURL, Secrets.Local.supabaseAnonKey)
+        }
+        #endif
+        return (Secrets.Hosted.supabaseURL, Secrets.Hosted.supabaseAnonKey)
+    }
+
     static func live() -> AppEnvironment {
         if isUITesting {
             // The simulator keeps defaults between runs, and every UI test starts
@@ -51,14 +71,16 @@ final class AppEnvironment {
         if ProcessInfo.processInfo.arguments.contains(uiTestFlag) {
             return .preview()
         }
-        guard let url = URL(string: Secrets.supabaseURL), !Secrets.supabaseAnonKey.isEmpty else {
+        let (urlString, anonKey) = credentials
+        guard let url = URL(string: urlString), url.host != nil, !anonKey.isEmpty else {
             fatalError("""
                 Secrets.swift is missing or incomplete.
-                Copy Secrets.swift.example to Secrets.swift and fill it in.
+                Copy Secrets.swift.example to Secrets.swift and fill in both
+                Local and Hosted.
                 """)
         }
         return AppEnvironment(
-            backend: SupabaseChoresBackend(url: url, anonKey: Secrets.supabaseAnonKey),
+            backend: SupabaseChoresBackend(url: url, anonKey: anonKey),
             directory: SnapshotCache.defaultDirectory())
     }
 
