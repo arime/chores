@@ -36,7 +36,8 @@ struct RootView: View {
                         }
                     }
                 } else {
-                    LostSessionView { isReclaiming = true }
+                    LostSessionView(onReclaim: { isReclaiming = true },
+                                    onStartOver: { hasBeenClaimed = false })
                 }
             case .parent(let profile):
                 ParentRootView(environment: environment, profile: profile)
