@@ -53,6 +53,61 @@ back to Debug afterwards: the scheme is shared, so it changes what everyone's �
 
 4. Xcode → Any iOS Device → Product → Archive → Distribute → TestFlight.
 
+## TestFlight
+
+### What it needs that a development build does not
+
+A **paid Apple Developer Program membership**. A free personal team cannot reach
+TestFlight at all — it signs, but it cannot distribute. The tell is the provisioning
+profile: seven days on a personal team, twelve months on a paid one.
+
+    security cms -D -i ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*.mobileprovision \
+      | plutil -extract ExpirationDate raw -
+
+Enrolment is not instant — identity verification takes a day or two, longer for an
+organisation account — so start it before anything else here matters.
+
+Then, once per app:
+
+- Set `DEVELOPMENT_TEAM` to the paid team.
+- Register `com.metsahalme.Chores` and create the app record in App Store Connect.
+  The display name there is separate from the bundle ID and has to be unique across
+  the store, so plain "Chores" may already be taken.
+
+### Before every upload
+
+- **Push the migrations to hosted first.** Release builds always use Hosted, so a
+  migration that has not been pushed is a build that fails on a tester's first launch
+  rather than on yours. Missing table grants are the version of this that looks like
+  an outage: the app can reach the server perfectly well and is refused by it.
+- Bump `CURRENT_PROJECT_VERSION`. App Store Connect rejects a build number it has
+  already seen, and it is per-upload, not per-release — a rejected upload burns one.
+  `MARKETING_VERSION` only changes when the version users see changes.
+
+### Internal or external
+
+**Internal** testing covers up to 100 people holding a role on the App Store Connect
+team, and skips Beta App Review entirely — builds land minutes after processing. This
+is what a family app wants.
+
+**External** testing reaches up to 10,000 testers by public link, and needs Beta App
+Review plus test notes and a contact address. Review is lighter than the App Store's
+but is still a queue.
+
+### Privacy and export answers
+
+Both are declared in the repository, so App Store Connect should stop asking:
+
+- `App/Chores/PrivacyInfo.xcprivacy` — the manifest. It ships inside the bundle, which
+  is why it lives in the synchronized folder rather than beside `App/Info.plist`.
+- `ITSAppUsesNonExemptEncryption` in `App/Info.plist` — false, because the only
+  encryption is the system's own HTTPS.
+
+The privacy answers given in App Store Connect must agree with the manifest. It declares
+names and user content — display names, chore names, the schedule and completion history
+— as collected, linked to the user, for app functionality, and no tracking. If what the
+app stores ever changes, both sides change together.
+
 ## First-time setup of the hosted project
 
 Enable **Authentication → Sign In / Providers → Anonymous sign-ins**. Without it every

@@ -92,56 +92,63 @@ final class FlakyBackend: ForwardingBackend, @unchecked Sendable {
     }
 }
 
-/// Fails every call with `.projectUnavailable`, standing in for a paused project
-/// or a device with no connectivity.
+/// Fails every call with the same error. The default, `.projectUnavailable`,
+/// stands in for a paused project or a device with no connectivity; pass another
+/// to exercise a backend that answers and refuses.
 final class UnavailableBackend: ChoresBackend, @unchecked Sendable {
-    func signInAnonymouslyIfNeeded() async throws { throw ChoresBackendError.projectUnavailable }
-    func currentProfile() async throws -> Profile? { throw ChoresBackendError.projectUnavailable }
+    let error: ChoresBackendError
+
+    init(error: ChoresBackendError = .projectUnavailable) {
+        self.error = error
+    }
+
+    func signInAnonymouslyIfNeeded() async throws { throw error }
+    func currentProfile() async throws -> Profile? { throw error }
     func createFamily(familyName: String, parentName: String,
                       timezone: String) async throws -> UUID {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func claimProfile(code: String) async throws -> UUID {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func fetchSnapshot(familyID: UUID, weekOf day: CalendarDay) async throws -> FamilySnapshot {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func addChild(familyID: UUID, name: String, color: String,
                   sortOrder: Int) async throws -> Profile {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func addParent(familyID: UUID, name: String) async throws -> Profile {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func updateProfile(_ profile: Profile) async throws {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func generateClaimCode(profileID: UUID) async throws -> String {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func addChore(familyID: UUID, name: String, icon: String?) async throws -> Chore {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func updateChore(_ chore: Chore) async throws {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func addScheduleEntry(familyID: UUID, profileID: UUID, choreID: UUID,
                           weekday: Int) async throws -> ScheduleEntry {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func removeScheduleEntry(id: UUID) async throws {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int]) async throws {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func complete(familyID: UUID, profileID: UUID, choreID: UUID,
                   dueOn: CalendarDay, completedBy: UUID) async throws {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
     func uncomplete(profileID: UUID, choreID: UUID, dueOn: CalendarDay) async throws {
-        throw ChoresBackendError.projectUnavailable
+        throw error
     }
 }
 
