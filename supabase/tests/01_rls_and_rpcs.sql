@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(22);
+select plan(28);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -238,6 +238,81 @@ select tests.auth_as('f0000000-0000-0000-0000-000000000001', true);
 select lives_ok(
   $$select public.claim_profile('CHILD1')$$,
   'an anonymous caller can claim a child profile');
+
+-- ---------------------------------------------------------------------------
+-- Leaving a family, and deleting an account
+-- ---------------------------------------------------------------------------
+
+-- Leaving with another parent present removes only the leaver.
+select tests.as_admin();
+insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000002');
+insert into public.profiles (family_id, auth_user_id, display_name, role)
+  values ('11111111-1111-1111-1111-111111111111',
+          'e0000000-0000-0000-0000-000000000002', 'Second Parent', 'parent');
+
+select tests.auth_as('e0000000-0000-0000-0000-000000000002', false);
+select lives_ok($$select public.leave_family()$$, 'a parent may leave');
+
+select tests.as_admin();
+select is(
+  (select count(*)::int from public.profiles
+     where auth_user_id = 'e0000000-0000-0000-0000-000000000002'),
+  0,
+  'leaving deletes the profile rather than leaving a ghost seat');
+select isnt(
+  (select count(*)::int from public.families
+     where id = '11111111-1111-1111-1111-111111111111'),
+  0,
+  'and the family survives because another parent remains');
+
+-- Deleting an account removes the auth user too. Note: not
+-- 'a0000000-0000-0000-0000-000000000001' (Parent A's original auth id) — the
+-- "parent codes require a signed-in claimer" block above rebound Parent A's
+-- profile to 'e0000000-0000-0000-0000-000000000001', so that id is now an
+-- orphaned auth user with no profile. Using it here would silently test
+-- delete_account()'s no-profile branch instead of the profile-bearing one, so
+-- a fresh parent is seated first.
+select tests.as_admin();
+insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000004');
+insert into public.profiles (family_id, auth_user_id, display_name, role)
+  values ('11111111-1111-1111-1111-111111111111',
+          'e0000000-0000-0000-0000-000000000004', 'Deleting Parent', 'parent');
+
+select tests.auth_as('e0000000-0000-0000-0000-000000000004', false);
+select lives_ok($$select public.delete_account()$$, 'a parent may delete their account');
+select tests.as_admin();
+select is(
+  (select count(*)::int from auth.users
+     where id = 'e0000000-0000-0000-0000-000000000004'),
+  0,
+  'delete_account removes the auth user');
+
+-- delete_account() must also work for a caller with no profile at all — that
+-- is exactly who changes their mind after signing in once and never joining a
+-- family. A bare call, uncounted like the leave_family() call below: an error
+-- here would abort the transaction and fail every assertion that follows.
+select tests.as_admin();
+insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000005');
+select tests.auth_as('e0000000-0000-0000-0000-000000000005', false);
+select public.delete_account();
+
+-- The last parent out takes the family with them.
+select tests.as_admin();
+insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000003');
+insert into public.families (id, name, timezone)
+  values ('ffff0000-0000-0000-0000-00000000000f', 'Solo', 'Europe/Helsinki');
+insert into public.profiles (family_id, auth_user_id, display_name, role)
+  values ('ffff0000-0000-0000-0000-00000000000f',
+          'e0000000-0000-0000-0000-000000000003', 'Only Parent', 'parent');
+
+select tests.auth_as('e0000000-0000-0000-0000-000000000003', false);
+select public.leave_family();
+select tests.as_admin();
+select is(
+  (select count(*)::int from public.families
+     where id = 'ffff0000-0000-0000-0000-00000000000f'),
+  0,
+  'the last parent leaving deletes the family');
 
 -- ---------------------------------------------------------------------------
 -- A completion outlives the person who recorded it
