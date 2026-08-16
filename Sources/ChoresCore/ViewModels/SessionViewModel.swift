@@ -34,7 +34,9 @@ public final class SessionViewModel {
     public func start() async {
         state = .loading
         do {
-            try await backend.signInAnonymouslyIfNeeded()
+            if try await backend.currentIdentity() == .none {
+                try await backend.signInAnonymously()
+            }
             try await load()
         } catch {
             state = Self.failure(for: error)

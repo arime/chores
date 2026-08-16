@@ -13,7 +13,7 @@ import Foundation
 
     @Test func startAfterCreatingAFamilyYieldsParent() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
                                            timezone: "Europe/Helsinki")
 
@@ -29,7 +29,7 @@ import Foundation
 
     @Test func startAfterClaimingYieldsChild() async throws {
         let parentBackend = InMemoryChoresBackend()
-        try await parentBackend.signInAnonymouslyIfNeeded()
+        try await parentBackend.signInAnonymously()
         let familyID = try await parentBackend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await parentBackend.addChild(
@@ -37,7 +37,7 @@ import Foundation
         let code = try await parentBackend.generateClaimCode(profileID: child.id)
 
         let kidBackend = parentBackend.newDevice()
-        try await kidBackend.signInAnonymouslyIfNeeded()
+        try await kidBackend.signInAnonymously()
         _ = try await kidBackend.claimProfile(code: code)
 
         let model = SessionViewModel(backend: kidBackend)
@@ -83,7 +83,7 @@ import Foundation
         // This is the onboarding hand-off: the view claims, then asks the session
         // to re-read itself rather than reaching into it.
         let parentBackend = InMemoryChoresBackend()
-        try await parentBackend.signInAnonymouslyIfNeeded()
+        try await parentBackend.signInAnonymously()
         let familyID = try await parentBackend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await parentBackend.addChild(

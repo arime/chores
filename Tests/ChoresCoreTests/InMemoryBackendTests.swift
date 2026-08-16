@@ -6,7 +6,7 @@ import Foundation
 
     @Test func createFamilyProducesAParentProfile() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         _ = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
 
@@ -17,7 +17,7 @@ import Foundation
 
     @Test func createFamilyRejectsACallerWhoAlreadyHasAProfile() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         _ = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
 
@@ -29,7 +29,7 @@ import Foundation
 
     @Test func claimingAValidCodeBindsTheProfile() async throws {
         let parentBackend = InMemoryChoresBackend()
-        try await parentBackend.signInAnonymouslyIfNeeded()
+        try await parentBackend.signInAnonymously()
         let familyID = try await parentBackend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await parentBackend.addChild(
@@ -37,7 +37,7 @@ import Foundation
         let code = try await parentBackend.generateClaimCode(profileID: child.id)
 
         let kidBackend = parentBackend.newDevice()
-        try await kidBackend.signInAnonymouslyIfNeeded()
+        try await kidBackend.signInAnonymously()
         _ = try await kidBackend.claimProfile(code: code)
 
         let claimed = try await kidBackend.currentProfile()
@@ -47,14 +47,14 @@ import Foundation
 
     @Test func aSecondParentClaimsIntoParentMode() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let other = try await backend.addParent(familyID: familyID, name: "Other parent")
         let code = try await backend.generateClaimCode(profileID: other.id)
 
         let device = backend.newDevice()
-        try await device.signInAnonymouslyIfNeeded()
+        try await device.signInAnonymously()
         _ = try await device.claimProfile(code: code)
 
         let claimed = try await device.currentProfile()
@@ -66,7 +66,7 @@ import Foundation
 
     @Test func bothParentsAppearInTheSnapshot() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Ari", timezone: "Europe/Helsinki")
         _ = try await backend.addParent(familyID: familyID, name: "Bo")
@@ -82,7 +82,7 @@ import Foundation
 
     @Test func claimCodeEntryIsCaseAndWhitespaceInsensitive() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -90,7 +90,7 @@ import Foundation
         let code = try await backend.generateClaimCode(profileID: child.id)
 
         let device = backend.newDevice()
-        try await device.signInAnonymouslyIfNeeded()
+        try await device.signInAnonymously()
         _ = try await device.claimProfile(code: "  \(code.lowercased())  ")
 
         #expect(try await device.currentProfile()?.id == child.id)
@@ -98,7 +98,7 @@ import Foundation
 
     @Test func reusingAClaimCodeFails() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -106,11 +106,11 @@ import Foundation
         let code = try await backend.generateClaimCode(profileID: child.id)
 
         let first = backend.newDevice()
-        try await first.signInAnonymouslyIfNeeded()
+        try await first.signInAnonymously()
         _ = try await first.claimProfile(code: code)
 
         let second = backend.newDevice()
-        try await second.signInAnonymouslyIfNeeded()
+        try await second.signInAnonymously()
         await #expect(throws: ChoresBackendError.claimCodeAlreadyUsed) {
             _ = try await second.claimProfile(code: code)
         }
@@ -118,7 +118,7 @@ import Foundation
 
     @Test func unknownClaimCodeFails() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         await #expect(throws: ChoresBackendError.unknownClaimCode) {
             _ = try await backend.claimProfile(code: "ZZZZZZ")
         }
@@ -126,7 +126,7 @@ import Foundation
 
     @Test func generatingANewCodeInvalidatesTheOutstandingOne() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -136,7 +136,7 @@ import Foundation
         _ = try await backend.generateClaimCode(profileID: child.id)
 
         let device = backend.newDevice()
-        try await device.signInAnonymouslyIfNeeded()
+        try await device.signInAnonymously()
         await #expect(throws: ChoresBackendError.unknownClaimCode) {
             _ = try await device.claimProfile(code: firstCode)
         }
@@ -144,7 +144,7 @@ import Foundation
 
     @Test func completingTwiceIsIdempotent() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -163,7 +163,7 @@ import Foundation
 
     @Test func addingTheSameScheduleEntryTwiceIsIdempotent() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -180,7 +180,7 @@ import Foundation
 
     @Test func copyDayReplacesTargetDayAssignments() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -207,7 +207,7 @@ import Foundation
 
     @Test func snapshotContainsOnlyTheRequestedWeeksCompletions() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -228,7 +228,7 @@ import Foundation
 
     @Test func uncompleteRemovesOnlyTheMatchingCompletion() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -248,9 +248,38 @@ import Foundation
         #expect(snapshot.completions.first?.choreID == dishes.id)
     }
 
+    @Test func identityStartsAtNoneAndFollowsHowYouSignedIn() async throws {
+        let backend = InMemoryChoresBackend()
+        #expect(try await backend.currentIdentity() == .none)
+
+        try await backend.signInAnonymously()
+        #expect(try await backend.currentIdentity() == .anonymous)
+
+        try await backend.signOut()
+        #expect(try await backend.currentIdentity() == .none)
+
+        try await backend.signInWithApple(idToken: "token", nonce: "nonce")
+        #expect(try await backend.currentIdentity() == .signedIn)
+    }
+
+    /// The same Apple identity must resolve to the same user, or a reinstall would
+    /// look like a new person and the whole feature would be pointless.
+    @Test func signingInWithTheSameAppleTokenTwiceIsTheSamePerson() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "ari", nonce: "n1")
+        _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+
+        try await backend.signOut()
+        try await backend.signInWithApple(idToken: "ari", nonce: "n2")
+
+        let profile = try #require(try await backend.currentProfile())
+        #expect(profile.displayName == "Parent")
+    }
+
     @Test func snapshotHelpersSortAndFilter() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         _ = try await backend.addChild(familyID: familyID, name: "Second",
