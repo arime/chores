@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(28);
+select plan(29);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -289,12 +289,17 @@ select is(
 
 -- delete_account() must also work for a caller with no profile at all — that
 -- is exactly who changes their mind after signing in once and never joining a
--- family. A bare call, uncounted like the leave_family() call below: an error
--- here would abort the transaction and fail every assertion that follows.
+-- family, and the one App Review guideline 5.1.1(v) obliges us to get right.
 select tests.as_admin();
 insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000005');
 select tests.auth_as('e0000000-0000-0000-0000-000000000005', false);
 select public.delete_account();
+select tests.as_admin();
+select is(
+  (select count(*)::int from auth.users
+     where id = 'e0000000-0000-0000-0000-000000000005'),
+  0,
+  'delete_account removes the auth user even with no profile to leave');
 
 -- The last parent out takes the family with them.
 select tests.as_admin();
