@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(29);
+select plan(36);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -318,6 +318,83 @@ select is(
      where id = 'ffff0000-0000-0000-0000-00000000000f'),
   0,
   'the last parent leaving deletes the family');
+
+-- ---------------------------------------------------------------------------
+-- Deleting a child, history and all
+-- ---------------------------------------------------------------------------
+
+-- A fresh parent is seated for the caller: the "parent codes require a
+-- signed-in claimer" block earlier rebound Parent A's original auth id
+-- ('a0000000-0000-0000-0000-000000000001') to a claiming device, so
+-- impersonating it here would make is_parent() false and turn every
+-- lives_ok below into a failure for the wrong reason (as Task 3 hit).
+--
+-- The children below are new profiles rather than Child A
+-- ('aaaa0000-0000-0000-0000-000000000002'): the "completion outlives the
+-- person who recorded it" section further down inserts a completion for
+-- Child A, and if this block had already deleted them that insert would fail
+-- on a foreign key.
+select tests.as_admin();
+insert into auth.users (id) values ('90000000-0000-0000-0000-000000000001');
+insert into public.profiles (id, family_id, auth_user_id, display_name, role) values
+  ('aaaa0000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111',
+   '90000000-0000-0000-0000-000000000001', 'Third Parent', 'parent'),
+  ('aaaa0000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111',
+   null, 'Doomed Child', 'child'),
+  ('aaaa0000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111',
+   null, 'Surviving Child', 'child');
+insert into public.chores (id, family_id, name) values
+  ('cccc0000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Task 4 Chore');
+insert into public.schedule_entries (family_id, profile_id, chore_id, weekday) values
+  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000006',
+   'cccc0000-0000-0000-0000-000000000003', 1);
+insert into public.completions (family_id, profile_id, chore_id, due_on, completed_by) values
+  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000006',
+   'cccc0000-0000-0000-0000-000000000003', '2026-08-11', 'aaaa0000-0000-0000-0000-000000000006'),
+  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000007',
+   'cccc0000-0000-0000-0000-000000000003', '2026-08-11', 'aaaa0000-0000-0000-0000-000000000007');
+
+-- A parent may delete a child in their own family, history and all.
+select tests.auth_as('90000000-0000-0000-0000-000000000001', false);
+select lives_ok(
+  $$select public.delete_child('aaaa0000-0000-0000-0000-000000000006')$$,
+  'a parent may delete a child in their family');
+
+select tests.as_admin();
+select is(
+  (select count(*)::int from public.completions
+     where profile_id = 'aaaa0000-0000-0000-0000-000000000006'),
+  0,
+  'the deleted child takes their completions with them');
+select isnt(
+  (select count(*)::int from public.completions
+     where profile_id = 'aaaa0000-0000-0000-0000-000000000007'),
+  0,
+  'deleting one child leaves another child''s completions alone');
+select is(
+  (select count(*)::int from public.schedule_entries
+     where profile_id = 'aaaa0000-0000-0000-0000-000000000006'),
+  0,
+  'and their schedule entries');
+
+-- Scoping: another family's child is out of reach, and a parent is not a child.
+select tests.auth_as('90000000-0000-0000-0000-000000000001', false);
+select throws_ok(
+  $$select public.delete_child('bbbb0000-0000-0000-0000-000000000001')$$,
+  'profile not in caller family',
+  'a parent cannot delete a child in another family');
+select throws_ok(
+  $$select public.delete_child('aaaa0000-0000-0000-0000-000000000005')$$,
+  'only a child may be deleted',
+  'delete_child refuses a parent target');
+
+-- A child cannot use it at all. Child A's original auth id is used because,
+-- unlike Parent A's, it was never rebound by anything above.
+select tests.auth_as('a0000000-0000-0000-0000-000000000002', false);
+select throws_ok(
+  $$select public.delete_child('aaaa0000-0000-0000-0000-000000000007')$$,
+  'only a parent may delete a child',
+  'a child cannot delete anyone');
 
 -- ---------------------------------------------------------------------------
 -- A completion outlives the person who recorded it
