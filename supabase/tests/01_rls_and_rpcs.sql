@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(21);
+select plan(22);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -220,6 +220,24 @@ select tests.auth_as('e0000000-0000-0000-0000-000000000001', false);
 select lives_ok(
   $$select public.claim_profile('PARENT')$$,
   'a signed-in caller can claim a parent profile');
+
+-- A child code, in contrast, may be claimed by an anonymous device — that's
+-- how every child device in this product actually onboards. Uses a fresh,
+-- previously-unclaimed child profile rather than a fixture already bound
+-- above, so a stale binding can't hide a real regression.
+select tests.as_admin();
+insert into public.profiles (id, family_id, display_name, role)
+  values ('aaaa0000-0000-0000-0000-000000000004',
+          '11111111-1111-1111-1111-111111111111', 'New Kid', 'child');
+insert into auth.users (id) values ('f0000000-0000-0000-0000-000000000001');
+insert into public.claim_codes (code, family_id, profile_id, expires_at)
+  values ('CHILD1', '11111111-1111-1111-1111-111111111111',
+          'aaaa0000-0000-0000-0000-000000000004', now() + interval '1 day');
+
+select tests.auth_as('f0000000-0000-0000-0000-000000000001', true);
+select lives_ok(
+  $$select public.claim_profile('CHILD1')$$,
+  'an anonymous caller can claim a child profile');
 
 -- ---------------------------------------------------------------------------
 -- A completion outlives the person who recorded it
