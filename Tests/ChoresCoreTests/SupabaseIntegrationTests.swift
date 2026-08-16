@@ -297,8 +297,10 @@ struct SupabaseIntegrationTests {
             url: URL(string: "http://127.0.0.1:1")!,
             anonKey: ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"] ?? "",
             sessionStorage: storage)
-        _ = try? await offline.currentIdentity()
+        let identity = try await offline.currentIdentity()
 
+        #expect(identity == .anonymous,
+                "an offline device keeps the identity it already had")
         #expect(storage.storedSession == session,
                 "a transport failure must not be read as the server disowning us")
     }
