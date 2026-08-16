@@ -13,12 +13,15 @@ public struct Completion: Identifiable, Codable, Hashable, Sendable {
     /// The date the chore was due, in the family's timezone.
     public let dueOn: CalendarDay
     public let completedAt: Date
-    /// Always equal to `profileID` in v1; retained so a future "parent marked this
-    /// done" or approval flow needs no migration.
-    public let completedBy: UUID
+    /// Who ticked it off — the child themselves, or a parent doing it for them.
+    ///
+    /// Null once that person has left the family. Optional only here: every write
+    /// path knows the actor by definition, so `ChoresBackend.complete` and
+    /// `OutboxOperation.complete` keep the non-optional type.
+    public let completedBy: UUID?
 
     public init(id: UUID, familyID: UUID, profileID: UUID, choreID: UUID,
-                dueOn: CalendarDay, completedAt: Date = .init(), completedBy: UUID) {
+                dueOn: CalendarDay, completedAt: Date = .init(), completedBy: UUID?) {
         self.id = id
         self.familyID = familyID
         self.profileID = profileID
