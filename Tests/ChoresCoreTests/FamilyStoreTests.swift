@@ -24,7 +24,7 @@ import Foundation
         let directory = try makeTestDirectory()
 
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(

@@ -13,6 +13,18 @@ public enum ChoresBackendError: Error, Equatable, Sendable {
     case underlying(String)
 }
 
+/// What kind of identity this device currently holds.
+///
+/// The distinction is drawn from the session's `is_anonymous` claim rather than
+/// from which provider was used: the database rule is about durability of
+/// identity, not about Apple. Apple is simply the only way a person can obtain
+/// a `.signedIn` session today.
+public enum DeviceIdentity: Equatable, Sendable {
+    case none
+    case anonymous
+    case signedIn
+}
+
 /// The app's entire data boundary. View models depend on this and never on
 /// Supabase types, which is what lets every one of them be tested in-process.
 ///
@@ -22,7 +34,13 @@ public protocol ChoresBackend: Sendable {
 
     // MARK: Session
 
-    func signInAnonymouslyIfNeeded() async throws
+    func currentIdentity() async throws -> DeviceIdentity
+    /// A child device. Parents never take this path.
+    func signInAnonymously() async throws
+    /// The token and nonce come from `AuthenticationServices` in the app target;
+    /// this layer never imports it.
+    func signInWithApple(idToken: String, nonce: String) async throws
+    func signOut() async throws
     /// The profile bound to the current session, or nil if this device is unclaimed.
     func currentProfile() async throws -> Profile?
 

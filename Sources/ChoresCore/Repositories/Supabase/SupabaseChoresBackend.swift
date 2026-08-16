@@ -40,37 +40,42 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
 
     // MARK: Session
 
-    public func signInAnonymouslyIfNeeded() async throws {
+    public func currentIdentity() async throws -> DeviceIdentity {
         try await run {
-            guard client.auth.currentSession != nil else {
-                _ = try await client.auth.signInAnonymously()
-                return
-            }
-            // A stored session outlives the user it names more often than it
-            // looks: `supabase db reset` in development, a restore from backup
-            // in production. The keychain is untouched by either, and the JWT
-            // stays signed and unexpired, so requests keep being accepted while
-            // `auth.uid()` names a row that is gone. Nothing complains until the
-            // first profile write, which fails as a foreign key violation
-            // (`23503`) an unhelpful distance from the actual cause.
-            //
-            // Asking who we are is the only way to tell a live session from a
-            // hollow one, so it happens once per launch rather than being
-            // inferred.
+            guard let session = client.auth.currentSession else { return .none }
+            // A stored session can name a user the server no longer has:
+            // `supabase db reset` in development, a restore from backup in
+            // production. Verifying costs one request per launch and is the only
+            // way to tell a live session from a hollow one.
             do {
                 _ = try await client.auth.user()
             } catch {
-                // Only a refusal from the server counts. Anything else — offline,
-                // a 500 — leaves the session alone: discarding a good session
-                // because the network blinked would strand a device that has a
-                // perfectly valid one, and whatever call comes next reports the
-                // failure on its own terms.
+                // Only a refusal counts. A device that is merely offline keeps
+                // the session it will need the moment the network returns.
                 guard let authError = error as? AuthError,
-                      Self.serverDisownsSession(authError) else { return }
+                      Self.serverDisownsSession(authError) else {
+                    return session.user.isAnonymous == true ? .anonymous : .signedIn
+                }
                 try? await client.auth.signOut()
-                _ = try await client.auth.signInAnonymously()
+                return .none
             }
+            return session.user.isAnonymous == true ? .anonymous : .signedIn
         }
+    }
+
+    public func signInAnonymously() async throws {
+        try await run { _ = try await client.auth.signInAnonymously() }
+    }
+
+    public func signInWithApple(idToken: String, nonce: String) async throws {
+        try await run {
+            _ = try await client.auth.signInWithIdToken(
+                credentials: .init(provider: .apple, idToken: idToken, nonce: nonce))
+        }
+    }
+
+    public func signOut() async throws {
+        try await run { try await client.auth.signOut() }
     }
 
     /// The server was reached and did not recognise the session — the user was

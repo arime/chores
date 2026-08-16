@@ -12,8 +12,17 @@ class ForwardingBackend: ChoresBackend, @unchecked Sendable {
         self.inner = inner
     }
 
-    func signInAnonymouslyIfNeeded() async throws {
-        try await inner.signInAnonymouslyIfNeeded()
+    func currentIdentity() async throws -> DeviceIdentity {
+        try await inner.currentIdentity()
+    }
+    func signInAnonymously() async throws {
+        try await inner.signInAnonymously()
+    }
+    func signInWithApple(idToken: String, nonce: String) async throws {
+        try await inner.signInWithApple(idToken: idToken, nonce: nonce)
+    }
+    func signOut() async throws {
+        try await inner.signOut()
     }
     func currentProfile() async throws -> Profile? {
         try await inner.currentProfile()
@@ -102,7 +111,10 @@ final class UnavailableBackend: ChoresBackend, @unchecked Sendable {
         self.error = error
     }
 
-    func signInAnonymouslyIfNeeded() async throws { throw error }
+    func currentIdentity() async throws -> DeviceIdentity { throw error }
+    func signInAnonymously() async throws { throw error }
+    func signInWithApple(idToken: String, nonce: String) async throws { throw error }
+    func signOut() async throws { throw error }
     func currentProfile() async throws -> Profile? { throw error }
     func createFamily(familyName: String, parentName: String,
                       timezone: String) async throws -> UUID {

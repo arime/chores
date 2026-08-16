@@ -10,7 +10,7 @@ import Foundation
                                                 childID: UUID,
                                                 code: String) {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
             familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await backend.addChild(
@@ -21,7 +21,7 @@ import Foundation
 
     @Test func createFamilySucceedsAndLeavesNoError() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let model = OnboardingViewModel(backend: backend)
         model.familyName = "Koti"
         model.parentName = "Parent"
@@ -35,7 +35,7 @@ import Foundation
 
     @Test func createFamilyTrimsWhitespaceFromNames() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let model = OnboardingViewModel(backend: backend)
         model.familyName = "  Koti  "
         model.parentName = "  Parent  "
@@ -46,7 +46,7 @@ import Foundation
 
     @Test func createFamilyRejectsBlankNamesWithoutCallingTheBackend() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let model = OnboardingViewModel(backend: backend)
         model.familyName = "   "
         model.parentName = "Parent"
@@ -61,7 +61,7 @@ import Foundation
     @Test func claimWithAValidCodeSucceeds() async throws {
         let fixture = try await makeFamilyWithChild()
         let kidBackend = fixture.backend.newDevice()
-        try await kidBackend.signInAnonymouslyIfNeeded()
+        try await kidBackend.signInAnonymously()
 
         let model = OnboardingViewModel(backend: kidBackend)
         model.code = fixture.code
@@ -74,7 +74,7 @@ import Foundation
         // Children will type this on a phone keyboard; be forgiving.
         let fixture = try await makeFamilyWithChild()
         let kidBackend = fixture.backend.newDevice()
-        try await kidBackend.signInAnonymouslyIfNeeded()
+        try await kidBackend.signInAnonymously()
 
         let model = OnboardingViewModel(backend: kidBackend)
         model.code = "  \(fixture.code.lowercased()) "
@@ -85,7 +85,7 @@ import Foundation
 
     @Test func claimRejectsAnEmptyCodeWithoutCallingTheBackend() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let model = OnboardingViewModel(backend: backend)
         model.code = "   "
 
@@ -97,7 +97,7 @@ import Foundation
     /// the whole reason claim_profile() raises distinct SQLSTATEs.
     @Test func unknownCodeGetsItsOwnMessage() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let model = OnboardingViewModel(backend: backend)
         model.code = "ZZZZZZ"
 
@@ -109,11 +109,11 @@ import Foundation
         let fixture = try await makeFamilyWithChild()
 
         let firstDevice = fixture.backend.newDevice()
-        try await firstDevice.signInAnonymouslyIfNeeded()
+        try await firstDevice.signInAnonymously()
         _ = try await firstDevice.claimProfile(code: fixture.code)
 
         let secondDevice = fixture.backend.newDevice()
-        try await secondDevice.signInAnonymouslyIfNeeded()
+        try await secondDevice.signInAnonymously()
         let model = OnboardingViewModel(backend: secondDevice)
         model.code = fixture.code
 
@@ -132,7 +132,7 @@ import Foundation
 
     @Test func isBusyIsClearedAfterAFailedCall() async throws {
         let backend = InMemoryChoresBackend()
-        try await backend.signInAnonymouslyIfNeeded()
+        try await backend.signInAnonymously()
         let model = OnboardingViewModel(backend: backend)
         model.code = "ZZZZZZ"
 
@@ -144,7 +144,7 @@ import Foundation
     @Test func aRetryClearsThePreviousErrorOnSuccess() async throws {
         let fixture = try await makeFamilyWithChild()
         let kidBackend = fixture.backend.newDevice()
-        try await kidBackend.signInAnonymouslyIfNeeded()
+        try await kidBackend.signInAnonymously()
         let model = OnboardingViewModel(backend: kidBackend)
 
         model.code = "ZZZZZZ"

@@ -87,7 +87,7 @@ struct SupabaseIntegrationTests {
         let parent = try Self.makeBackend()
 
         // A fresh device is signed in but unclaimed.
-        try await parent.signInAnonymouslyIfNeeded()
+        try await parent.signInAnonymously()
         #expect(try await parent.currentProfile() == nil)
 
         // create_family() bootstraps the family and the parent profile together.
@@ -180,14 +180,14 @@ struct SupabaseIntegrationTests {
         #expect(code.count == 6)
 
         let kidDevice = try Self.makeBackend()
-        try await kidDevice.signInAnonymouslyIfNeeded()
+        try await kidDevice.signInAnonymously()
         #expect(try await kidDevice.currentProfile() == nil)
         _ = try await kidDevice.claimProfile(code: code)
         #expect(try await kidDevice.currentProfile()?.id == child.id)
 
         // Reuse of a spent code is rejected with its own error.
         let thirdDevice = try Self.makeBackend()
-        try await thirdDevice.signInAnonymouslyIfNeeded()
+        try await thirdDevice.signInAnonymously()
         await #expect(throws: ChoresBackendError.claimCodeAlreadyUsed) {
             _ = try await thirdDevice.claimProfile(code: code)
         }
@@ -201,7 +201,7 @@ struct SupabaseIntegrationTests {
     /// RLS enforcement seen through the real client, not just through psql.
     @Test func rlsPreventsChildFromWritingParentOnlyTables() async throws {
         let parent = try Self.makeBackend()
-        try await parent.signInAnonymouslyIfNeeded()
+        try await parent.signInAnonymously()
         let familyID = try await parent.createFamily(
             familyName: "RLS Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await parent.addChild(familyID: familyID, name: "Kid",
@@ -209,7 +209,7 @@ struct SupabaseIntegrationTests {
         let code = try await parent.generateClaimCode(profileID: child.id)
 
         let kidDevice = try Self.makeBackend()
-        try await kidDevice.signInAnonymouslyIfNeeded()
+        try await kidDevice.signInAnonymously()
         _ = try await kidDevice.claimProfile(code: code)
 
         // A child cannot create chores.
@@ -255,36 +255,41 @@ struct SupabaseIntegrationTests {
     /// as though claimed. Nothing complains until the first profile write dies
     /// on `profiles_auth_user_id_fkey`, naming a constraint rather than a cause.
     ///
+    /// A parent cannot be silently re-authenticated against Apple, so recovery
+    /// here is to clear the dead session and report `.none` — not to mint a
+    /// fresh one behind the caller's back.
+    ///
     /// The token is left pristine here on purpose: corrupting it is caught by
     /// the SDK's own signature check before a request is ever sent, which is a
     /// different path than the one this guards.
-    @Test func aSessionTheServerDisownsIsReplacedBeforeAnythingIsWritten() async throws {
+    @Test func aSessionTheServerDisownsIsClearedRatherThanCarriedForward() async throws {
         let storage = EphemeralStorage()
-        try await Self.makeBackend(storage: storage).signInAnonymouslyIfNeeded()
-        let disowned = try #require(storage.storedSession)
+        try await Self.makeBackend(storage: storage).signInAnonymously()
         try await Self.deleteAuthUser(try #require(storage.storedUserID))
 
         // A second backend over the same storage is what a relaunch looks like.
         let relaunched = try Self.makeBackend(storage: storage)
-        try await relaunched.signInAnonymouslyIfNeeded()
+        let identity = try await relaunched.currentIdentity()
 
-        #expect(storage.storedSession != disowned,
-                "the disowned session must be replaced, not carried forward")
+        #expect(identity == .none)
+        #expect(storage.storedSession == nil,
+                "the disowned session must be cleared, not carried forward")
 
-        // The recovery is only worth anything if the new session can do the
-        // write that was failing.
+        // The device can still sign in again on its own, now that the dead
+        // session is out of the way.
+        try await relaunched.signInAnonymously()
         _ = try await relaunched.createFamily(
             familyName: "Recovered Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let profile = try #require(try await relaunched.currentProfile())
         #expect(profile.role == .parent)
     }
 
-    /// The recovery above must not fire on a device that is merely offline: a
-    /// good session discarded because the network blinked cannot be signed in
-    /// again until the network returns, which is exactly when it is needed.
+    /// The clearing above must not fire on a device that is merely offline: a
+    /// good session discarded because the network blinked cannot be recovered
+    /// until the network returns, which is exactly when it is needed.
     @Test func anUnreachableServerLeavesAGoodSessionAlone() async throws {
         let storage = EphemeralStorage()
-        try await Self.makeBackend(storage: storage).signInAnonymouslyIfNeeded()
+        try await Self.makeBackend(storage: storage).signInAnonymously()
         let session = try #require(storage.storedSession)
 
         // Nothing is listening on this port, so every call fails in transport.
@@ -292,7 +297,7 @@ struct SupabaseIntegrationTests {
             url: URL(string: "http://127.0.0.1:1")!,
             anonKey: ProcessInfo.processInfo.environment["SUPABASE_ANON_KEY"] ?? "",
             sessionStorage: storage)
-        _ = try? await offline.signInAnonymouslyIfNeeded()
+        _ = try? await offline.currentIdentity()
 
         #expect(storage.storedSession == session,
                 "a transport failure must not be read as the server disowning us")

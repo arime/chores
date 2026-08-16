@@ -19,6 +19,9 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
         var template: [UUID: ScheduleEntry] = [:]
         var completions: [Completion] = []
         var nextCodeSuffix = 0
+        /// Apple identity token -> the auth user it resolves to, so signing in
+        /// twice with the same token is the same person, as it is for real.
+        var appleUsers: [String: UUID] = [:]
         let lock = NSLock()
     }
 
@@ -46,8 +49,31 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
 
     // MARK: Session
 
-    public func signInAnonymouslyIfNeeded() async throws {
-        if sessionUserID == nil { sessionUserID = UUID() }
+    var sessionIsAnonymous = false
+
+    public func currentIdentity() async throws -> DeviceIdentity {
+        guard sessionUserID != nil else { return .none }
+        return sessionIsAnonymous ? .anonymous : .signedIn
+    }
+
+    public func signInAnonymously() async throws {
+        sessionUserID = UUID()
+        sessionIsAnonymous = true
+    }
+
+    public func signInWithApple(idToken: String, nonce: String) async throws {
+        sessionUserID = withStore { store in
+            if let existing = store.appleUsers[idToken] { return existing }
+            let created = UUID()
+            store.appleUsers[idToken] = created
+            return created
+        }
+        sessionIsAnonymous = false
+    }
+
+    public func signOut() async throws {
+        sessionUserID = nil
+        sessionIsAnonymous = false
     }
 
     public func currentProfile() async throws -> Profile? {
