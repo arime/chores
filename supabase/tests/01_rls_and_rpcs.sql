@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(17);
+select plan(21);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -21,11 +21,16 @@ create schema tests;
 grant usage on schema tests to authenticated;
 
 -- Impersonate an authenticated user for the rest of the transaction.
-create function tests.auth_as(p_uid uuid) returns void language plpgsql as $$
+-- `p_anonymous` mirrors the claim Supabase puts in a real JWT; it defaults to
+-- false so every pre-existing assertion keeps the identity it always had.
+create function tests.auth_as(p_uid uuid, p_anonymous boolean default false)
+returns void language plpgsql as $$
 begin
   perform set_config('role', 'authenticated', true);
   perform set_config('request.jwt.claims',
-    json_build_object('sub', p_uid::text, 'role', 'authenticated')::text, true);
+    json_build_object('sub', p_uid::text,
+                      'role', 'authenticated',
+                      'is_anonymous', p_anonymous)::text, true);
 end $$;
 
 -- Return to superuser for fixture setup.
@@ -176,6 +181,45 @@ select tests.auth_as('c0000000-0000-0000-0000-000000000002');
 select throws_ok(
   format($$select public.claim_profile(%L)$$, :'code'),
   'P0002', 'code already used', 'a claim code cannot be reused');
+
+-- ---------------------------------------------------------------------------
+-- Parents must be signed in
+-- ---------------------------------------------------------------------------
+
+-- A child device is anonymous and must not be able to bootstrap a family.
+select tests.auth_as('d0000000-0000-0000-0000-000000000001', true);
+select throws_ok(
+  $$select public.create_family('Sneaky', 'Kid', 'Europe/Helsinki')$$,
+  'parents must sign in',
+  'an anonymous caller cannot create a family');
+
+-- The same caller, signed in, may. The auth.users row must exist first:
+-- create_family inserts a profile whose auth_user_id references it, so without
+-- this the call fails on the foreign key rather than proving anything.
+select tests.as_admin();
+insert into auth.users (id) values ('d0000000-0000-0000-0000-000000000001');
+select tests.auth_as('d0000000-0000-0000-0000-000000000001', false);
+select lives_ok(
+  $$select public.create_family('Legit', 'Parent', 'Europe/Helsinki')$$,
+  'a signed-in caller can create a family');
+
+-- Parent codes require a signed-in claimer; child codes do not.
+select tests.as_admin();
+insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000001');
+insert into public.claim_codes (code, family_id, profile_id, expires_at)
+  values ('PARENT', '11111111-1111-1111-1111-111111111111',
+          'aaaa0000-0000-0000-0000-000000000001', now() + interval '1 day');
+
+select tests.auth_as('e0000000-0000-0000-0000-000000000001', true);
+select throws_ok(
+  $$select public.claim_profile('PARENT')$$,
+  'parents must sign in',
+  'an anonymous caller cannot claim a parent profile');
+
+select tests.auth_as('e0000000-0000-0000-0000-000000000001', false);
+select lives_ok(
+  $$select public.claim_profile('PARENT')$$,
+  'a signed-in caller can claim a parent profile');
 
 -- ---------------------------------------------------------------------------
 -- A completion outlives the person who recorded it
