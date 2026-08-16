@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(15);
+select plan(17);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -176,6 +176,35 @@ select tests.auth_as('c0000000-0000-0000-0000-000000000002');
 select throws_ok(
   format($$select public.claim_profile(%L)$$, :'code'),
   'P0002', 'code already used', 'a claim code cannot be reused');
+
+-- ---------------------------------------------------------------------------
+-- A completion outlives the person who recorded it
+-- ---------------------------------------------------------------------------
+
+-- A parent's completion on a child's behalf must outlive the parent's profile.
+select tests.as_admin();
+insert into public.completions (family_id, profile_id, chore_id, due_on, completed_by)
+  values ('11111111-1111-1111-1111-111111111111',
+          'aaaa0000-0000-0000-0000-000000000002',
+          'cccc0000-0000-0000-0000-000000000001',
+          '2026-08-10',
+          'aaaa0000-0000-0000-0000-000000000001');
+
+delete from public.profiles where id = 'aaaa0000-0000-0000-0000-000000000001';
+
+select is(
+  (select count(*)::int from public.completions
+     where profile_id = 'aaaa0000-0000-0000-0000-000000000002'
+       and due_on = '2026-08-10'),
+  1,
+  'deleting the parent who recorded a completion leaves the completion');
+
+select is(
+  (select completed_by from public.completions
+     where profile_id = 'aaaa0000-0000-0000-0000-000000000002'
+       and due_on = '2026-08-10'),
+  null::uuid,
+  'and completed_by becomes null rather than the row vanishing');
 
 select tests.as_admin();
 select * from finish();
