@@ -187,7 +187,11 @@ select throws_ok(
   'parents must sign in',
   'an anonymous caller cannot create a family');
 
--- The same caller, signed in, may.
+-- The same caller, signed in, may. The auth.users row must exist first:
+-- create_family inserts a profile whose auth_user_id references it, so without
+-- this the call fails on the foreign key rather than proving anything.
+select tests.as_admin();
+insert into auth.users (id) values ('d0000000-0000-0000-0000-000000000001');
 select tests.auth_as('d0000000-0000-0000-0000-000000000001', false);
 select lives_ok(
   $$select public.create_family('Legit', 'Parent', 'Europe/Helsinki')$$,
@@ -337,7 +341,7 @@ git commit -m "Require a signed-in caller for anything parent-shaped"
 
 - [ ] **Step 1: Write the failing assertions**
 
-Change the plan count to `select plan(25);` and add before the final `select tests.as_admin();`:
+Change the plan count to `select plan(26);` and add before the final `select tests.as_admin();`:
 
 ```sql
 -- Leaving with another parent present removes only the leaver.
@@ -445,11 +449,11 @@ end $$;
 - [ ] **Step 4: Run the suite to verify it passes**
 
 Run: `supabase db reset && supabase test db`
-Expected: PASS, 25 of 25.
+Expected: PASS, 26 of 26.
 
 - [ ] **Step 5: Add the last-parent case**
 
-Change the plan count to `select plan(26);` and add:
+Change the plan count to `select plan(27);` and add:
 
 ```sql
 -- The last parent out takes the family with them.
@@ -474,7 +478,7 @@ select is(
 - [ ] **Step 6: Run the suite to verify it passes**
 
 Run: `supabase db reset && supabase test db`
-Expected: PASS, 26 of 26.
+Expected: PASS, 27 of 27.
 
 - [ ] **Step 7: Commit**
 
@@ -497,7 +501,7 @@ git commit -m "Give a parent a way out of a family, and out of the app"
 
 - [ ] **Step 1: Write the failing assertions**
 
-Change the plan count to `select plan(31);` and add before the final `select tests.as_admin();`:
+Change the plan count to `select plan(33);` and add before the final `select tests.as_admin();`:
 
 ```sql
 -- A parent may delete a child in their own family, history and all.
@@ -600,11 +604,11 @@ end $$;
 - [ ] **Step 4: Run the suite to verify it passes**
 
 Run: `supabase db reset && supabase test db`
-Expected: PASS, 31 of 31.
+Expected: PASS, 33 of 33.
 
 - [ ] **Step 5: Assert the blast radius is bounded**
 
-The cascade is scoped by `completions.profile_id`; a mistake there would be silent. Change the plan count to `select plan(32);` and add, immediately after the "takes their completions with them" assertion:
+The cascade is scoped by `completions.profile_id`; a mistake there would be silent. Change the plan count to `select plan(34);` and add, immediately after the "takes their completions with them" assertion:
 
 ```sql
 select isnt(
@@ -619,7 +623,7 @@ Use the second child's UUID from the fixtures.
 - [ ] **Step 6: Run the suite to verify it passes**
 
 Run: `supabase db reset && supabase test db`
-Expected: PASS, 32 of 32.
+Expected: PASS, 34 of 34.
 
 - [ ] **Step 7: Commit**
 
@@ -1546,62 +1550,10 @@ In `App/Chores/Onboarding/OnboardingView.swift`, change the first `NavigationLin
 
 Leave its accessibility identifier `onboarding.parent` unchanged so existing UI tests keep finding it.
 
-- [ ] **Step 6: Repair every parent UI test**
+- [ ] **Step 6: Fill in `ParentSetupView`**
 
-`ParentUITestCase.launchIntoParentMode()` taps `onboarding.parent` and then expects
-`createFamily.familyName` immediately. There are now two screens in between, so **every parent UI
-test fails without this**. In `App/ChoresUITests/ParentUITestCase.swift`, replace the two lines
-after the `onboarding.parent` tap with:
-
-```swift
-        XCTAssertTrue(app.buttons["onboarding.parent"].waitForExistence(timeout: 10))
-        app.buttons["onboarding.parent"].tap()
-
-        // Under `-ui-testing` this is an ordinary button backed by
-        // StubAppleTokenProvider — Apple's own sheet is system UI that XCTest
-        // cannot tap.
-        let signIn = app.buttons["parentSignIn.button"]
-        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
-        signIn.tap()
-
-        let startFamily = app.buttons["parentSetup.createFamily"]
-        XCTAssertTrue(startFamily.waitForExistence(timeout: 10),
-                      "signing in with no family should offer to start one")
-        startFamily.tap()
-
-        let familyName = app.textFields["createFamily.familyName"]
-```
-
-Everything from `XCTAssertTrue(familyName.waitForExistence(timeout: 5))` onwards is unchanged.
-
-- [ ] **Step 7: Build and run the full UI suite**
-
-Run: `xcodebuild -project App/Chores.xcodeproj -scheme Chores -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test`
-Expected: TEST SUCCEEDED. Every parent test now walks through sign-in; a stall on a system sheet
-means the stub provider is not being selected, so check `AppEnvironment.live()` reads
-`isUITesting`.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add App/Chores/Auth App/Chores/Onboarding/ParentSignInView.swift App/Chores/AppEnvironment.swift App/Chores/Onboarding/OnboardingView.swift App/ChoresUITests/ParentUITestCase.swift
-git commit -m "Sign a parent in with Apple"
-```
-
----
-
-### Task 10: The signed-in-but-family-less screen, and a better lost-session screen
-
-**Files:**
-- Modify: `App/Chores/Onboarding/ParentSetupView.swift`
-- Modify: `App/Chores/Failure/LostSessionView.swift`
-- Modify: `App/Chores/RootView.swift`
-
-**Interfaces:**
-- Consumes: `ParentSignInView` from Task 9; `.parentWithoutFamily` from Task 7.
-- Produces: a real `ParentSetupView`; `LostSessionView(onReclaim:onSignIn:)` — the `onStartOver` parameter is **replaced**, not added to.
-
-- [ ] **Step 1: Fill in `ParentSetupView`**
+Task 7 left this as a `ProgressView()` placeholder. It has to be real before Step 7 points every
+parent UI test at its button, or the whole parent suite ends this task red.
 
 ```swift
 import SwiftUI
@@ -1649,7 +1601,61 @@ struct ParentSetupView: View {
 }
 ```
 
-- [ ] **Step 2: Rework `LostSessionView`**
+- [ ] **Step 7: Repair every parent UI test**
+
+`ParentUITestCase.launchIntoParentMode()` taps `onboarding.parent` and then expects
+`createFamily.familyName` immediately. There are now two screens in between, so **every parent UI
+test fails without this**. In `App/ChoresUITests/ParentUITestCase.swift`, replace the two lines
+after the `onboarding.parent` tap with:
+
+```swift
+        XCTAssertTrue(app.buttons["onboarding.parent"].waitForExistence(timeout: 10))
+        app.buttons["onboarding.parent"].tap()
+
+        // Under `-ui-testing` this is an ordinary button backed by
+        // StubAppleTokenProvider — Apple's own sheet is system UI that XCTest
+        // cannot tap.
+        let signIn = app.buttons["parentSignIn.button"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+
+        let startFamily = app.buttons["parentSetup.createFamily"]
+        XCTAssertTrue(startFamily.waitForExistence(timeout: 10),
+                      "signing in with no family should offer to start one")
+        startFamily.tap()
+
+        let familyName = app.textFields["createFamily.familyName"]
+```
+
+Everything from `XCTAssertTrue(familyName.waitForExistence(timeout: 5))` onwards is unchanged.
+
+- [ ] **Step 8: Build and run the full UI suite**
+
+Run: `xcodebuild -project App/Chores.xcodeproj -scheme Chores -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test`
+Expected: TEST SUCCEEDED. Every parent test now walks through sign-in; a stall on a system sheet
+means the stub provider is not being selected, so check `AppEnvironment.live()` reads
+`isUITesting`.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add App/Chores/Auth App/Chores/Onboarding App/Chores/AppEnvironment.swift App/ChoresUITests/ParentUITestCase.swift
+git commit -m "Sign a parent in with Apple"
+```
+
+---
+
+### Task 10: A lost device gets a way back
+
+**Files:**
+- Modify: `App/Chores/Failure/LostSessionView.swift`
+- Modify: `App/Chores/RootView.swift`
+
+**Interfaces:**
+- Consumes: `ParentSignInView` from Task 9.
+- Produces: `LostSessionView(onReclaim:onSignIn:)` — the `onStartOver` parameter is **replaced**, not added to.
+
+- [ ] **Step 1: Rework `LostSessionView`**
 
 Its "Set up as a new family" button would now fail outright: the caller is anonymous and `create_family` refuses them. Replace the escape hatch with the one that works.
 
@@ -1689,7 +1695,7 @@ struct LostSessionView: View {
 
 The `@State private var isConfirmingStartOver` and its `confirmationDialog` are deleted with the old button.
 
-- [ ] **Step 3: Wire the new callback**
+- [ ] **Step 2: Wire the new callback**
 
 In `App/Chores/RootView.swift`, add `@State private var isSigningIn = false`, and in the `.unclaimed` branch replace the `LostSessionView` construction with:
 
@@ -1708,20 +1714,20 @@ In `App/Chores/RootView.swift`, add `@State private var isSigningIn = false`, an
 
 The `hasBeenClaimed = false` reset that `onStartOver` performed is no longer reachable from this screen; leave the `@AppStorage` property and its `onChange` writer alone.
 
-- [ ] **Step 4: Check the UI tests that touch this screen**
+- [ ] **Step 3: Check the UI tests that touch this screen**
 
 Run: `grep -rn "lostSession" App/ChoresUITests`
 `LostSessionUITests` asserts on `lostSession.startOver`. Update it to tap `lostSession.signIn` and assert that `parentSignIn.button` appears, replacing the assertion that it reaches onboarding.
 
-- [ ] **Step 5: Build and run the UI suite**
+- [ ] **Step 4: Build and run the UI suite**
 
 Run: `xcodebuild -project App/Chores.xcodeproj -scheme Chores -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:ChoresUITests/LostSessionUITests test`
 Expected: TEST SUCCEEDED.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add App/Chores/Onboarding/ParentSetupView.swift App/Chores/Failure/LostSessionView.swift App/Chores/RootView.swift App/ChoresUITests/LostSessionUITests.swift
+git add App/Chores/Failure/LostSessionView.swift App/Chores/RootView.swift App/ChoresUITests/LostSessionUITests.swift
 git commit -m "Offer a signed-in parent a family, and a lost device a way back"
 ```
 
@@ -2238,7 +2244,7 @@ secret = ""
 - [ ] **Step 3: Confirm the stack still starts**
 
 Run: `supabase stop && supabase start && supabase db reset && supabase test db`
-Expected: the stack starts without complaining about the Apple secret, and pgTAP passes 32 of 32.
+Expected: the stack starts without complaining about the Apple secret, and pgTAP passes 34 of 34.
 
 - [ ] **Step 4: Record the manual check**
 
@@ -2273,7 +2279,7 @@ supabase db reset && supabase test db
 xcodebuild -project App/Chores.xcodeproj -scheme Chores -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
-Expected: unit tests pass, pgTAP 32 of 32, UI suite green.
+Expected: unit tests pass, pgTAP 34 of 34, UI suite green.
 
 - [ ] **Step 7: Commit**
 
