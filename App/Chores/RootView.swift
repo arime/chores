@@ -43,8 +43,10 @@ struct RootView: View {
                 ParentRootView(environment: environment, profile: profile)
             case .child(let profile):
                 KidRootView(environment: environment, profile: profile)
-            case .unavailable:
+            case .unreachable:
                 BackendUnavailableView { await session.start() }
+            case .failed(let detail):
+                BackendFailureView(detail: detail) { await session.start() }
             }
         }
         .task { await session.start() }

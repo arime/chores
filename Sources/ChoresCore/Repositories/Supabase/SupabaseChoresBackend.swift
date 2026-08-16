@@ -42,10 +42,42 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
 
     public func signInAnonymouslyIfNeeded() async throws {
         try await run {
-            if client.auth.currentSession == nil {
+            guard client.auth.currentSession != nil else {
+                _ = try await client.auth.signInAnonymously()
+                return
+            }
+            // A stored session outlives the user it names more often than it
+            // looks: `supabase db reset` in development, a restore from backup
+            // in production. The keychain is untouched by either, and the JWT
+            // stays signed and unexpired, so requests keep being accepted while
+            // `auth.uid()` names a row that is gone. Nothing complains until the
+            // first profile write, which fails as a foreign key violation
+            // (`23503`) an unhelpful distance from the actual cause.
+            //
+            // Asking who we are is the only way to tell a live session from a
+            // hollow one, so it happens once per launch rather than being
+            // inferred.
+            do {
+                _ = try await client.auth.user()
+            } catch {
+                // Only a refusal from the server counts. Anything else — offline,
+                // a 500 — leaves the session alone: discarding a good session
+                // because the network blinked would strand a device that has a
+                // perfectly valid one, and whatever call comes next reports the
+                // failure on its own terms.
+                guard let authError = error as? AuthError,
+                      Self.serverDisownsSession(authError) else { return }
+                try? await client.auth.signOut()
                 _ = try await client.auth.signInAnonymously()
             }
         }
+    }
+
+    /// The server was reached and did not recognise the session — the user was
+    /// deleted, or the token no longer refers to anything it will honour.
+    private static func serverDisownsSession(_ error: AuthError) -> Bool {
+        [.userNotFound, .sessionNotFound, .sessionExpired, .badJWT,
+         .refreshTokenNotFound, .refreshTokenAlreadyUsed].contains(error.errorCode)
     }
 
     public func currentProfile() async throws -> Profile? {

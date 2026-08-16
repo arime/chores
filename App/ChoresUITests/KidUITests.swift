@@ -45,22 +45,42 @@ final class KidUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["0 of 2 done"].waitForExistence(timeout: 5))
     }
 
-    func testFutureDaysAreReadOnly() {
+    /// Both halves of `ScheduleResolver.eligibility(for:today:)`, whichever the
+    /// calendar allows to be reached today.
+    ///
+    /// The week view renders only the current ISO week, so `kidWeek.day.N` is
+    /// always day N of *this* week — it can never address next week. That leaves
+    /// Sunday with no later day to select, so on Sunday this asserts the
+    /// complementary rule instead: a day already past stays editable, because a
+    /// child may still tick off any earlier day in the current week. Asserting
+    /// the reachable rule beats skipping and leaving Sunday uncovered.
+    func testDayEditabilityFollowsPositionInTheWeek() {
         let app = launchAsKid()
         app.tabBars.buttons["Week"].tap()
 
-        let tomorrow = todayISOWeekday % 7 + 1
-        let dayButton = app.buttons["kidWeek.day.\(tomorrow)"]
+        // Sunday is the last day of the ISO week; every other day has a tomorrow
+        // inside it.
+        let isLastDayOfWeek = todayISOWeekday == 7
+        let target = isLastDayOfWeek ? todayISOWeekday - 1 : todayISOWeekday + 1
+
+        let dayButton = app.buttons["kidWeek.day.\(target)"]
         XCTAssertTrue(dayButton.waitForExistence(timeout: 5))
         dayButton.tap()
 
-        // Sunday is the last day of the ISO week, so "tomorrow" from Sunday falls
-        // in next week and gets the other message.
-        let expected = todayISOWeekday == 7
-            ? "This week only." : "You can tick these off on the day."
-        XCTAssertTrue(app.staticTexts[expected].waitForExistence(timeout: 5),
-                      "a day that hasn't happened yet should say so")
-        XCTAssertFalse(app.buttons["Bins"].isEnabled,
-                       "and its chores should not be tappable")
+        XCTAssertTrue(app.buttons["Bins"].waitForExistence(timeout: 5))
+
+        if isLastDayOfWeek {
+            XCTAssertTrue(app.buttons["Bins"].isEnabled,
+                          "an earlier day in the current week stays tickable")
+            XCTAssertFalse(app.staticTexts["You can tick these off on the day."].exists,
+                           "a day that has already happened is not in the future")
+        } else {
+            XCTAssertTrue(
+                app.staticTexts["You can tick these off on the day."]
+                    .waitForExistence(timeout: 5),
+                "a day that hasn't happened yet should say so")
+            XCTAssertFalse(app.buttons["Bins"].isEnabled,
+                           "and its chores should not be tappable")
+        }
     }
 }

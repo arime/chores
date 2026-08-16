@@ -52,10 +52,31 @@ import Foundation
 
     /// A paused project must not be mistaken for a fresh install, or the user gets
     /// sent to re-enter a claim code they do not need and cannot obtain.
-    @Test func backendFailureYieldsUnavailableRatherThanUnclaimed() async {
+    @Test func backendFailureYieldsUnreachableRatherThanUnclaimed() async {
         let model = SessionViewModel(backend: UnavailableBackend())
         await model.start()
-        #expect(model.state == .unavailable)
+        #expect(model.state == .unreachable)
+    }
+
+    /// A server that answers and refuses is not a connectivity problem, and
+    /// saying so cost real debugging time once: a missing GRANT surfaced as
+    /// "can't reach the server" while the stack was up and answering.
+    @Test func aRefusalKeepsItsMessageInsteadOfLookingLikeAnOutage() async {
+        let model = SessionViewModel(
+            backend: UnavailableBackend(
+                error: .underlying("permission denied for table profiles")))
+
+        await model.start()
+
+        #expect(model.state == .failed("permission denied for table profiles"))
+    }
+
+    /// Errors the mapping has no case for must still keep a lead, rather than
+    /// collapsing into the outage screen.
+    @Test func anUnrecognisedErrorIsReportedRatherThanBlamedOnTheNetwork() async {
+        let model = SessionViewModel(backend: UnavailableBackend(error: .notAuthenticated))
+        await model.start()
+        #expect(model.state == .failed("notAuthenticated"))
     }
 
     @Test func refreshPicksUpAProfileClaimedAfterStart() async throws {
