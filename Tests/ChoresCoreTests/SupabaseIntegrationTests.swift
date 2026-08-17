@@ -300,6 +300,26 @@ struct SupabaseIntegrationTests {
         #expect(status == 200, "admin delete failed with \(status)")
     }
 
+    /// Whether the admin API still knows this user, straight from the server —
+    /// not inferred from whether a local session still works.
+    static func authUserExists(_ id: String) async throws -> Bool {
+        let environment = ProcessInfo.processInfo.environment
+        let urlString = environment["SUPABASE_URL"] ?? "http://127.0.0.1:54321"
+        let key = try #require(
+            environment["SUPABASE_SERVICE_ROLE_KEY"],
+            "SUPABASE_SERVICE_ROLE_KEY must be set (see `supabase status -o env`)")
+
+        var request = URLRequest(
+            url: URL(string: "\(urlString)/auth/v1/admin/users/\(id)")!)
+        request.httpMethod = "GET"
+        request.setValue(key, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        return status == 200
+    }
+
     /// A stored session outlives the user it names whenever the auth table is
     /// rebuilt — `supabase db reset` in development, a restore from backup in
     /// production. Neither touches the keychain, and the token stays signed and
@@ -386,6 +406,27 @@ struct SupabaseIntegrationTests {
         _ = try await backend.createFamily(familyName: "Uusi", parentName: "Parent",
                                            timezone: "Europe/Helsinki")
         #expect(try await backend.currentProfile() != nil)
+    }
+
+    /// The App Review 5.1.1(v) path, seen through the real server on both
+    /// halves nothing else covers: the auth user is actually gone, and the
+    /// local session — which `deleteAccount()` signs out only after the RPC
+    /// succeeds, by which point it names a user the server no longer has — is
+    /// actually cleared rather than left behind for the next launch to trip
+    /// over.
+    @Test func deletingTheAccountRemovesTheAuthUserAndClearsLocalSession() async throws {
+        let storage = EphemeralStorage()
+        let backend = try await Self.makeSignedInBackend(storage: storage)
+        let userID = try #require(storage.storedUserID)
+        _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+
+        try await backend.deleteAccount()
+
+        #expect(try await Self.authUserExists(userID) == false,
+                "delete_account() should have removed the auth user")
+        #expect(storage.storedSession == nil,
+                "the local session must be cleared, not left naming a user that no longer exists")
     }
 
     @Test func deletingAChildTakesTheirHistoryAndSparesTheirSibling() async throws {
