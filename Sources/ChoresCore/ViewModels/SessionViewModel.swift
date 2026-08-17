@@ -3,7 +3,13 @@ import Observation
 
 public enum SessionState: Equatable, Sendable {
     case loading
-    /// Signed in, but this device is not bound to any profile yet.
+    /// No identity at all. The device has not said whether it belongs to a
+    /// parent or a child, and nothing has been signed in on its behalf.
+    case signedOut
+    /// Signed in with Apple, but bound to no profile — either a genuinely new
+    /// parent, or one who has just left a family.
+    case parentWithoutFamily
+    /// An anonymous device that has not yet claimed a code.
     case unclaimed
     case parent(Profile)
     case child(Profile)
@@ -33,18 +39,11 @@ public final class SessionViewModel {
 
     public func start() async {
         state = .loading
-        do {
-            if try await backend.currentIdentity() == .none {
-                try await backend.signInAnonymously()
-            }
-            try await load()
-        } catch {
-            state = Self.failure(for: error)
-        }
+        await refresh()
     }
 
-    /// Re-reads the profile without resetting to `.loading`. Called after
-    /// onboarding completes.
+    /// Re-reads identity and profile without resetting to `.loading`. Called
+    /// after onboarding completes and after any action that changes membership.
     public func refresh() async {
         do {
             try await load()
@@ -54,8 +53,13 @@ public final class SessionViewModel {
     }
 
     private func load() async throws {
+        let identity = try await backend.currentIdentity()
+        guard identity != .none else {
+            state = .signedOut
+            return
+        }
         guard let profile = try await backend.currentProfile() else {
-            state = .unclaimed
+            state = identity == .signedIn ? .parentWithoutFamily : .unclaimed
             return
         }
         state = profile.role == .parent ? .parent(profile) : .child(profile)

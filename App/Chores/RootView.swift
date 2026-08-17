@@ -24,10 +24,20 @@ struct RootView: View {
             switch session.state {
             case .loading:
                 ProgressView()
+            case .signedOut:
+                OnboardingView(environment: environment) {
+                    await session.refresh()
+                }
+            case .parentWithoutFamily:
+                ParentSetupView(environment: environment) {
+                    await session.refresh()
+                }
             case .unclaimed:
                 if !hasBeenClaimed {
-                    OnboardingView(environment: environment) {
-                        await session.refresh()
+                    NavigationStack {
+                        ClaimCodeView(environment: environment) {
+                            await session.refresh()
+                        }
                     }
                 } else if isReclaiming {
                     NavigationStack {
