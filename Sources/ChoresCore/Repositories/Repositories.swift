@@ -2,6 +2,11 @@ import Foundation
 
 public enum ChoresBackendError: Error, Equatable, Sendable {
     case notAuthenticated
+    /// The caller has a session, but an anonymous one, and the operation
+    /// requires a durable identity. Distinct from `notAuthenticated`: there the
+    /// caller has no session at all, while here the session is precisely the
+    /// problem — signing in again anonymously would not help.
+    case mustSignIn
     case alreadyClaimed
     case unknownClaimCode
     case claimCodeAlreadyUsed
