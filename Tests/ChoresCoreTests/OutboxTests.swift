@@ -178,6 +178,47 @@ import Foundation
         #expect(backend.completeCallCount == 0)
     }
 
+    /// The session-ending path: sign-out, leaving a family, or deleting the
+    /// account must not leave a write meant for the old family queued up to
+    /// fire into whatever family the device joins next.
+    @Test func clearEmptiesTheQueueAndPersistsIt() async throws {
+        let directory = try makeTestDirectory()
+        let backend = FlakyBackend()
+        backend.shouldFail = true
+        let outbox = Outbox(directory: directory, backend: backend)
+        await outbox.enqueue(completeOperation)
+
+        await outbox.clear()
+
+        #expect(await outbox.pendingCount == 0)
+        // The empty queue must be the one a relaunch finds too.
+        #expect(await Outbox(directory: directory, backend: backend).pendingCount == 0)
+    }
+
+    @Test func clearOnAnEmptyQueueIsHarmless() async throws {
+        let outbox = Outbox(directory: try makeTestDirectory(), backend: FlakyBackend())
+        await outbox.clear()
+        #expect(await outbox.pendingCount == 0)
+    }
+
+    /// Deleting a child must not leave a tick queued in their name — the
+    /// server would refuse it forever, since the profile it names is gone.
+    @Test func dropRemovesOnlyTheNamedProfilesOperationsAndPersists() async throws {
+        let directory = try makeTestDirectory()
+        let backend = FlakyBackend()
+        backend.shouldFail = true
+        let outbox = Outbox(directory: directory, backend: backend)
+        let otherProfileID = UUID()
+        await outbox.enqueue(completeOperation)
+        await outbox.enqueue(.complete(familyID: familyID, profileID: otherProfileID,
+                                       choreID: choreID, dueOn: day, completedBy: otherProfileID))
+
+        await outbox.drop(profileID: profileID)
+
+        #expect(await outbox.pendingCount == 1)
+        #expect(await Outbox(directory: directory, backend: backend).pendingCount == 1)
+    }
+
     @Test func corruptQueueFileIsTreatedAsEmpty() async throws {
         let directory = try makeTestDirectory()
         try Data("not json".utf8)

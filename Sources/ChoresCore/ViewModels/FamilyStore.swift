@@ -42,11 +42,23 @@ public final class FamilyStore {
     // MARK: Loading
 
     public func start() async {
-        if let cached = await cache.load() {
+        // A cached snapshot only belongs here if it names this store's own
+        // family. The cache is a single file shared by the whole app, so after
+        // a sign-out hands the device to a different parent — or after leaving
+        // one family and claiming into another — a stale snapshot for the
+        // previous family must never be adopted, online or off.
+        if let cached = await cache.load(), cached.family.id == familyID {
             snapshot = cached
             isStale = true          // provisional; the refresh below clears it
         }
         await refresh()
+    }
+
+    /// Drops any operations queued for a profile that no longer exists. Called
+    /// after deleting a child, so a tick queued for them cannot wedge every
+    /// completion queued after it.
+    public func dropQueuedOperations(for profileID: UUID) async {
+        await outbox.drop(profileID: profileID)
     }
 
     public func refresh() async {

@@ -90,6 +90,23 @@ public actor Outbox {
         return sent
     }
 
+    /// Drops everything queued. Called when a session ends — sign-out, leaving
+    /// a family, or deleting the account — so a write meant for the family just
+    /// left cannot land in whichever family the device signs into next.
+    public func clear() {
+        queue = []
+        persist()
+    }
+
+    /// Drops only the operations naming one profile. Called after deleting a
+    /// child, so a tick queued for them before deletion cannot wedge every
+    /// completion queued after it — the server would refuse it forever, since
+    /// the profile it names is now gone.
+    public func drop(profileID: UUID) {
+        queue.removeAll { $0.key.profileID == profileID }
+        persist()
+    }
+
     private func persist() {
         guard let data = try? ChoresJSON.encoder.encode(queue) else { return }
         try? data.write(to: fileURL, options: .atomic)
