@@ -67,6 +67,14 @@ public protocol ChoresBackend: Sendable {
     func addParent(familyID: UUID, name: String) async throws -> Profile
     func updateProfile(_ profile: Profile) async throws
     func generateClaimCode(profileID: UUID) async throws -> String
+    /// Removes the caller's own profile. Deletes the family too when no other
+    /// parent remains, since a family with no parent cannot be administered.
+    func leaveFamily() async throws
+    /// `leaveFamily()`, then removes the auth user. Required by App Review
+    /// guideline 5.1.1(v) once an app supports account creation.
+    func deleteAccount() async throws
+    /// Deletes a child and everything they have ever ticked off. Irreversible.
+    func deleteChild(profileID: UUID) async throws
 
     // MARK: Chores
 

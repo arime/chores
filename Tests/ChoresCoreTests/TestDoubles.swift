@@ -52,6 +52,15 @@ class ForwardingBackend: ChoresBackend, @unchecked Sendable {
     func generateClaimCode(profileID: UUID) async throws -> String {
         try await inner.generateClaimCode(profileID: profileID)
     }
+    func leaveFamily() async throws {
+        try await inner.leaveFamily()
+    }
+    func deleteAccount() async throws {
+        try await inner.deleteAccount()
+    }
+    func deleteChild(profileID: UUID) async throws {
+        try await inner.deleteChild(profileID: profileID)
+    }
     func addChore(familyID: UUID, name: String, icon: String?) async throws -> Chore {
         try await inner.addChore(familyID: familyID, name: name, icon: icon)
     }
@@ -139,6 +148,9 @@ final class UnavailableBackend: ChoresBackend, @unchecked Sendable {
     func generateClaimCode(profileID: UUID) async throws -> String {
         throw error
     }
+    func leaveFamily() async throws { throw error }
+    func deleteAccount() async throws { throw error }
+    func deleteChild(profileID: UUID) async throws { throw error }
     func addChore(familyID: UUID, name: String, icon: String?) async throws -> Chore {
         throw error
     }

@@ -178,6 +178,73 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
         }
     }
 
+    public func leaveFamily() async throws {
+        guard let profile = try await currentProfile() else {
+            throw ChoresBackendError.notAuthenticated
+        }
+        withStore { store in
+            let otherParents = store.profiles.values.filter {
+                $0.familyID == profile.familyID && $0.role == .parent && $0.id != profile.id
+            }
+            if otherParents.isEmpty {
+                Self.deleteFamily(profile.familyID, in: store)
+            } else {
+                Self.deleteProfile(profile.id, in: store)
+            }
+        }
+    }
+
+    public func deleteAccount() async throws {
+        if try await currentProfile() != nil { try await leaveFamily() }
+        withStore { store in
+            if let userID = sessionUserID {
+                store.appleUsers = store.appleUsers.filter { $0.value != userID }
+            }
+        }
+        try await signOut()
+    }
+
+    public func deleteChild(profileID: UUID) async throws {
+        guard let me = try await currentProfile(), me.role == .parent else {
+            throw ChoresBackendError.underlying("only a parent may delete a child")
+        }
+        let target = withStore { $0.profiles[profileID] }
+        guard let target, target.familyID == me.familyID else {
+            throw ChoresBackendError.underlying("profile not in caller family")
+        }
+        guard target.role == .child else {
+            throw ChoresBackendError.underlying("only a child may be deleted")
+        }
+        withStore { Self.deleteProfile(profileID, in: $0) }
+    }
+
+    /// Mirrors the database's `on delete cascade` from `profiles`.
+    private static func deleteProfile(_ id: UUID, in store: Store) {
+        store.profiles[id] = nil
+        store.completions.removeAll { $0.profileID == id }
+        store.template = store.template.filter { $0.value.profileID != id }
+        store.claimCodes = store.claimCodes.filter { $0.value.profileID != id }
+        // `completed_by` is `on delete set null`, not a cascade.
+        store.completions = store.completions.map {
+            $0.completedBy == id
+                ? Completion(id: $0.id, familyID: $0.familyID, profileID: $0.profileID,
+                             choreID: $0.choreID, dueOn: $0.dueOn,
+                             completedAt: $0.completedAt, completedBy: nil)
+                : $0
+        }
+    }
+
+    /// Mirrors the database's `on delete cascade` from `families`.
+    private static func deleteFamily(_ id: UUID, in store: Store) {
+        for profile in store.profiles.values where profile.familyID == id {
+            deleteProfile(profile.id, in: store)
+        }
+        store.chores = store.chores.filter { $0.value.familyID != id }
+        store.template = store.template.filter { $0.value.familyID != id }
+        store.completions.removeAll { $0.familyID == id }
+        store.families[id] = nil
+    }
+
     // MARK: Chores
 
     public func addChore(familyID: UUID, name: String, icon: String?) async throws -> Chore {
