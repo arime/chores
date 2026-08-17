@@ -211,6 +211,25 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
         }
     }
 
+    public func leaveFamily() async throws {
+        try await run { _ = try await client.rpc("leave_family").execute() }
+    }
+
+    public func deleteAccount() async throws {
+        try await run { _ = try await client.rpc("delete_account").execute() }
+        // The session now names a user that no longer exists. Clearing it here
+        // saves `currentIdentity()` a round trip to discover that.
+        try? await client.auth.signOut()
+    }
+
+    public func deleteChild(profileID: UUID) async throws {
+        try await run {
+            _ = try await client
+                .rpc("delete_child", params: ["p_profile_id": profileID])
+                .execute()
+        }
+    }
+
     // MARK: Chores
 
     public func addChore(familyID: UUID, name: String, icon: String?) async throws -> Chore {

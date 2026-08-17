@@ -299,4 +299,44 @@ import Foundation
         // activeChores excludes archived
         #expect(snapshot.activeChores.map(\.name) == ["Bins"])
     }
+
+    @Test func leavingRemovesYouAndFreesYouToStartAgain() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "ari", nonce: "n")
+        _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+
+        try await backend.leaveFamily()
+
+        #expect(try await backend.currentProfile() == nil)
+        // The point of leaving: create_family refuses a caller who already has a
+        // profile, so leaving must actually clear it.
+        _ = try await backend.createFamily(familyName: "Uusi", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+        #expect(try await backend.currentProfile() != nil)
+    }
+
+    @Test func deletingAChildTakesTheirCompletionsAndLeavesSiblingsAlone() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "ari", nonce: "n")
+        let familyID = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                                      timezone: "Europe/Helsinki")
+        let doomed = try await backend.addChild(familyID: familyID, name: "A",
+                                                color: "#FF8800", sortOrder: 0)
+        let sibling = try await backend.addChild(familyID: familyID, name: "B",
+                                                 color: "#1DB954", sortOrder: 1)
+        let chore = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
+        let monday = CalendarDay(year: 2026, month: 8, day: 10)
+        try await backend.complete(familyID: familyID, profileID: doomed.id, choreID: chore.id,
+                                   dueOn: monday, completedBy: doomed.id)
+        try await backend.complete(familyID: familyID, profileID: sibling.id, choreID: chore.id,
+                                   dueOn: monday, completedBy: sibling.id)
+
+        try await backend.deleteChild(profileID: doomed.id)
+
+        let snapshot = try await backend.fetchSnapshot(familyID: familyID, weekOf: monday)
+        #expect(!snapshot.profiles.contains { $0.id == doomed.id })
+        #expect(snapshot.completions.count == 1)
+        #expect(snapshot.completions.first?.profileID == sibling.id)
+    }
 }
