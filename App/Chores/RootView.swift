@@ -13,6 +13,7 @@ struct RootView: View {
     /// screen with a different remedy.
     @AppStorage(AppEnvironment.hasBeenClaimedKey) private var hasBeenClaimed = false
     @State private var isReclaiming = false
+    @State private var isSigningIn = false
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -43,9 +44,15 @@ struct RootView: View {
                             await session.refresh()
                         }
                     }
+                } else if isSigningIn {
+                    NavigationStack {
+                        ParentSignInView(environment: environment) {
+                            await session.refresh()
+                        }
+                    }
                 } else {
                     LostSessionView(onReclaim: { isReclaiming = true },
-                                    onStartOver: { hasBeenClaimed = false })
+                                    onSignIn: { isSigningIn = true })
                 }
             case .parent(let profile):
                 ParentRootView(environment: environment, profile: profile)

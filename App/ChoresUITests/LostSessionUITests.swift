@@ -27,35 +27,15 @@ final class LostSessionUITests: XCTestCase {
     }
 
     /// The screen used to offer nothing but a code. If the family is genuinely
-    /// gone no code can exist, and the only escape was deleting the app.
-    func testStartingOverReachesOnboarding() {
+    /// gone no code can exist, and the only escape was deleting the app. Now the
+    /// escape is signing in as a parent — the database refuses anonymous callers
+    /// trying to start a new family, so that option is gone entirely.
+    func testSigningInIsOfferedSecond() {
         let app = launchLost()
 
-        app.buttons["lostSession.startOver"].tap()
+        app.buttons["lostSession.signIn"].tap()
 
-        // Destructive enough to confirm, so that a child cannot wander into it.
-        let confirm = app.buttons["Start a new family"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5),
-                      "starting over should ask first")
-        confirm.tap()
-
-        XCTAssertTrue(app.buttons["onboarding.parent"].waitForExistence(timeout: 5),
-                      "confirming should reach onboarding, not leave the device stuck")
-    }
-
-    func testCancellingStartOverLeavesTheDeviceAlone() {
-        let app = launchLost()
-
-        app.buttons["lostSession.startOver"].tap()
-        XCTAssertTrue(app.buttons["Start a new family"].waitForExistence(timeout: 5))
-
-        // SwiftUI presents this dialog popover-style here, which drops the explicit
-        // cancel button in favour of tapping outside. Dismiss the way the platform
-        // actually offers rather than the way the code asks for.
-        app.otherElements["PopoverDismissRegion"].tap()
-
-        XCTAssertTrue(app.staticTexts["This device isn't set up"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["onboarding.parent"].exists,
-                       "cancelling must not drop the device into onboarding")
+        XCTAssertTrue(app.buttons["parentSignIn.button"].waitForExistence(timeout: 5),
+                      "signing in should reach the parent sign-in screen, not leave the device stuck")
     }
 }
