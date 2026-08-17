@@ -87,6 +87,8 @@ public final class OnboardingViewModel {
             return "Couldn't start a session. Try restarting the app."
         case .mustSignIn:
             return "Only a parent who has signed in with Apple can start or join a family. Sign in with Apple, then try again."
+        case .notPermitted:
+            return "You're not able to do that."
         case .underlying(let detail):
             return detail
         case nil:

@@ -17,6 +17,7 @@ public enum SupabaseErrorMapping {
             case "P0002": return .claimCodeAlreadyUsed
             case "P0003": return .claimCodeExpired
             case "P0004": return .mustSignIn
+            case "P0005": return .notPermitted
             default:      return .underlying(postgrestError.message)
             }
         }
