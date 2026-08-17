@@ -115,7 +115,10 @@ struct PeopleView: View {
                            isOwnProfile: parent.id == me.id)
         }
         .confirmationDialog("Delete \(deleting?.displayName ?? "")?",
-                            isPresented: .constant(deleting != nil),
+                            isPresented: Binding(
+                                get: { deleting != nil },
+                                set: { isPresented in if !isPresented { deleting = nil } }
+                            ),
                             titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 if let child = deleting { Task { await delete(child) } }
