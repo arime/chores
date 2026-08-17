@@ -7,6 +7,10 @@ import ChoresCore
 struct ParentSignInView: View {
     let environment: AppEnvironment
     let onFinished: () async -> Void
+    /// Non-nil only when this view is presented as the root of its own
+    /// navigation stack, where nothing else offers a way back. Pushed
+    /// presentations rely on the system back button and leave this nil.
+    var onCancel: (() -> Void)? = nil
 
     @State private var isBusy = false
     @State private var errorMessage: String?
@@ -62,6 +66,13 @@ struct ParentSignInView: View {
         .padding(32)
         .navigationTitle("Parent")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let onCancel {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { onCancel() }
+                }
+            }
+        }
     }
 
     private func signIn() async {

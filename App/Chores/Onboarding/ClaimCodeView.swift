@@ -3,11 +3,18 @@ import ChoresCore
 
 struct ClaimCodeView: View {
     let onFinished: () async -> Void
+    /// Non-nil only when this view is presented as the root of its own
+    /// navigation stack, where nothing else offers a way back. Pushed
+    /// presentations rely on the system back button and leave this nil.
+    let onCancel: (() -> Void)?
 
     @State private var model: OnboardingViewModel
 
-    init(environment: AppEnvironment, onFinished: @escaping () async -> Void) {
+    init(environment: AppEnvironment,
+         onFinished: @escaping () async -> Void,
+         onCancel: (() -> Void)? = nil) {
         self.onFinished = onFinished
+        self.onCancel = onCancel
         _model = State(initialValue: OnboardingViewModel(backend: environment.backend))
     }
 
@@ -49,6 +56,13 @@ struct ClaimCodeView: View {
         }
         .navigationTitle("Enter code")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let onCancel {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { onCancel() }
+                }
+            }
+        }
     }
 }
 

@@ -42,12 +42,16 @@ struct RootView: View {
                     NavigationStack {
                         ClaimCodeView(environment: environment) {
                             await session.refresh()
+                        } onCancel: {
+                            isReclaiming = false
                         }
                     }
                 } else if isSigningIn {
                     NavigationStack {
                         ParentSignInView(environment: environment) {
                             await session.refresh()
+                        } onCancel: {
+                            isSigningIn = false
                         }
                     }
                 } else {
@@ -70,6 +74,7 @@ struct RootView: View {
             case .parent, .child:
                 hasBeenClaimed = true
                 isReclaiming = false
+                isSigningIn = false
             default:
                 break
             }
