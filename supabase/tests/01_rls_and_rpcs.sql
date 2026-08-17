@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(38);
+select plan(45);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -256,6 +256,22 @@ select lives_ok(
 -- Leaving a family, and deleting an account
 -- ---------------------------------------------------------------------------
 
+-- The parent-only-RPC guards this branch added all share one SQLSTATE
+-- (P0005): none of them is reachable except through UI already restricted to
+-- who may try, so the app has one honest, generic response for all of them.
+-- leave_family()'s bare guard, exercised here by a caller who was never bound
+-- to any profile, is one of them.
+select tests.auth_as('c0000000-0000-0000-0000-000000000002', false);
+select throws_ok(
+  $$select public.leave_family()$$,
+  'caller has no profile', 'leave_family refuses a caller with no profile');
+
+-- Pinned separately from the message, the same way P0004 is above: the
+-- five-character form is read by pgTAP as a SQLSTATE, not a message.
+select throws_ok(
+  $$select public.leave_family()$$,
+  'P0005');
+
 -- Leaving with another parent present removes only the leaver.
 select tests.as_admin();
 insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000002');
@@ -277,6 +293,17 @@ select isnt(
      where id = '11111111-1111-1111-1111-111111111111'),
   0,
   'and the family survives because another parent remains');
+
+-- delete_account()'s own bare guard, sharing the same P0005 as leave_family()'s
+-- above. tests.as_admin() clears request.jwt.claims entirely, which is what
+-- makes auth.uid() null here regardless of the calling role.
+select tests.as_admin();
+select throws_ok(
+  $$select public.delete_account()$$,
+  'not authenticated', 'delete_account refuses a caller with no session');
+select throws_ok(
+  $$select public.delete_account()$$,
+  'P0005');
 
 -- Deleting an account removes the auth user too. Note: not
 -- 'a0000000-0000-0000-0000-000000000001' (Parent A's original auth id) — the
@@ -396,10 +423,17 @@ select throws_ok(
   $$select public.delete_child('bbbb0000-0000-0000-0000-000000000001')$$,
   'profile not in caller family',
   'a parent cannot delete a child in another family');
+-- Pinned separately from the message, the same way P0004 is above.
+select throws_ok(
+  $$select public.delete_child('bbbb0000-0000-0000-0000-000000000001')$$,
+  'P0005');
 select throws_ok(
   $$select public.delete_child('aaaa0000-0000-0000-0000-000000000005')$$,
   'only a child may be deleted',
   'delete_child refuses a parent target');
+select throws_ok(
+  $$select public.delete_child('aaaa0000-0000-0000-0000-000000000005')$$,
+  'P0005');
 
 -- A child cannot use it at all. Child A's original auth id is used because,
 -- unlike Parent A's, it was never rebound by anything above.
@@ -408,6 +442,9 @@ select throws_ok(
   $$select public.delete_child('aaaa0000-0000-0000-0000-000000000007')$$,
   'only a parent may delete a child',
   'a child cannot delete anyone');
+select throws_ok(
+  $$select public.delete_child('aaaa0000-0000-0000-0000-000000000007')$$,
+  'P0005');
 
 -- ---------------------------------------------------------------------------
 -- A completion outlives the person who recorded it

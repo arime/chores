@@ -11,6 +11,12 @@ public enum ChoresBackendError: Error, Equatable, Sendable {
     case unknownClaimCode
     case claimCodeAlreadyUsed
     case claimCodeExpired
+    /// A guard inside a parent-only RPC refused the call — the caller had no
+    /// profile, wasn't a parent, or named someone outside their family. Every
+    /// path that can reach one of these guards is already restricted to who
+    /// is allowed to try, so this exists to be an honest error rather than a
+    /// polished one: it should never actually reach a person.
+    case notPermitted
     /// The project is paused or unreachable. Kept distinct because the remedy is
     /// resuming a paused project, not retrying — and a generic "network error"
     /// would send the maintainer debugging the app instead.

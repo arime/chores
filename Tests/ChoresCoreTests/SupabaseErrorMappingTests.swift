@@ -15,6 +15,15 @@ import Supabase
             PostgrestError(code: "P0003", message: "code expired")) == .claimCodeExpired)
     }
 
+    /// The shared code for every parent-only-RPC guard this branch added:
+    /// leave_family()'s and delete_account()'s bare guards, and delete_child()'s
+    /// three. See 20260816100500_ways_out_sqlstate.sql.
+    @Test func mapsSharedNotPermittedCode() {
+        #expect(SupabaseErrorMapping.map(
+            PostgrestError(code: "P0005", message: "profile not in caller family"))
+            == .notPermitted)
+    }
+
     @Test func mapsOfflineAndUnreachableHostToProjectUnavailable() {
         #expect(SupabaseErrorMapping.map(URLError(.notConnectedToInternet)) == .projectUnavailable)
         #expect(SupabaseErrorMapping.map(URLError(.cannotFindHost)) == .projectUnavailable)
