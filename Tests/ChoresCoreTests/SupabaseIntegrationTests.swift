@@ -69,6 +69,25 @@ struct SupabaseIntegrationTests {
                 return user["id"] as? String
             }
         }
+
+        /// Writes a session obtained over HTTP into the SDK's own storage slot,
+        /// so the backend comes up already signed in.
+        func plantSession(from signupResponse: Data) throws {
+            let wire = try JSONSerialization.jsonObject(with: signupResponse) as? [String: Any]
+            // The SDK encodes camelCase, the wire is snake_case.
+            let session: [String: Any] = [
+                "accessToken": wire?["access_token"] as Any,
+                "refreshToken": wire?["refresh_token"] as Any,
+                "expiresIn": wire?["expires_in"] as Any,
+                "expiresAt": wire?["expires_at"] as Any,
+                "tokenType": wire?["token_type"] as Any,
+                "user": wire?["user"] as Any
+            ]
+            lock.withLock {
+                values["sb-127-auth-token"] =
+                    try? JSONSerialization.data(withJSONObject: session)
+            }
+        }
     }
 
     static func makeBackend(
@@ -83,11 +102,43 @@ struct SupabaseIntegrationTests {
                                      sessionStorage: storage)
     }
 
+    /// A confirmed email user, signed in, with the session planted in `storage`.
+    ///
+    /// Apple cannot be automated, but the rule under test is `is_anonymous`, not
+    /// which provider was used — so this exercises the real server on the real
+    /// code path a parent takes.
+    static func makeSignedInBackend(storage: EphemeralStorage) async throws
+        -> SupabaseChoresBackend {
+        let environment = ProcessInfo.processInfo.environment
+        let urlString = environment["SUPABASE_URL"] ?? "http://127.0.0.1:54321"
+        let anonKey = try #require(environment["SUPABASE_ANON_KEY"])
+        let email = "parent-\(UUID().uuidString)@example.com"
+
+        var request = URLRequest(url: URL(string: "\(urlString)/auth/v1/signup")!)
+        request.httpMethod = "POST"
+        request.setValue(anonKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "email": email, "password": "hunter2hunter2"
+        ])
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        #expect(status == 200, "signup failed with \(status)")
+
+        let backend = try makeBackend(storage: storage)
+        try await storage.plantSession(from: data)
+        return backend
+    }
+
     @Test func fullParentAndChildLifecycle() async throws {
-        let parent = try Self.makeBackend()
+        // A parent must hold a durable identity to bootstrap a family — the
+        // rule Task 2 added at the database. Everything below the child's
+        // claim stays anonymous, because that is the real shape of a child
+        // device.
+        let parent = try await Self.makeSignedInBackend(storage: EphemeralStorage())
 
         // A fresh device is signed in but unclaimed.
-        try await parent.signInAnonymously()
         #expect(try await parent.currentProfile() == nil)
 
         // create_family() bootstraps the family and the parent profile together.
@@ -200,8 +251,9 @@ struct SupabaseIntegrationTests {
 
     /// RLS enforcement seen through the real client, not just through psql.
     @Test func rlsPreventsChildFromWritingParentOnlyTables() async throws {
-        let parent = try Self.makeBackend()
-        try await parent.signInAnonymously()
+        // Signed-in parent, anonymous child — the same split as above, and for
+        // the same reason: the RLS rules under test here depend on it.
+        let parent = try await Self.makeSignedInBackend(storage: EphemeralStorage())
         let familyID = try await parent.createFamily(
             familyName: "RLS Koti", parentName: "Parent", timezone: "Europe/Helsinki")
         let child = try await parent.addChild(familyID: familyID, name: "Kid",
@@ -275,12 +327,14 @@ struct SupabaseIntegrationTests {
         #expect(storage.storedSession == nil,
                 "the disowned session must be cleared, not carried forward")
 
-        // The device can still sign in again on its own, now that the dead
-        // session is out of the way.
-        try await relaunched.signInAnonymously()
-        _ = try await relaunched.createFamily(
+        // The device can still recover on its own, now that the dead session
+        // is out of the way. A real parent's recovery path is signing in with
+        // Apple again; createFamily now requires a durable identity, so the
+        // stand-in here is the same signed-in path the rest of the suite uses.
+        let recovered = try await Self.makeSignedInBackend(storage: storage)
+        _ = try await recovered.createFamily(
             familyName: "Recovered Koti", parentName: "Parent", timezone: "Europe/Helsinki")
-        let profile = try #require(try await relaunched.currentProfile())
+        let profile = try #require(try await recovered.currentProfile())
         #expect(profile.role == .parent)
     }
 
