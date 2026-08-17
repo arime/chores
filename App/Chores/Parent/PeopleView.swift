@@ -16,6 +16,7 @@ struct PeopleView: View {
     @State private var editing: Profile?
     @State private var showingCodeFor: Profile?
     @State private var errorMessage: String?
+    @State private var deleting: Profile?
 
     private var children: [Profile] { store.snapshot?.children ?? [] }
     private var parents: [Profile] { store.snapshot?.parents ?? [] }
@@ -45,6 +46,11 @@ struct PeopleView: View {
                         }
                     }
                     .tint(.primary)
+                    .accessibilityIdentifier("people.child.\(child.displayName)")
+                    .swipeActions(edge: .trailing) {
+                        Button("Delete", role: .destructive) { deleting = child }
+                            .accessibilityIdentifier("people.deleteChild.\(child.displayName)")
+                    }
                 }
                 if children.isEmpty {
                     Text("No children yet.").foregroundStyle(.secondary)
@@ -108,6 +114,22 @@ struct PeopleView: View {
             ClaimCodeSheet(profile: parent, backend: backend,
                            isOwnProfile: parent.id == me.id)
         }
+        .confirmationDialog("Delete \(deleting?.displayName ?? "")?",
+                            isPresented: .constant(deleting != nil),
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                if let child = deleting { Task { await delete(child) } }
+            }
+            Button("Cancel", role: .cancel) { deleting = nil }
+        } message: {
+            // Naming what goes, rather than asking "are you sure?", which invites
+            // a reflex yes.
+            Text("""
+                This removes \(deleting?.displayName ?? "") from the family, takes them off \
+                the schedule, and deletes everything they've ever ticked off. This cannot be \
+                undone.
+                """)
+        }
     }
 
     private func addChild() async {
@@ -138,7 +160,20 @@ struct PeopleView: View {
             errorMessage = "Couldn't add \(name). Check your connection and try again."
         }
     }
+
+    private func delete(_ child: Profile) async {
+        do {
+            try await backend.deleteChild(profileID: child.id)
+            deleting = nil
+            errorMessage = nil
+            await store.reloadAfterEdit()
+        } catch {
+            deleting = nil
+            errorMessage = "Couldn't delete \(child.displayName). Check your connection and try again."
+        }
+    }
 }
 
-// Deleting anyone is deliberately absent: it raises questions about completion
-// history, and for parents about who may remove whom, that v1 does not answer.
+// Only children can be deleted here. Removing another parent raises a separate
+// question about who may evict whom; each parent leaves under their own account
+// from Manage instead.
