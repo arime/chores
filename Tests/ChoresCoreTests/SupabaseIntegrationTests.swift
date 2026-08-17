@@ -358,4 +358,86 @@ struct SupabaseIntegrationTests {
         #expect(storage.storedSession == session,
                 "a transport failure must not be read as the server disowning us")
     }
+
+    /// The rule the whole design rests on, seen through the real server.
+    @Test func anAnonymousCallerCannotCreateAFamily() async throws {
+        let backend = try Self.makeBackend()
+        try await backend.signInAnonymously()
+
+        await #expect(throws: ChoresBackendError.self) {
+            _ = try await backend.createFamily(familyName: "Sneaky", parentName: "Kid",
+                                               timezone: "Europe/Helsinki")
+        }
+    }
+
+    @Test func aSignedInParentCanCreateLeaveAndStartAgain() async throws {
+        let storage = EphemeralStorage()
+        let backend = try await Self.makeSignedInBackend(storage: storage)
+        #expect(try await backend.currentIdentity() == .signedIn)
+
+        _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+        #expect(try await backend.currentProfile() != nil)
+
+        try await backend.leaveFamily()
+        #expect(try await backend.currentProfile() == nil)
+
+        // Leaving is only worth anything if it frees you to start over.
+        _ = try await backend.createFamily(familyName: "Uusi", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+        #expect(try await backend.currentProfile() != nil)
+    }
+
+    @Test func deletingAChildTakesTheirHistoryAndSparesTheirSibling() async throws {
+        let storage = EphemeralStorage()
+        let backend = try await Self.makeSignedInBackend(storage: storage)
+        let familyID = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                                       timezone: "Europe/Helsinki")
+        let doomed = try await backend.addChild(familyID: familyID, name: "A",
+                                                color: "#FF8800", sortOrder: 0)
+        let sibling = try await backend.addChild(familyID: familyID, name: "B",
+                                                 color: "#1DB954", sortOrder: 1)
+        let chore = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
+        let monday = CalendarDay(year: 2026, month: 8, day: 10)
+        try await backend.complete(familyID: familyID, profileID: doomed.id, choreID: chore.id,
+                                   dueOn: monday, completedBy: doomed.id)
+        try await backend.complete(familyID: familyID, profileID: sibling.id, choreID: chore.id,
+                                   dueOn: monday, completedBy: sibling.id)
+
+        try await backend.deleteChild(profileID: doomed.id)
+
+        let snapshot = try await backend.fetchSnapshot(familyID: familyID, weekOf: monday)
+        #expect(!snapshot.profiles.contains { $0.id == doomed.id })
+        #expect(snapshot.completions.count == 1)
+    }
+
+    /// A parent who ticks a chore off for a child, then leaves, must not take the
+    /// child's record with them.
+    @Test func aDepartingParentLeavesTheChildrensHistoryIntact() async throws {
+        let storage = EphemeralStorage()
+        let first = try await Self.makeSignedInBackend(storage: storage)
+        let familyID = try await first.createFamily(familyName: "Koti", parentName: "First",
+                                                     timezone: "Europe/Helsinki")
+        let child = try await first.addChild(familyID: familyID, name: "Kid",
+                                             color: "#FF8800", sortOrder: 0)
+        let chore = try await first.addChore(familyID: familyID, name: "Bins", icon: nil)
+        let monday = CalendarDay(year: 2026, month: 8, day: 10)
+        let me = try #require(try await first.currentProfile())
+        try await first.complete(familyID: familyID, profileID: child.id, choreID: chore.id,
+                                 dueOn: monday, completedBy: me.id)
+
+        // A second parent, so leaving does not delete the family outright.
+        let secondSeat = try await first.addParent(familyID: familyID, name: "Second")
+        let code = try await first.generateClaimCode(profileID: secondSeat.id)
+        let secondStorage = EphemeralStorage()
+        let second = try await Self.makeSignedInBackend(storage: secondStorage)
+        _ = try await second.claimProfile(code: code)
+
+        try await first.leaveFamily()
+
+        let snapshot = try await second.fetchSnapshot(familyID: familyID, weekOf: monday)
+        #expect(snapshot.completions.count == 1,
+                "the child's record must outlive the parent who entered it")
+        #expect(snapshot.completions.first?.completedBy == nil)
+    }
 }
