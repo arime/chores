@@ -7,6 +7,15 @@ import Foundation
 /// schedule-entry uniqueness in particular — so that a test passing here means
 /// something about the real backend.
 ///
+/// One rule it does not enforce: the database now refuses to bind a parent
+/// profile to an anonymous auth user, in both `create_family()` and
+/// `claim_profile()` (see 20260816100100_parents_must_sign_in.sql). Neither
+/// method here checks that, because roughly fourteen tests call
+/// `signInAnonymously()` then `createFamily(...)` — a sequence the real
+/// database refuses — and making the fake honest here means rewriting all of
+/// them, which is a task of its own. Until then, a test that exercises that
+/// boundary through this fake proves nothing about the real backend.
+///
 /// Shared state lives in a reference box so `newDevice()` can simulate a second
 /// device talking to the same "server".
 public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
