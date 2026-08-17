@@ -364,7 +364,7 @@ struct SupabaseIntegrationTests {
         let backend = try Self.makeBackend()
         try await backend.signInAnonymously()
 
-        await #expect(throws: ChoresBackendError.self) {
+        await #expect(throws: ChoresBackendError.mustSignIn) {
             _ = try await backend.createFamily(familyName: "Sneaky", parentName: "Kid",
                                                timezone: "Europe/Helsinki")
         }
