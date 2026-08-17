@@ -54,6 +54,13 @@ public final class OnboardingViewModel {
         errorMessage = nil
 
         do {
+            // A child arrives here with no identity; a second parent arrives
+            // already signed in with Apple. Only the former needs one minting,
+            // and minting one for the latter would discard what makes them a
+            // parent.
+            if try await backend.currentIdentity() == .none {
+                try await backend.signInAnonymously()
+            }
             _ = try await backend.claimProfile(code: trimmed)
             return true
         } catch {

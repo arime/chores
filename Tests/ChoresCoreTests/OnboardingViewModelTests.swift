@@ -155,4 +155,42 @@ import Foundation
         #expect(await model.claim())
         #expect(model.errorMessage == nil)
     }
+
+    /// The child door is the only place an anonymous identity is created now that
+    /// launch no longer does it.
+    @Test func claimingSignsInAnonymouslyWhenTheDeviceHasNoIdentity() async throws {
+        let parentBackend = InMemoryChoresBackend()
+        try await parentBackend.signInWithApple(idToken: "ari", nonce: "n")
+        let familyID = try await parentBackend.createFamily(
+            familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
+        let child = try await parentBackend.addChild(familyID: familyID, name: "Kid",
+                                                     color: "#FF8800", sortOrder: 0)
+        let code = try await parentBackend.generateClaimCode(profileID: child.id)
+
+        let kidBackend = parentBackend.newDevice()
+        let model = OnboardingViewModel(backend: kidBackend)
+        model.code = code
+
+        #expect(await model.claim())
+        #expect(try await kidBackend.currentIdentity() == .anonymous)
+    }
+
+    /// A second parent reaches the same screen already signed in. Signing them in
+    /// anonymously would throw away the identity that makes them a parent.
+    @Test func claimingLeavesAnExistingIdentityAlone() async throws {
+        let parentBackend = InMemoryChoresBackend()
+        try await parentBackend.signInWithApple(idToken: "ari", nonce: "n")
+        let familyID = try await parentBackend.createFamily(
+            familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
+        let second = try await parentBackend.addParent(familyID: familyID, name: "Other")
+        let code = try await parentBackend.generateClaimCode(profileID: second.id)
+
+        let secondDevice = parentBackend.newDevice()
+        try await secondDevice.signInWithApple(idToken: "other", nonce: "n")
+        let model = OnboardingViewModel(backend: secondDevice)
+        model.code = code
+
+        #expect(await model.claim())
+        #expect(try await secondDevice.currentIdentity() == .signedIn)
+    }
 }
