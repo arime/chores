@@ -9,7 +9,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(36);
+select plan(38);
 
 -- ---------------------------------------------------------------------------
 -- Helpers
@@ -193,6 +193,13 @@ select throws_ok(
   'parents must sign in',
   'an anonymous caller cannot create a family');
 
+-- The mapping from SQLSTATE to app error depends on this exact code, so it
+-- gets its own assertion rather than riding along with the message check.
+-- The five-character form is read by pgTAP as a SQLSTATE, not a message.
+select throws_ok(
+  $$select public.create_family('Sneaky', 'Kid', 'Europe/Helsinki')$$,
+  'P0004');
+
 -- The same caller, signed in, may. The auth.users row must exist first:
 -- create_family inserts a profile whose auth_user_id references it, so without
 -- this the call fails on the foreign key rather than proving anything.
@@ -215,6 +222,12 @@ select throws_ok(
   $$select public.claim_profile('PARENT')$$,
   'parents must sign in',
   'an anonymous caller cannot claim a parent profile');
+
+-- Same reasoning as above: pin the sqlstate on its own, separate from the
+-- message assertion just above.
+select throws_ok(
+  $$select public.claim_profile('PARENT')$$,
+  'P0004');
 
 select tests.auth_as('e0000000-0000-0000-0000-000000000001', false);
 select lives_ok(

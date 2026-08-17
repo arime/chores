@@ -78,6 +78,8 @@ public final class OnboardingViewModel {
             return "Can't reach the server. Check your connection and try again."
         case .notAuthenticated:
             return "Couldn't start a session. Try restarting the app."
+        case .mustSignIn:
+            return "Only a parent who has signed in with Apple can start or join a family. Sign in with Apple, then try again."
         case .underlying(let detail):
             return detail
         case nil:
