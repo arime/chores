@@ -1,18 +1,15 @@
 import SwiftUI
 
-/// Shown when a device that was set up no longer maps to a profile — for example
-/// after the profile was removed server-side.
+/// Shown when an anonymous device that was set up no longer maps to a profile.
 ///
-/// A claim code is the usual remedy, so it leads. Full onboarding is offered
-/// second and quietly, because a child who takes it would start a family of
-/// their own by mistake — but it must be offered: if the family really is gone,
-/// a code is impossible to obtain and this screen would otherwise be a dead end
-/// with no way out but deleting the app.
+/// A claim code is the usual remedy, so it leads. Signing in is offered second:
+/// if this is really a parent's device, their family is one sign-in away, and
+/// without it a family that has genuinely gone would leave this screen a dead
+/// end. A child can no longer start a family here by mistake — the database
+/// refuses an anonymous caller — which is what the old wording was worried about.
 struct LostSessionView: View {
     let onReclaim: () -> Void
-    let onStartOver: () -> Void
-
-    @State private var isConfirmingStartOver = false
+    let onSignIn: () -> Void
 
     var body: some View {
         ContentUnavailableView {
@@ -25,24 +22,12 @@ struct LostSessionView: View {
                     .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("lostSession.reclaim")
 
-                Button("Set up as a new family") { isConfirmingStartOver = true }
+                Button("I'm a parent — sign in") { onSignIn() }
                     .font(.footnote)
-                    .accessibilityIdentifier("lostSession.startOver")
+                    .accessibilityIdentifier("lostSession.signIn")
             }
-        }
-        .confirmationDialog("Set up as a new family?",
-                            isPresented: $isConfirmingStartOver,
-                            titleVisibility: .visible) {
-            Button("Start a new family", role: .destructive) { onStartOver() }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("""
-                Only do this if your family is really gone. If it still exists on another \
-                device, ask for a code instead — starting over here creates a second, \
-                separate family.
-                """)
         }
     }
 }
 
-#Preview { LostSessionView(onReclaim: {}, onStartOver: {}) }
+#Preview { LostSessionView(onReclaim: {}, onSignIn: {}) }
