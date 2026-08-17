@@ -5,9 +5,36 @@ import Foundation
 @MainActor
 @Suite struct SessionViewModelTests {
 
-    @Test func startWithNoProfileYieldsUnclaimed() async {
-        let model = SessionViewModel(backend: InMemoryChoresBackend())
+    /// Launch must not mint an identity for someone who has not said who they are.
+    /// A parent device that did so would leave an orphaned anonymous user behind on
+    /// every first run.
+    @Test func startWithNoIdentityYieldsSignedOutWithoutSigningAnyoneIn() async throws {
+        let backend = InMemoryChoresBackend()
+        let model = SessionViewModel(backend: backend)
+
         await model.start()
+
+        #expect(model.state == .signedOut)
+        #expect(try await backend.currentIdentity() == .none)
+    }
+
+    @Test func anAppleIdentityWithNoProfileWantsToStartOrJoinAFamily() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "ari", nonce: "n")
+
+        let model = SessionViewModel(backend: backend)
+        await model.start()
+
+        #expect(model.state == .parentWithoutFamily)
+    }
+
+    @Test func anAnonymousIdentityWithNoProfileIsAwaitingACode() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInAnonymously()
+
+        let model = SessionViewModel(backend: backend)
+        await model.start()
+
         #expect(model.state == .unclaimed)
     }
 
@@ -91,6 +118,7 @@ import Foundation
         let code = try await parentBackend.generateClaimCode(profileID: child.id)
 
         let kidBackend = parentBackend.newDevice()
+        try await kidBackend.signInAnonymously()
         let model = SessionViewModel(backend: kidBackend)
         await model.start()
         #expect(model.state == .unclaimed)
