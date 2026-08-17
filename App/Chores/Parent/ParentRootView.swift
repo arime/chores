@@ -128,7 +128,7 @@ struct ManageView: View {
                 Button("Cancel", role: .cancel) { }
             } message: {
                 Text(isLastParent
-                     ? "This deletes your Apple sign-in for Chores and the whole family with it. This cannot be undone."
+                     ? "You're the only parent, so this deletes your Apple sign-in for Chores along with the family, the children, the chores and all their history. This cannot be undone."
                      : "This deletes your Apple sign-in for Chores and removes you from the family. This cannot be undone.")
             }
             .alert("Something went wrong", isPresented: .constant(errorMessage != nil)) {
