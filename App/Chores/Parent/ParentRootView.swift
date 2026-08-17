@@ -27,7 +27,7 @@ struct ParentRootView: View {
             ParentWeekView(store: store, parent: profile)
                 .tabItem { Label("Week", systemImage: "calendar") }
 
-            ManageView(store: store, backend: environment.backend, parent: profile,
+            ManageView(store: store, environment: environment, parent: profile,
                        onSessionChanged: onSessionChanged)
                 .tabItem { Label("Manage", systemImage: "gearshape") }
         }
@@ -37,7 +37,7 @@ struct ParentRootView: View {
 
 struct ManageView: View {
     let store: FamilyStore
-    let backend: any ChoresBackend
+    let environment: AppEnvironment
     let parent: Profile
     let onSessionChanged: () async -> Void
 
@@ -53,17 +53,17 @@ struct ManageView: View {
             List {
                 Section {
                     NavigationLink {
-                        PeopleView(store: store, backend: backend, me: parent)
+                        PeopleView(store: store, backend: environment.backend, me: parent)
                     } label: {
                         Label("People", systemImage: "person.2")
                     }
                     NavigationLink {
-                        ChoresView(store: store, backend: backend)
+                        ChoresView(store: store, backend: environment.backend)
                     } label: {
                         Label("Chores", systemImage: "list.bullet")
                     }
                     NavigationLink {
-                        ScheduleEditorView(store: store, backend: backend)
+                        ScheduleEditorView(store: store, backend: environment.backend)
                     } label: {
                         Label("Schedule", systemImage: "calendar.badge.clock")
                     }
@@ -86,7 +86,7 @@ struct ManageView: View {
 
                 Section {
                     Button("Sign out") {
-                        Task { await perform { try await backend.signOut() } }
+                        Task { await perform { try await environment.backend.signOut() } }
                     }
                     .accessibilityIdentifier("manage.signOut")
 
@@ -107,12 +107,12 @@ struct ManageView: View {
             }
             .navigationTitle("Manage")
             .sheet(isPresented: $isShowingOwnCode) {
-                ClaimCodeSheet(profile: parent, backend: backend, isOwnProfile: true)
+                ClaimCodeSheet(profile: parent, backend: environment.backend, isOwnProfile: true)
             }
             .confirmationDialog("Leave this family?",
                                 isPresented: $isConfirmingLeave, titleVisibility: .visible) {
                 Button("Leave", role: .destructive) {
-                    Task { await perform { try await backend.leaveFamily() } }
+                    Task { await perform { try await environment.backend.leaveFamily() } }
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
@@ -123,7 +123,7 @@ struct ManageView: View {
             .confirmationDialog("Delete your account?",
                                 isPresented: $isConfirmingDelete, titleVisibility: .visible) {
                 Button("Delete account", role: .destructive) {
-                    Task { await perform { try await backend.deleteAccount() } }
+                    Task { await perform { try await environment.backend.deleteAccount() } }
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
@@ -141,9 +141,19 @@ struct ManageView: View {
 
     /// Every one of these ends the session, so the root has to re-read it —
     /// staying on a Manage screen for a family you just left would be a ghost.
+    ///
+    /// The cache and outbox are cleared here too, not just on the root's next
+    /// read: `SnapshotCache` holds one snapshot for the whole app, and without
+    /// this, a different parent signing in on this device — or this parent
+    /// claiming into a different family — would see this family's data until
+    /// the next successful fetch replaces it, or forever if offline. Queued
+    /// writes for a family the device is leaving must not fire into whatever
+    /// family it joins next either.
     private func perform(_ action: @escaping () async throws -> Void) async {
         do {
             try await action()
+            await environment.snapshotCache.clear()
+            await environment.outbox.clear()
             await onSessionChanged()
         } catch {
             errorMessage = "Couldn't do that. Check your connection and try again."

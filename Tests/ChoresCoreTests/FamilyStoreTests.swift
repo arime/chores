@@ -214,6 +214,32 @@ import Foundation
         #expect(store.errorMessage != nil)
     }
 
+    /// `SnapshotCache` holds one file for the whole app. After a sign-out hands
+    /// the device to a different parent — or after leaving one family and
+    /// claiming into another — a store constructed for the new family must
+    /// never adopt a cached snapshot left behind by the old one. Proven
+    /// offline, where nothing else would ever correct it: online, a
+    /// successful refresh happens to paper over the same bug within the same
+    /// call to `start()`.
+    @Test func startIgnoresACachedSnapshotForADifferentFamilyEvenOffline() async throws {
+        let fixture = try await makeFixture()
+        await fixture.store.start()   // populates the cache with fixture.familyID
+
+        let otherFamilyID = UUID()
+        let now = Self.mondayNoon
+        let offlineOtherFamily = FamilyStore(
+            backend: UnavailableBackend(),
+            cache: SnapshotCache(directory: fixture.directory),
+            outbox: Outbox(directory: fixture.directory, backend: UnavailableBackend()),
+            familyID: otherFamilyID,
+            clock: { now })
+        await offlineOtherFamily.start()
+
+        #expect(offlineOtherFamily.snapshot == nil,
+                "family A's cached snapshot must not be adopted for family B's store")
+        #expect(offlineOtherFamily.errorMessage != nil)
+    }
+
     @Test func recoveringFromStaleClearsTheFlag() async throws {
         let fixture = try await makeFixture()
         await fixture.store.start()

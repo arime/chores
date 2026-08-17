@@ -167,6 +167,10 @@ struct PeopleView: View {
     private func delete(_ child: Profile) async {
         do {
             try await backend.deleteChild(profileID: child.id)
+            // A tick queued for them before deletion would otherwise wedge
+            // every completion queued after it — the server will refuse it
+            // forever, since the profile it names is now gone.
+            await store.dropQueuedOperations(for: child.id)
             deleting = nil
             errorMessage = nil
             await store.reloadAfterEdit()
