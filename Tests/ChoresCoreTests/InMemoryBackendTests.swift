@@ -339,4 +339,30 @@ import Foundation
         #expect(snapshot.completions.count == 1)
         #expect(snapshot.completions.first?.profileID == sibling.id)
     }
+
+    @Test func leavingWithAnotherParentPresentRemovesOnlyYou() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "ari", nonce: "n")
+        let familyID = try await backend.createFamily(familyName: "Koti", parentName: "Ari",
+                                                       timezone: "Europe/Helsinki")
+        let otherParent = try await backend.addParent(familyID: familyID, name: "Bo")
+        let code = try await backend.generateClaimCode(profileID: otherParent.id)
+        let child = try await backend.addChild(familyID: familyID, name: "Kid",
+                                               color: "#FF8800", sortOrder: 0)
+
+        let otherDevice = backend.newDevice()
+        try await otherDevice.signInWithApple(idToken: "bo", nonce: "n")
+        _ = try await otherDevice.claimProfile(code: code)
+
+        let departing = try #require(try await backend.currentProfile())
+        try await backend.leaveFamily()
+
+        // The family survives, and only the departing parent is gone — a cascade
+        // that took too much with it would show up as a missing survivor here.
+        let snapshot = try await otherDevice.fetchSnapshot(
+            familyID: familyID, weekOf: CalendarDay(year: 2026, month: 8, day: 10))
+        #expect(!snapshot.profiles.contains { $0.id == departing.id })
+        #expect(snapshot.profiles.contains { $0.id == otherParent.id })
+        #expect(snapshot.profiles.contains { $0.id == child.id })
+    }
 }

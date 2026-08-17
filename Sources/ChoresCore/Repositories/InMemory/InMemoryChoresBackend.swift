@@ -195,6 +195,7 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
     }
 
     public func deleteAccount() async throws {
+        guard sessionUserID != nil else { throw ChoresBackendError.notAuthenticated }
         if try await currentProfile() != nil { try await leaveFamily() }
         withStore { store in
             if let userID = sessionUserID {
