@@ -84,8 +84,10 @@ struct ParentSignInView: View {
             try await environment.backend.signInWithApple(idToken: token.idToken,
                                                           nonce: token.nonce)
             await onFinished()
-        } catch is CancellationError {
-            // The user backed out of Apple's sheet; nothing to report.
+        } catch let error as ASAuthorizationError where error.code == .canceled {
+            // The user backed out of Apple's sheet; nothing to report. Apple
+            // reports this as ASAuthorizationError.canceled, not Swift's
+            // CancellationError — the two are unrelated types.
         } catch {
             errorMessage = "Couldn't sign in. Please try again."
         }
