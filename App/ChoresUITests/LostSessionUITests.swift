@@ -38,4 +38,33 @@ final class LostSessionUITests: XCTestCase {
         XCTAssertTrue(app.buttons["parentSignIn.button"].waitForExistence(timeout: 5),
                       "signing in should reach the parent sign-in screen, not leave the device stuck")
     }
+
+    /// Both escapes are presented as the root of a fresh stack with no back
+    /// button. A cancel affordance is the only way out, and it must actually
+    /// land back on this screen — not just exist.
+    func testCancellingSignInReturnsToLostSession() {
+        let app = launchLost()
+
+        app.buttons["lostSession.signIn"].tap()
+        XCTAssertTrue(app.buttons["parentSignIn.button"].waitForExistence(timeout: 5),
+                      "should have reached the parent sign-in screen before cancelling")
+
+        app.buttons["Cancel"].tap()
+
+        XCTAssertTrue(app.buttons["lostSession.reclaim"].waitForExistence(timeout: 5),
+                      "cancelling sign-in should return to the lost-session screen, not strand the device")
+    }
+
+    func testCancellingReclaimReturnsToLostSession() {
+        let app = launchLost()
+
+        app.buttons["lostSession.reclaim"].tap()
+        XCTAssertTrue(app.textFields.firstMatch.waitForExistence(timeout: 5),
+                      "should have reached the claim-code screen before cancelling")
+
+        app.buttons["Cancel"].tap()
+
+        XCTAssertTrue(app.buttons["lostSession.signIn"].waitForExistence(timeout: 5),
+                      "cancelling the claim-code screen should return to the lost-session screen, not strand the device")
+    }
 }
