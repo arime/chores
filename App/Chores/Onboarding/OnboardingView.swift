@@ -21,7 +21,7 @@ struct OnboardingView: View {
                 Spacer()
 
                 NavigationLink("I'm a parent") {
-                    CreateFamilyView(environment: environment, onFinished: onFinished)
+                    ParentSignInView(environment: environment, onFinished: onFinished)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)

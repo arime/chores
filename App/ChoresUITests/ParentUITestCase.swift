@@ -18,6 +18,18 @@ class ParentUITestCase: XCTestCase {
         XCTAssertTrue(app.buttons["onboarding.parent"].waitForExistence(timeout: 10))
         app.buttons["onboarding.parent"].tap()
 
+        // Under `-ui-testing` this is an ordinary button backed by
+        // StubAppleTokenProvider — Apple's own sheet is system UI that XCTest
+        // cannot tap.
+        let signIn = app.buttons["parentSignIn.button"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+
+        let startFamily = app.buttons["parentSetup.createFamily"]
+        XCTAssertTrue(startFamily.waitForExistence(timeout: 10),
+                      "signing in with no family should offer to start one")
+        startFamily.tap()
+
         let familyName = app.textFields["createFamily.familyName"]
         XCTAssertTrue(familyName.waitForExistence(timeout: 5))
         familyName.tap()

@@ -32,6 +32,14 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["onboarding.parent"].waitForExistence(timeout: 10))
         app.buttons["onboarding.parent"].tap()
 
+        let signIn = app.buttons["parentSignIn.button"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+
+        let startFamily = app.buttons["parentSetup.createFamily"]
+        XCTAssertTrue(startFamily.waitForExistence(timeout: 10))
+        startFamily.tap()
+
         let familyName = app.textFields["createFamily.familyName"]
         XCTAssertTrue(familyName.waitForExistence(timeout: 5))
         familyName.tap()
@@ -56,6 +64,14 @@ final class OnboardingUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["onboarding.parent"].waitForExistence(timeout: 10))
         app.buttons["onboarding.parent"].tap()
+
+        let signIn = app.buttons["parentSignIn.button"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+
+        let startFamily = app.buttons["parentSetup.createFamily"]
+        XCTAssertTrue(startFamily.waitForExistence(timeout: 10))
+        startFamily.tap()
 
         XCTAssertTrue(app.buttons["createFamily.submit"].waitForExistence(timeout: 5))
         app.buttons["createFamily.submit"].tap()

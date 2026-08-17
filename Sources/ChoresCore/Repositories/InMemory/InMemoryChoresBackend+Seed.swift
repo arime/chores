@@ -39,4 +39,18 @@ extension InMemoryChoresBackend {
         }
         return child
     }
+
+    /// Marks the device as already claimed anonymously, with no profile — the
+    /// state a device is in once its profile is removed elsewhere, which is
+    /// what `LostSessionView` exists for.
+    ///
+    /// The real path there is `signInAnonymously()`, called at launch when
+    /// `currentIdentity()` comes back `.none`. That is async, and `AppEnvironment`'s
+    /// `-ui-testing-lost-session` fixture builds its environment synchronously,
+    /// before `RootView` ever reads state — so this seam sets the same fields
+    /// `signInAnonymously()` would, without a suspension point to await.
+    public func seedLostSession() {
+        sessionUserID = UUID()
+        sessionIsAnonymous = true
+    }
 }

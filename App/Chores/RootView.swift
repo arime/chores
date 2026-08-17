@@ -34,10 +34,8 @@ struct RootView: View {
                 }
             case .unclaimed:
                 if !hasBeenClaimed {
-                    NavigationStack {
-                        ClaimCodeView(environment: environment) {
-                            await session.refresh()
-                        }
+                    OnboardingView(environment: environment) {
+                        await session.refresh()
                     }
                 } else if isReclaiming {
                     NavigationStack {

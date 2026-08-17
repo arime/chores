@@ -7,11 +7,13 @@ final class AppEnvironment {
     let backend: any ChoresBackend
     let snapshotCache: SnapshotCache
     let outbox: Outbox
+    let appleTokens: any AppleTokenProviding
 
-    init(backend: any ChoresBackend, directory: URL) {
+    init(backend: any ChoresBackend, directory: URL, appleTokens: any AppleTokenProviding) {
         self.backend = backend
         self.snapshotCache = SnapshotCache(directory: directory)
         self.outbox = Outbox(directory: directory, backend: backend)
+        self.appleTokens = appleTokens
     }
 
     /// UI tests launch with this flag so they run against in-memory fakes: no
@@ -78,10 +80,25 @@ final class AppEnvironment {
             return AppEnvironment(
                 backend: backend,
                 directory: FileManager.default.temporaryDirectory
-                    .appendingPathComponent(UUID().uuidString))
+                    .appendingPathComponent(UUID().uuidString),
+                appleTokens: StubAppleTokenProvider())
         }
-        if arguments.contains(uiTestFlag) || arguments.contains(uiTestLostSessionFlag) {
+        if arguments.contains(uiTestFlag) {
             return .preview()
+        }
+        if arguments.contains(uiTestLostSessionFlag) {
+            // `.preview()`'s backend starts with no session at all, which reads as
+            // `.signedOut` rather than the claimed-but-profileless state this flag
+            // names — `seedLostSession()` puts it in the state `signInAnonymously()`
+            // would reach live, without an async call this synchronous factory
+            // cannot await.
+            let backend = InMemoryChoresBackend()
+            backend.seedLostSession()
+            return AppEnvironment(
+                backend: backend,
+                directory: FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString),
+                appleTokens: StubAppleTokenProvider())
         }
         let (urlString, anonKey) = credentials
         guard let url = URL(string: urlString), url.host != nil, !anonKey.isEmpty else {
@@ -93,7 +110,8 @@ final class AppEnvironment {
         }
         return AppEnvironment(
             backend: SupabaseChoresBackend(url: url, anonKey: anonKey),
-            directory: SnapshotCache.defaultDirectory())
+            directory: SnapshotCache.defaultDirectory(),
+            appleTokens: isUITesting ? StubAppleTokenProvider() : AppleSignInProvider())
     }
 
     /// Backed by in-memory fakes, for SwiftUI previews. A fresh temporary
@@ -102,6 +120,7 @@ final class AppEnvironment {
         AppEnvironment(
             backend: InMemoryChoresBackend(),
             directory: FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString))
+                .appendingPathComponent(UUID().uuidString),
+            appleTokens: StubAppleTokenProvider())
     }
 }
