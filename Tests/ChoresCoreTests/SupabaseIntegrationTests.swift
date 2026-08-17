@@ -127,7 +127,7 @@ struct SupabaseIntegrationTests {
         #expect(status == 200, "signup failed with \(status)")
 
         let backend = try makeBackend(storage: storage)
-        try await storage.plantSession(from: data)
+        try storage.plantSession(from: data)
         return backend
     }
 
