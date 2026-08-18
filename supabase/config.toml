@@ -305,10 +305,13 @@ max_frequency = "5s"
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 [auth.external.apple]
-enabled = false
-client_id = ""
-# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
-secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
+enabled = true
+client_id = "com.metsahalme.Chores"
+# Empty on purpose. The secret serves the OAuth *web* flow; this app uses the
+# native flow, where signInWithIdToken sends Apple's identity token directly and
+# the server needs only client_id to check the token's `aud` claim. Pointing this
+# at an environment variable nobody sets would fail the stack on start.
+secret = ""
 # Overrides the default auth redirectUrl.
 redirect_uri = ""
 # Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,

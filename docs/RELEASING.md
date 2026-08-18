@@ -51,7 +51,41 @@ back to Debug afterwards: the scheme is shared, so it changes what everyone's �
        xcodebuild -project App/Chores.xcodeproj -scheme Chores \
          -destination 'platform=iOS Simulator,name=iPhone 17' test
 
-4. Xcode → Any iOS Device → Product → Archive → Distribute → TestFlight.
+4. Sign in with Apple has **no automated coverage**, and cannot have any — no test can mint an
+   Apple identity token, and XCTest cannot drive Apple's system sheet. The whole UI suite runs
+   against a stub provider, so the production button and the real sign-in path are exercised by
+   nothing. Check them by hand on a real device before every TestFlight build:
+
+   - Tap the Sign in with Apple button itself. It is a `SignInWithAppleButton` with hit-testing
+     disabled and a transparent `Button` overlaid, so confirm it actually receives the tap.
+   - Sign in and create a family.
+   - Cancel Apple's sheet on a second attempt: it must return quietly, with no error message.
+   - Force-quit and relaunch — the family must return with no code.
+   - Delete the app, reinstall, sign in again — the family must return again. That is the whole
+     point of the feature, and the only step that proves it.
+
+5. Xcode → Any iOS Device → Product → Archive → Distribute → TestFlight.
+
+## Sign in with Apple: one-time setup
+
+Three things, none of them in the repository, all needed before a build can sign anyone in.
+
+**Xcode.** Select the Chores target → Signing & Capabilities → **+ Capability** → **Sign In with
+Apple**. This creates the project's first `.entitlements` file, sets `CODE_SIGN_ENTITLEMENTS`, and
+regenerates the provisioning profile with the capability attached. Without it,
+`ASAuthorizationController.performRequests()` fails outright — and nothing in the test suite
+notices, because the suite never reaches it. Confirm afterwards:
+
+    grep -n CODE_SIGN_ENTITLEMENTS App/Chores.xcodeproj/project.pbxproj
+    plutil -p App/Chores/Chores.entitlements
+
+**Hosted Supabase.** Authentication → Providers → **Apple** → enable, and put
+`com.metsahalme.Chores` in Client IDs. Leave the Secret Key fields empty: they serve the OAuth web
+flow, while native `signInWithIdToken` needs only the client ID so the server can check the token's
+`aud` claim. Leave anonymous sign-ins enabled — children still depend on them.
+
+**Local** is already configured: `[auth.external.apple]` in `supabase/config.toml` is enabled with
+the same client ID.
 
 ## TestFlight
 
