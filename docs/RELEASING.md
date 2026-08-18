@@ -66,18 +66,45 @@ back to Debug afterwards: the scheme is shared, so it changes what everyone's �
 
 5. Xcode → Any iOS Device → Product → Archive → Distribute → TestFlight.
 
-## Sign in with Apple: one-time setup
+## Sign in with Apple: what makes it work
 
-Three things, none of them in the repository, all needed before a build can sign anyone in.
+**The entitlement is in the repository.** `App/Chores/Chores.entitlements` declares
+`com.apple.developer.applesignin`, and both Chores build configurations point at it through
+`CODE_SIGN_ENTITLEMENTS`, so a fresh clone already builds a binary that can sign someone in. Do not
+add the capability again in Signing & Capabilities — Xcode would write a second entitlements file
+beside the tracked one.
 
-**Xcode.** Select the Chores target → Signing & Capabilities → **+ Capability** → **Sign In with
-Apple**. This creates the project's first `.entitlements` file, sets `CODE_SIGN_ENTITLEMENTS`, and
-regenerates the provisioning profile with the capability attached. Without it,
-`ASAuthorizationController.performRequests()` fails outright — and nothing in the test suite
-notices, because the suite never reaches it. Confirm afterwards:
+Recognise the failure it causes, because nothing in it names the cause. Without the entitlement,
+`akd` refuses the request before any network call and logs
+`AKAuthenticationError Code=-7026`; `AuthenticationServices` flattens that into
+`ASAuthorizationError Code=1000`, and the app shows "Couldn't sign in". Nothing in the test suite
+notices, because the suite never reaches it.
+
+Two cheap checks, worth running whenever the signing configuration changes:
 
     grep -n CODE_SIGN_ENTITLEMENTS App/Chores.xcodeproj/project.pbxproj
     plutil -p App/Chores/Chores.entitlements
+
+Neither proves the entitlement survives into a build, and **only a device build can**. Xcode writes
+an empty entitlements blob for simulator destinations, so a simulator binary shows nothing here and
+that absence means nothing:
+
+    xcodebuild -project App/Chores.xcodeproj -scheme Chores \
+      -destination 'generic/platform=iOS' -configuration Debug build
+    codesign -d --entitlements - --xml \
+      ~/Library/Developer/Xcode/DerivedData/Chores-*/Build/Products/Debug-iphoneos/Chores.app \
+      | plutil -p -
+
+`com.apple.developer.applesignin` must appear alongside `application-identifier`.
+
+Two things stay outside the repository.
+
+**The App ID.** `com.metsahalme.Chores` needs Sign in with Apple enabled on the developer portal, or
+the profile cannot carry the entitlement and signing fails. Automatic signing enables it and
+regenerates the profile on the next device build. To see what the current profile permits:
+
+    security cms -D -i ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*.mobileprovision \
+      | plutil -extract Entitlements xml1 -o - - | plutil -p -
 
 **Hosted Supabase.** Authentication → Providers → **Apple** → enable, and put
 `com.metsahalme.Chores` in Client IDs. Leave the Secret Key fields empty: they serve the OAuth web
