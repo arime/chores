@@ -20,6 +20,18 @@ struct KidTodayView: View {
 
     var body: some View {
         NavigationStack {
+            content
+                .navigationTitle(store.today.formattedLong(in: store.timeZone))
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        // "Nothing today. Enjoy it." is the wrong thing to promise for the moment
+        // before the first snapshot lands, so wait it out with a spinner.
+        if store.isLoading {
+            ProgressView()
+        } else {
             List {
                 if store.isStale {
                     StaleBanner(fetchedAt: store.snapshot?.fetchedAt)
@@ -52,8 +64,6 @@ struct KidTodayView: View {
                     }
                 }
             }
-            .navigationTitle(store.today.formattedLong(in: store.timeZone))
-            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await store.refresh() }
         }
     }

@@ -13,6 +13,18 @@ struct ParentTodayView: View {
 
     var body: some View {
         NavigationStack {
+            content
+                .navigationTitle(store.today.formattedLong(in: store.timeZone))
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        // A spinner until the first snapshot settles: without it "No children yet"
+        // flashes at every launch, before the family has arrived.
+        if store.isLoading {
+            ProgressView()
+        } else {
             List {
                 if store.isStale {
                     StaleBanner(fetchedAt: store.snapshot?.fetchedAt)
@@ -54,8 +66,6 @@ struct ParentTodayView: View {
                                            description: Text("Add them under Manage → People."))
                 }
             }
-            .navigationTitle(store.today.formattedLong(in: store.timeZone))
-            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await store.refresh() }
         }
     }

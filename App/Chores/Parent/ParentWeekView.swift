@@ -16,6 +16,22 @@ struct ParentWeekView: View {
 
     var body: some View {
         NavigationStack {
+            content
+                .navigationTitle("This week")
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(item: $selection) { selected in
+                    DayDetailView(store: store, child: selected.child, day: selected.day,
+                                  parent: parent)
+                }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        // As on Today: a spinner beats flashing "No children yet" while the first
+        // snapshot is still in flight.
+        if store.isLoading {
+            ProgressView()
+        } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if store.isStale {
@@ -75,13 +91,7 @@ struct ParentWeekView: View {
                 }
                 .padding(.vertical)
             }
-            .navigationTitle("This week")
-            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await store.refresh() }
-            .navigationDestination(item: $selection) { selected in
-                DayDetailView(store: store, child: selected.child, day: selected.day,
-                              parent: parent)
-            }
         }
     }
 }

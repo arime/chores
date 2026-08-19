@@ -110,6 +110,25 @@ final class FlakyBackend: ForwardingBackend, @unchecked Sendable {
     }
 }
 
+/// A backend whose snapshot fetch parks until released, so a test can inspect
+/// what a screen would be drawing while the first refresh is still in flight.
+final class GatedBackend: ForwardingBackend, @unchecked Sendable {
+    private(set) var isFetching = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    override func fetchSnapshot(familyID: UUID, weekOf day: CalendarDay) async throws -> FamilySnapshot {
+        isFetching = true
+        await withCheckedContinuation { waiting.append($0) }
+        return try await super.fetchSnapshot(familyID: familyID, weekOf: day)
+    }
+
+    func release() {
+        let pending = waiting
+        waiting = []
+        pending.forEach { $0.resume() }
+    }
+}
+
 /// Fails every call with the same error. The default, `.projectUnavailable`,
 /// stands in for a paused project or a device with no connectivity; pass another
 /// to exercise a backend that answers and refuses.

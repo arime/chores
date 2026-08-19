@@ -18,6 +18,8 @@ public final class FamilyStore {
     public private(set) var snapshot: FamilySnapshot?
     /// True when what's on screen came from cache after a failed refresh.
     public private(set) var isStale: Bool = false
+    /// Set once the first load has settled, whether it found data or not.
+    public private(set) var hasLoaded: Bool = false
     /// Set only when there is nothing to show at all; a stale snapshot is shown
     /// with a banner instead of an error.
     public private(set) var errorMessage: String?
@@ -34,6 +36,12 @@ public final class FamilyStore {
         self.clock = clock
     }
 
+    /// True only while there is genuinely nothing to draw yet. Screens show a
+    /// spinner for this rather than their empty state, which would otherwise
+    /// flash "no children yet" at every launch before the snapshot lands. A
+    /// cached snapshot is drawn immediately, so this stays false in that case.
+    public var isLoading: Bool { !hasLoaded && snapshot == nil }
+
     public var timeZone: TimeZone { snapshot?.family.timeZone ?? .current }
 
     /// The current day in the family's timezone — never a UTC day.
@@ -49,7 +57,10 @@ public final class FamilyStore {
         // previous family must never be adopted, online or off.
         if let cached = await cache.load(), cached.family.id == familyID {
             snapshot = cached
-            isStale = true          // provisional; the refresh below clears it
+            // Deliberately not marked stale yet. Whether this snapshot is the
+            // best available is unknown until the refresh below answers, and
+            // guessing "stale" in the meantime flashes the banner on every
+            // launch that then succeeds. The catch in `refresh` raises it.
         }
         await refresh()
     }
@@ -75,6 +86,7 @@ public final class FamilyStore {
             isStale = snapshot != nil
             errorMessage = snapshot == nil ? Self.message(for: error) : nil
         }
+        hasLoaded = true
     }
 
     /// Called after a parent edits children, chores, or the schedule.

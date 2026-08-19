@@ -16,6 +16,18 @@ struct KidWeekView: View {
 
     var body: some View {
         NavigationStack {
+            content
+                .navigationTitle(day.formattedLong(in: store.timeZone))
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        // Same reason as Today: an empty week is a claim about the schedule, and
+        // there is no schedule yet until the first snapshot arrives.
+        if store.isLoading {
+            ProgressView()
+        } else {
             VStack(spacing: 0) {
                 HStack(spacing: 6) {
                     ForEach(week, id: \.self) { candidate in
@@ -69,8 +81,6 @@ struct KidWeekView: View {
                     }
                 }
             }
-            .navigationTitle(day.formattedLong(in: store.timeZone))
-            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await store.refresh() }
         }
     }
