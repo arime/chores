@@ -211,9 +211,51 @@ of `true`, Xcode would renumber the build during upload.
 team, and skips Beta App Review entirely — builds land minutes after processing. This
 is what a family app wants.
 
+Adding people to the team costs nothing beyond the membership, but each internal tester
+needs **their own Apple ID** and has to accept an invitation. Apple's minimum age for an
+Apple ID the person controls is 13 in most of Europe, and a child account managed through
+Family Sharing cannot become an App Store Connect user — Family Sharing does not share
+TestFlight builds either. For a child below that age the options are a device signed into
+a parent's Apple ID, or the Release build described under "Installing a Release build
+without TestFlight" above, which lasts twelve months on a paid membership.
+
+The other cost is access: the roles that can receive builds can also edit app metadata or
+touch certificates. Give the least-privileged role that still works.
+
 **External** testing reaches up to 10,000 testers by public link, and needs Beta App
 Review plus test notes and a contact address. Review is lighter than the App Store's
 but is still a queue.
+
+Two things have to exist before any external build can go anywhere, and both are one-time
+web tasks that no CLI replaces:
+
+- **Test Information** (TestFlight → Test Information): beta description, feedback email,
+  contact details, privacy policy URL. Until it is complete, external distribution is
+  impossible — and it fails quietly, while internal testing keeps working, which is what
+  makes it confusing.
+- **An external group**, with its public link enabled.
+
+After that, the per-build steps are scripted:
+
+    tools/testflight.sh --external                  # upload, wait for processing,
+                                                    # add to the group, submit for review
+    tools/testflight.sh --external-only --build 42  # the same two steps against a build
+                                                    # that was uploaded earlier
+
+`--external-group` names a group other than the default `External Testers`, or set
+`ASC_EXTERNAL_GROUP`. `--whats-new` sets the What to Test note; it defaults to the commit
+subject and the build number.
+
+This removes the web interaction, not the wait. Beta App Review still queues — a day or so
+for the first build of a new `MARKETING_VERSION`, usually quick for later ones.
+
+**`--external` requires an App Store Connect API key**, unlike a plain upload: there is no
+way to mint an API token from the Apple ID signed into Xcode. The key needs the **App
+Manager or Admin** role, because a Developer-role key can upload a build but cannot manage
+beta groups. Token minting lives in `tools/asc-jwt.py` — ES256 signing is openssl's job,
+and that script only converts the signature from DER to the raw form JOSE wants.
+`python3 tools/asc-jwt.py --selftest` checks that conversion offline, which is worth
+running if the API starts returning 401 for no apparent reason.
 
 ### Privacy and export answers
 
