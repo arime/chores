@@ -64,7 +64,13 @@ back to Debug afterwards: the scheme is shared, so it changes what everyone's �
    - Delete the app, reinstall, sign in again — the family must return again. That is the whole
      point of the feature, and the only step that proves it.
 
-5. Xcode → Any iOS Device → Product → Archive → Distribute → TestFlight.
+5. Archive and upload:
+
+       tools/testflight.sh
+
+   Xcode → Any iOS Device → Product → Archive → Distribute → TestFlight still works
+   and does the same thing. The script exists so that steps 2–4 remain the only part
+   of a release needing a human, and so the upload can be handed to an agent.
 
 ## Sign in with Apple: what makes it work
 
@@ -141,9 +147,63 @@ Then, once per app:
   migration that has not been pushed is a build that fails on a tester's first launch
   rather than on yours. Missing table grants are the version of this that looks like
   an outage: the app can reach the server perfectly well and is refused by it.
-- Bump `CURRENT_PROJECT_VERSION`. App Store Connect rejects a build number it has
-  already seen, and it is per-upload, not per-release — a rejected upload burns one.
-  `MARKETING_VERSION` only changes when the version users see changes.
+  `tools/testflight.sh` refuses to build until `supabase db push --dry-run` reports the
+  hosted database up to date; it never pushes for you.
+- The build number must be one App Store Connect has not seen. It is per-upload, not
+  per-release — a rejected upload burns one. `MARKETING_VERSION` only changes when the
+  version users see changes.
+
+### Uploading from the command line
+
+`tools/testflight.sh` is the whole of step 5. It archives, verifies the archive, then
+exports and uploads. `--help` lists its options; the useful ones are `--archive-only`,
+which stops before uploading, and `--build`, which overrides the build number.
+
+**Build numbers come from the clock, not the project file.** The script passes
+`CURRENT_PROJECT_VERSION=$(date -u '+%Y%m%d.%H%M')` to `xcodebuild` as a build-setting
+override. `GENERATE_INFOPLIST_FILE` is `YES` and `App/Info.plist` declares no
+`CFBundleVersion`, so the override reaches the bundle and nothing in the repository
+changes — no build-number commits, and no way to upload a number twice. UTC keeps it
+monotonic across daylight-saving changes. The value committed in `project.pbxproj`
+therefore only affects builds made through Xcode.
+
+**Signing happens twice, and only the second one ships.** The Release configuration
+sets `CODE_SIGN_IDENTITY = "Apple Development"`, so the archive is signed with a
+development identity. `xcodebuild -exportArchive` then re-signs the bundle with
+`Apple Distribution` and strips `get-task-allow`, which is the signature testers
+receive. This is the same thing Xcode's Distribute button does, so the development
+identity on the archive is expected and not worth changing. `-allowProvisioningUpdates`
+is what lets the export fetch the App Store provisioning profile.
+
+**What the script checks before uploading.** These are the checks the Organizer cannot
+make by eye, and each one has a failure it is there to catch:
+
+| Check | What it catches |
+|---|---|
+| Hosted migrations up to date | a Release build whose first launch fails for a tester |
+| `com.apple.developer.applesignin` in the *signed* entitlements | Sign in with Apple failing at runtime with `ASAuthorizationError Code=1000` and nothing naming the cause |
+| `LSRequiresIPhoneOS` present | a simulator build, which carries no usable signature |
+| Build number and bundle id match what was asked for | an override that silently did not apply |
+| `Chores.app.dSYM` present | tester crash reports arriving unsymbolicated |
+| `PrivacyInfo.xcprivacy` in the bundle | the manifest being dropped from the bundle |
+
+**Authentication** uses the Apple ID signed into Xcode. For a headless or CI run,
+export `ASC_KEY_PATH`, `ASC_KEY_ID` and `ASC_ISSUER_ID` for an App Store Connect API
+key instead (Users and Access → Integrations → App Store Connect API); the script
+validates all three up front and passes them to `-exportArchive`.
+
+**There is no `.ipa` afterwards.** `App/ExportOptions.plist` sets `destination` to
+`upload`, so the build goes straight to App Store Connect and nothing is written to
+the export path. The upload is recorded in the archive's own `Info.plist` under
+`Distributions`, and `build/uploads.log` gets a line with the build number and the
+commit it came from. To read the record back:
+
+    plutil -p build/Chores.xcarchive/Info.plist
+
+`uploadEvent` → `state` is `success` on an upload that landed, and `uploadedBuildNumber`
+is what App Store Connect received — it equals the archived build number because
+`manageAppVersionAndBuildNumber` is `false` in the export options. Left at its default
+of `true`, Xcode would renumber the build during upload.
 
 ### Internal or external
 

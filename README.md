@@ -43,6 +43,16 @@ Debug builds use the local values, Release builds the hosted ones, and ticking `
 in the scheme's Run arguments points a Debug build at the hosted project. See
 [`docs/RELEASING.md`](docs/RELEASING.md) for why it splits that way.
 
+## Shipping to TestFlight
+
+    tools/testflight.sh
+
+Archives, verifies the archive, and uploads to App Store Connect — no Xcode needed. It
+picks its own build number, refuses to build if hosted Supabase has pending migrations,
+and never touches git. The test suites and the manual Sign in with Apple checks are not
+part of it; see [`docs/RELEASING.md`](docs/RELEASING.md) for the full pre-flight and for
+what the script verifies.
+
 ## Database migrations
 
 Migrations live in `supabase/migrations/` and are applied manually — nothing in this repo
