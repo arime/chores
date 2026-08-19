@@ -13,7 +13,10 @@ struct OnboardingView: View {
                 Image(systemName: "checklist")
                     .font(.system(size: 64))
                     .foregroundStyle(.tint)
-                Text("Chores")
+                // The app's own name, not a word to translate — and it would
+                // otherwise share a key with the chore list's "Chores" title,
+                // which does become "Tehtävät".
+                Text(verbatim: "Chores")
                     .font(.largeTitle.bold())
                 Text("Set up this device.")
                     .foregroundStyle(.secondary)

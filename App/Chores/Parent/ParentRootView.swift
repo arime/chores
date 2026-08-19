@@ -64,17 +64,33 @@ struct ManageView: View {
     private var leaveFooter: String {
         switch (hasNoAccount, isLastParent) {
         case (true, true):
-            return "You're the only parent, so leaving removes the whole family."
+            return String(localized: "You're the only parent, so leaving removes the whole family.")
         case (true, false):
-            return "Leaving gives up your place. Getting back in needs a new code from the other parent."
+            return String(localized: "Leaving gives up your place. Getting back in needs a new code from the other parent.")
         case (false, true):
-            return "You're the only parent, so leaving or deleting your account removes the whole family."
+            return String(localized: "You're the only parent, so leaving or deleting your account removes the whole family.")
         case (false, false):
-            return """
+            return String(localized: """
                 Signing out keeps your place — sign back in with Apple to return. Leaving gives it \
                 up, and deleting your account removes your sign-in with it.
-                """
+                """)
         }
+    }
+
+    /// These two are annotated rather than inlined into the dialogs: a ternary
+    /// of two literals inside `Text` leaves the compiler to choose between the
+    /// `LocalizedStringKey` and `String` overloads, and `String` would silently
+    /// skip the catalog.
+    private var leaveWarning: LocalizedStringKey {
+        isLastParent
+            ? "You're the only parent, so this deletes the family, the children, the chores and all their history. This cannot be undone."
+            : "You'll be removed from this family. The other parent can give you a new code if you want back in."
+    }
+
+    private var deleteAccountWarning: LocalizedStringKey {
+        isLastParent
+            ? "You're the only parent, so this deletes your Apple sign-in for Chores along with the family, the children, the chores and all their history. This cannot be undone."
+            : "This deletes your Apple sign-in for Chores and removes you from the family. This cannot be undone."
     }
 
     var body: some View {
@@ -146,9 +162,7 @@ struct ManageView: View {
                 // The same warning either way: what a parent with no account
                 // loses is exactly what any parent loses. That leaving also
                 // clears their anonymous auth user is bookkeeping, not news.
-                Text(isLastParent
-                     ? "You're the only parent, so this deletes the family, the children, the chores and all their history. This cannot be undone."
-                     : "You'll be removed from this family. The other parent can give you a new code if you want back in.")
+                Text(leaveWarning)
             }
             .confirmationDialog("Delete your account?",
                                 isPresented: $isConfirmingDelete, titleVisibility: .visible) {
@@ -157,9 +171,7 @@ struct ManageView: View {
                 }
                 Button("Cancel", role: .cancel) { }
             } message: {
-                Text(isLastParent
-                     ? "You're the only parent, so this deletes your Apple sign-in for Chores along with the family, the children, the chores and all their history. This cannot be undone."
-                     : "This deletes your Apple sign-in for Chores and removes you from the family. This cannot be undone.")
+                Text(deleteAccountWarning)
             }
             .alert("Something went wrong", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") { errorMessage = nil }
@@ -186,7 +198,7 @@ struct ManageView: View {
             await environment.outbox.clear()
             await onSessionChanged()
         } catch {
-            errorMessage = "Couldn't do that. Check your connection and try again."
+            errorMessage = String(localized: "Couldn't do that. Check your connection and try again.")
         }
     }
 }

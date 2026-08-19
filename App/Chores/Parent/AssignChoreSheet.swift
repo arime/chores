@@ -11,6 +11,15 @@ struct AssignChoreSheet: View {
 
     private var available: [Chore] { chores.filter { !alreadyAssigned.contains($0.id) } }
 
+    /// Annotated rather than inlined: a ternary of two literals inside `Text`
+    /// leaves the compiler to choose between the `LocalizedStringKey` and
+    /// `String` overloads, and picking `String` would silently skip the catalog.
+    private var emptyMessage: LocalizedStringKey {
+        chores.isEmpty
+            ? "Add some chores under Manage → Chores first."
+            : "\(child.displayName) already has every chore on this day."
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -24,9 +33,7 @@ struct AssignChoreSheet: View {
                     .tint(.primary)
                 }
                 if available.isEmpty {
-                    Text(chores.isEmpty
-                         ? "Add some chores under Manage → Chores first."
-                         : "\(child.displayName) already has every chore on this day.")
+                    Text(emptyMessage)
                         .foregroundStyle(.secondary)
                 }
             }

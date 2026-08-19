@@ -89,7 +89,7 @@ struct ParentSignInView: View {
             // reports this as ASAuthorizationError.canceled, not Swift's
             // CancellationError — the two are unrelated types.
         } catch {
-            errorMessage = "Couldn't sign in. Please try again."
+            errorMessage = String(localized: "Couldn't sign in. Please try again.")
         }
     }
 }

@@ -12,6 +12,14 @@ struct EditChildSheet: View {
     @State private var showingCode = false
     @State private var errorMessage: String?
 
+    /// Annotated so the `LocalizedStringKey` overload is chosen by declaration
+    /// rather than inferred from a ternary of two literals.
+    private var codeFooter: LocalizedStringKey {
+        child.authUserID == nil
+            ? "This child's device isn't set up yet."
+            : "Only needed if they get a new device or reinstall the app."
+    }
+
     init(child: Profile, store: FamilyStore, backend: any ChoresBackend) {
         self.child = child
         self.store = store
@@ -52,9 +60,7 @@ struct EditChildSheet: View {
                 Section {
                     Button("Show setup code") { showingCode = true }
                 } footer: {
-                    Text(child.authUserID == nil
-                         ? "This child's device isn't set up yet."
-                         : "Only needed if they get a new device or reinstall the app.")
+                    Text(codeFooter)
                 }
 
                 if let errorMessage {
@@ -87,7 +93,7 @@ struct EditChildSheet: View {
             await store.reloadAfterEdit()
             dismiss()
         } catch {
-            errorMessage = "Couldn't save. Check your connection and try again."
+            errorMessage = String(localized: "Couldn't save. Check your connection and try again.")
         }
     }
 }
