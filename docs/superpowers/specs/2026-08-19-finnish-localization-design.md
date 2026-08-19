@@ -24,7 +24,7 @@ the device's language setting picks between them.
 | "chore" | **tehtävä.** Short, neutral, and a child reads it without effort. Rejected: *kotityö* (heavy in buttons), *askare* (a word many children don't know). |
 | App display name | **Stays "Chores"** in every language. No `InfoPlist.xcstrings`, and the name stays stable in App Store Connect. |
 | UI tests | **Pinned to English.** The suite asserts English labels in a dozen places; pinning keeps every one of them passing untouched. |
-| Localize `ChoresCore`? | **No.** It has no user-facing strings — see §4. |
+| Localize `ChoresCore`? | **No — but it holds strings today, so they move out.** `OnboardingViewModel` maps errors to English prose. It will expose a typed failure instead and the app target will render it. See §4. |
 
 ## 3. Mechanism
 
@@ -44,17 +44,59 @@ At build time `XCStringsTool` compiles the catalog into `en.lproj/` and `fi.lpro
 inside the `.app`. A key present in code but absent from the catalog does not fail the
 build — it falls back to English silently. That failure mode is the reason §8 exists.
 
-## 4. Why `ChoresCore` is untouched
+## 4. Getting the strings out of `ChoresCore`
 
-Worth stating because the opposite is the usual arrangement. `ChoresBackendError` is a
-plain enum of cases — `notAuthenticated`, `alreadyClaimed`, `claimCodeExpired` — carrying
-no message. Every string a person reads is composed in a view in the app target. The
-package therefore needs no bundle, no `Bundle.module` lookups, and no
-`defaultLocalization` in `Package.swift`.
+`ChoresBackendError` is a plain enum of cases carrying no message, which is what makes it
+tempting to say the package holds no prose. It isn't true.
+`OnboardingViewModel.message(for:)` maps those cases to eleven English sentences, and two
+guard clauses add their own:
 
-This is a property worth keeping: the moment a `String` describing a failure appears in
-`ChoresCore`, the package acquires a resource bundle and the localization story splits in
-two.
+```swift
+case .unknownClaimCode:
+    return "We don't recognise that code. Check for typos and try again."
+```
+
+These are a child's onboarding errors — by the function's own doc comment, the messages
+that exist so an eleven-year-old is not left stuck. They are the last strings that should
+stay English.
+
+**The mapping moves to the app target rather than the catalog moving into the package.**
+`ChoresCore` then genuinely holds no strings, one catalog covers the whole app, and
+`Package.swift` needs no `defaultLocalization` and no resource bundle.
+
+`OnboardingViewModel`'s `errorMessage: String?` becomes:
+
+```swift
+public enum OnboardingFailure: Equatable, Sendable {
+    case bothNamesRequired      // was "Please fill in both names."
+    case codeRequired           // was "Enter the code from your parent."
+    case unknownClaimCode
+    case claimCodeAlreadyUsed
+    case claimCodeExpired
+    case alreadyClaimed
+    case projectUnavailable
+    case sessionUnavailable      // ChoresBackendError.notAuthenticated
+    case mustSignIn
+    case notPermitted
+    /// A detail string from the server, or an unrecognised `Error`. Untranslatable
+    /// by nature — it is displayed as it arrives.
+    case other(String)
+}
+
+public private(set) var failure: OnboardingFailure?
+```
+
+and the app target gains an extension turning a case into text.
+
+The rejected alternative was a second `Localizable.xcstrings` under `Sources/ChoresCore/`
+with `String(localized:bundle: .module)`. It needs no API change and no test change, which
+is its whole appeal, but it splits the translations across two files and gives the package
+a resource bundle it otherwise never needs.
+
+**This changes four tests, for the better.** `OnboardingViewModelTests.swift:105`, `:121`,
+`:122` and `:130` currently assert on English substrings — `errorMessage?.contains("don't
+recognise")`. They become equality checks against cases. A test that breaks when copy is
+reworded was always testing the wrong thing.
 
 ## 5. What changes at the call sites
 
@@ -65,13 +107,25 @@ Three categories, in ascending order of care required.
 arguments are already `LocalizedStringKey`. Adding the catalog makes them resolve through
 it; the code does not move.
 
-**Needs `String(localized:)` — roughly a dozen sites.** `Text(errorMessage)` binds the
-`StringProtocol` overload, which does *not* localize. Every `errorMessage = "Couldn't add
-\(name)…"` assignment in `PeopleView`, `ChoresView`, `ScheduleEditorView`,
-`ClaimCodeSheet`, `EditChildSheet`, `ParentRootView`, `ClaimCodeView`, `CreateFamilyView`
-and `ParentSignInView` becomes `String(localized:)`. So do
-`ReminderScheduler`'s `content.title` and `content.body`, which are `String` properties on
-`UNMutableNotificationContent`.
+**Needs `String(localized:)` — around twenty sites.** `Text(errorMessage)` binds the
+`StringProtocol` overload, which does *not* localize. Three groups:
+
+- **Error assignments.** Every `errorMessage = "Couldn't add \(name)…"` in `PeopleView`,
+  `ChoresView`, `ScheduleEditorView`, `ClaimCodeSheet`, `EditChildSheet`, `ParentRootView`
+  and `ParentSignInView`.
+- **Computed `String` properties fed to a view.** `ManageView.leaveFooter`
+  (`ParentRootView.swift:64-78`, four branches, one of them a multi-line literal) reaches
+  `Text(leaveFooter)`; `KidWeekView.hintText` (`:88-94`, two live branches) reaches
+  `Label(hintText, systemImage:)`, whose `StringProtocol` overload likewise does not
+  localize. `hintText`'s third branch returns `""` and is unreachable behind
+  `if !isEditable` — it stays a bare `""`.
+- **Notification content.** `ReminderScheduler`'s `content.title` and `content.body` are
+  `String` properties on `UNMutableNotificationContent`.
+
+**One site must be taken *out* of localization.** `ParentWeekView.swift:44` is
+`Text("")` — a spacer holding the width of the name column. As written it is an empty
+`LocalizedStringKey`, which would put an empty key in the catalog. It becomes
+`Text(verbatim: "")`.
 
 **Needs the overload pinned explicitly — five sites.** A ternary of two string literals
 inside `Text(...)` or `.accessibilityLabel(...)` leaves the compiler to choose between the
@@ -194,8 +248,10 @@ There are four launch sites: `ParentUITestCase.swift:15`, `OnboardingUITests.swi
 four times, an `XCUIApplication` extension in the test target takes the mode flag and
 appends `-AppleLanguages (en)` and `-AppleLocale en_US`.
 
-**Unit tests are unaffected.** `swift test` exercises `ChoresCore`, which per §4 holds no
-strings.
+**Unit tests change in one place only.** The four assertions on English substrings of
+`OnboardingViewModel.errorMessage` become equality checks against `OnboardingFailure`
+cases, per §4. The other 107 tests in `swift test` are untouched, and once §4 lands
+`ChoresCore` holds no string a test could assert on.
 
 **The Finnish rendering gets no automated coverage.** This is a deliberate gap, and the
 reason §10 exists: a suite that runs in English cannot notice a missing translation, and
@@ -239,7 +295,8 @@ that is the moment to write one.
 - **Localizing the App Store listing, the app name, or the notification permission
   prompt.** The listing is written by hand at submission time; the name is decided in §2;
   the system prompt takes its wording from iOS.
-- **Localizing `ChoresCore`** — see §4.
+- **Giving `ChoresCore` a resource bundle.** Its strings move to the app target instead —
+  see §4.
 - **A committed lint or CI check for missing translations** — see §10.
 - **Any other language.** The catalog makes adding one a matter of a column, but nothing
   in this design is shaped by an anticipated third language.
