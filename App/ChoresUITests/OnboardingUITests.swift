@@ -13,8 +13,7 @@ final class OnboardingUITests: XCTestCase {
 
     private func launchApp() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
-        app.launch()
+        app.launchInEnglish("-ui-testing")
         return app
     }
 
