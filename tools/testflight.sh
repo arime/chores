@@ -11,6 +11,19 @@
 #   tools/testflight.sh --archive-only   # stop before uploading
 #   tools/testflight.sh --skip-db-check  # skip the hosted migration gate
 #
+# Internal testers get a build as soon as it finishes processing, and nothing
+# below is needed for them. External testers — the ones who join by public link
+# — need the build added to their group and put through Beta App Review:
+#
+#   tools/testflight.sh --external                    # upload, wait, then do both
+#   tools/testflight.sh --external-only --build 42    # just those two, on an
+#                                                     # already-uploaded build
+#   tools/testflight.sh --external --whats-new 'Finnish translation'
+#   tools/testflight.sh --external --external-group 'Public link'
+#
+# This does not shorten Beta App Review — it only removes the web interaction in
+# front of it. The first build of a new MARKETING_VERSION is the slow one.
+#
 # What it deliberately does NOT do:
 #
 #   - Push migrations. A Release build always talks to hosted Supabase, so this
@@ -20,11 +33,14 @@
 #     docs/RELEASING.md; run them before calling this.
 #   - Verify Sign in with Apple. Nothing can — see docs/RELEASING.md. The device
 #     checks listed there are the only coverage that path has.
+#   - Create the external group, or fill in Test Information. Both are one-time
+#     web tasks, and external distribution is impossible until they are done.
 #   - Touch git. Nothing is committed, tagged, or pushed.
 #
 # Authentication: the Apple ID signed into Xcode is used by default. For a CI or
-# headless run, export all three of these to use an App Store Connect API key
-# instead:
+# headless run — or for anything with --external, which cannot use the Xcode
+# Apple ID at all — export all three of these to use an App Store Connect API
+# key instead:
 #
 #   ASC_KEY_PATH=~/.appstoreconnect/private_keys/AuthKey_XXXXXXXXXX.p8
 #   ASC_KEY_ID=XXXXXXXXXX
@@ -40,16 +56,29 @@ readonly EXPORT_OPTIONS="App/ExportOptions.plist"
 readonly ARCHIVE="build/Chores.xcarchive"
 readonly LOG="build/testflight.log"
 
+readonly DEFAULT_EXTERNAL_GROUP='External Testers'
+# Processing usually takes a few minutes. Twenty is generous enough that hitting
+# it means something is wrong rather than slow.
+readonly PROCESSING_TIMEOUT=1200
+
 build_number=""
 skip_db_check=0
 archive_only=0
+external=0
+external_only=0
+external_group="${ASC_EXTERNAL_GROUP:-$DEFAULT_EXTERNAL_GROUP}"
+whats_new=""
 
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--build) build_number="${2:-}"; shift 2 ;;
 		--skip-db-check) skip_db_check=1; shift ;;
 		--archive-only) archive_only=1; shift ;;
-		-h|--help) sed -n '2,31p' "${BASH_SOURCE[0]}"; exit 0 ;;
+		--external) external=1; shift ;;
+		--external-only) external=1; external_only=1; shift ;;
+		--external-group) external_group="${2:-}"; shift 2 ;;
+		--whats-new) whats_new="${2:-}"; shift 2 ;;
+		-h|--help) sed -n '2,47p' "${BASH_SOURCE[0]}"; exit 0 ;;
 		*) echo "unknown option: $1" >&2; exit 2 ;;
 	esac
 done
@@ -60,10 +89,74 @@ step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 fail() { printf '\033[31merror:\033[0m %s\n' "$1" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
+# External distribution
+#
+# Only reached with --external or --external-only. Everything it needs lives in
+# tools/asc-api.sh; this is just the order the four calls go in.
+# ---------------------------------------------------------------------------
+
+distribute_externally() {
+	local app_id build_id group_id
+
+	step "Distributing build $build_number to '$external_group'"
+
+	app_id="$(asc_app_id "$BUNDLE_ID")"
+	# Resolved before the wait, so a mistyped group name fails now rather than
+	# after twenty minutes of polling.
+	group_id="$(asc_group_id "$app_id" "$external_group")"
+
+	echo 'Waiting for App Store Connect to finish processing the build...'
+	build_id="$(asc_wait_for_processing "$app_id" "$build_number" "$PROCESSING_TIMEOUT")"
+	echo "Build $build_number is processed."
+
+	asc_set_whats_new "$build_id" "$whats_new"
+	asc_add_to_group "$build_id" "$group_id"
+	echo "Added to '$external_group'."
+
+	asc_submit_review "$build_id"
+	echo 'Submitted for Beta App Review.'
+
+	printf '\n\033[1m==> Build %s is with Beta App Review\033[0m\n' "$build_number"
+	cat <<-EOF
+	Testers on the public link get it once Apple approves, which is a queue: a
+	day or so for the first build of a new version, usually quick after that.
+	Watch TestFlight → iOS Builds, or the email.
+	EOF
+}
+
+# ---------------------------------------------------------------------------
 # Pre-flight
 # ---------------------------------------------------------------------------
 
 step 'Pre-flight'
+
+# Flag combinations that cannot mean anything, caught before any work.
+if [ "$external" -eq 1 ] && [ "$archive_only" -eq 1 ]; then
+	fail '--archive-only stops before uploading, so there is nothing for --external to distribute.'
+fi
+
+if [ "$external" -eq 1 ]; then
+	# Argument coherence before credentials: a missing --build is the more
+	# likely mistake and the more actionable message, and checking the key
+	# first would report a key problem to someone whose key is fine.
+	if [ "$external_only" -eq 1 ] && [ -z "$build_number" ]; then
+		fail '--external-only needs --build <number>, naming a build already uploaded. See build/uploads.log for what has been sent.'
+	fi
+
+	# shellcheck source=tools/asc-api.sh
+	. "$REPO_ROOT/tools/asc-api.sh"
+	asc_require_credentials
+	command -v jq >/dev/null 2>&1 || fail 'external distribution needs jq on PATH.'
+fi
+
+# --external-only touches nothing local: no archive, no Secrets, no migration
+# gate. The build it acts on was uploaded by an earlier run and its contents are
+# already fixed.
+if [ "$external_only" -eq 1 ]; then
+	echo "Acting on build $build_number, already uploaded."
+	distribute_externally
+	exit 0
+fi
 
 [ -f App/Chores/Secrets.swift ] ||
 	fail 'App/Chores/Secrets.swift is missing. Copy App/Chores/Secrets.swift.example and fill in the Hosted values.'
@@ -112,9 +205,16 @@ fi
 # already seen, and it is per-upload, not per-release.
 [ -n "$build_number" ] || build_number="$(date -u '+%Y%m%d.%H%M')"
 
+# Testers see this as What to Test. The commit subject is what actually changed,
+# and the build number is what they can quote back when reporting something.
+[ -n "$whats_new" ] || whats_new="$(git log -1 --pretty=%s) (build $build_number)"
+
 echo "Scheme:       $SCHEME (Release)"
 echo "Build number: $build_number"
 echo "Commit:       $commit"
+if [ "$external" -eq 1 ]; then
+	echo "External:     '$external_group', then Beta App Review"
+fi
 
 mkdir -p build
 rm -rf "$ARCHIVE"
@@ -217,3 +317,7 @@ step; watch for the email, or check TestFlight → iOS Builds.
 Build log:     $LOG
 Upload record: build/uploads.log
 EOF
+
+if [ "$external" -eq 1 ]; then
+	distribute_externally
+fi
