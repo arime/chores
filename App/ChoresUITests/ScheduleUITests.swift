@@ -41,25 +41,15 @@ final class ScheduleUITests: ParentUITestCase {
         XCTAssertTrue(app.staticTexts["Not set up"].exists,
                       "a parent who hasn't claimed a device yet should say so")
 
+        // Only someone else's row offers a code. Your own profile is reached by
+        // signing in with Apple, and a code for it would only give it away.
+        XCTAssertFalse(app.buttons["people.parent.Parent"].exists,
+                       "your own row must not be tappable")
+
         app.buttons["people.parent.Bo"].tap()
         let code = app.staticTexts["claimCodeSheet.code"]
         XCTAssertTrue(code.waitForExistence(timeout: 5),
                       "a second parent needs a code to claim their device")
-        XCTAssertEqual(code.label.count, 6, "claim codes are six characters")
-    }
-
-    /// Without this the only way back into a family from a wiped parent device is
-    /// hand-writing a row into claim_codes.
-    func testParentCanGetARecoveryCodeForTheirOwnDevice() {
-        let app = launchIntoParentMode()
-
-        app.tabBars.buttons["Manage"].tap()
-        XCTAssertTrue(app.buttons["manage.ownCode"].waitForExistence(timeout: 5))
-        app.buttons["manage.ownCode"].tap()
-
-        let code = app.staticTexts["claimCodeSheet.code"]
-        XCTAssertTrue(code.waitForExistence(timeout: 5),
-                      "a parent should be able to mint a code for their own profile")
         XCTAssertEqual(code.label.count, 6, "claim codes are six characters")
     }
 
