@@ -85,7 +85,12 @@ struct ChoresView: View {
             set: { if !$0 { renaming = nil } }
         )) {
             TextField("Name", text: $renameText)
-            Button("Save") { Task { await rename() } }
+            // Read the chore and the typed name here, synchronously: dismissing
+            // the alert clears `renaming`, and it would already be nil by the
+            // time a task spawned here got to look at it.
+            Button("Save") {
+                if let chore = renaming { Task { await rename(chore, to: renameText) } }
+            }
             Button("Cancel", role: .cancel) { renaming = nil }
         }
     }
@@ -103,11 +108,10 @@ struct ChoresView: View {
         }
     }
 
-    private func rename() async {
-        guard var updated = renaming else { return }
-        let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
-        renaming = nil
-        guard !trimmed.isEmpty, trimmed != updated.name else { return }
+    private func rename(_ chore: Chore, to name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != chore.name else { return }
+        var updated = chore
         updated.name = trimmed
         do {
             try await backend.updateChore(updated)
