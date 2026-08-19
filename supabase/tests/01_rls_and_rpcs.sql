@@ -210,7 +210,9 @@ select lives_ok(
   $$select public.create_family('Legit', 'Parent', 'Europe/Helsinki')$$,
   'a signed-in caller can create a family');
 
--- Parent codes require a signed-in claimer; child codes do not.
+-- Parent codes, in contrast to create_family() above, may be claimed by either
+-- kind of caller. An anonymous one is the second parent who has no Apple ID and
+-- was handed a code by the first; the guard that used to refuse them is gone.
 select tests.as_admin();
 insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000001');
 insert into public.claim_codes (code, family_id, profile_id, expires_at)
@@ -218,20 +220,33 @@ insert into public.claim_codes (code, family_id, profile_id, expires_at)
           'aaaa0000-0000-0000-0000-000000000001', now() + interval '1 day');
 
 select tests.auth_as('e0000000-0000-0000-0000-000000000001', true);
-select throws_ok(
-  $$select public.claim_profile('PARENT')$$,
-  'parents must sign in',
-  'an anonymous caller cannot claim a parent profile');
-
--- Same reasoning as above: pin the sqlstate on its own, separate from the
--- message assertion just above.
-select throws_ok(
-  $$select public.claim_profile('PARENT')$$,
-  'P0004');
-
-select tests.auth_as('e0000000-0000-0000-0000-000000000001', false);
 select lives_ok(
   $$select public.claim_profile('PARENT')$$,
+  'an anonymous caller can claim a parent profile');
+
+select tests.as_admin();
+select is(
+  (select auth_user_id from public.profiles
+     where id = 'aaaa0000-0000-0000-0000-000000000001'),
+  'e0000000-0000-0000-0000-000000000001'::uuid,
+  'and the profile is bound to the anonymous device that claimed it');
+
+-- A signed-in claimer keeps working too — the parent who does hold an Apple ID
+-- and joins an existing family rather than starting one. A fresh code and a
+-- fresh target, since the code above is now spent and its claimer now has a
+-- profile of their own.
+select tests.as_admin();
+insert into auth.users (id) values ('e0000000-0000-0000-0000-000000000006');
+insert into public.profiles (id, family_id, display_name, role)
+  values ('aaaa0000-0000-0000-0000-000000000008',
+          '11111111-1111-1111-1111-111111111111', 'Invited Parent', 'parent');
+insert into public.claim_codes (code, family_id, profile_id, expires_at)
+  values ('PARNT2', '11111111-1111-1111-1111-111111111111',
+          'aaaa0000-0000-0000-0000-000000000008', now() + interval '1 day');
+
+select tests.auth_as('e0000000-0000-0000-0000-000000000006', false);
+select lives_ok(
+  $$select public.claim_profile('PARNT2')$$,
   'a signed-in caller can claim a parent profile');
 
 -- A child code, in contrast, may be claimed by an anonymous device — that's
@@ -307,8 +322,8 @@ select throws_ok(
 
 -- Deleting an account removes the auth user too. Note: not
 -- 'a0000000-0000-0000-0000-000000000001' (Parent A's original auth id) — the
--- "parent codes require a signed-in claimer" block above rebound Parent A's
--- profile to 'e0000000-0000-0000-0000-000000000001', so that id is now an
+-- parent-claim block above rebound Parent A's profile to
+-- 'e0000000-0000-0000-0000-000000000001', so that id is now an
 -- orphaned auth user with no profile. Using it here would silently test
 -- delete_account()'s no-profile branch instead of the profile-bearing one, so
 -- a fresh parent is seated first.
@@ -363,8 +378,8 @@ select is(
 -- Deleting a child, history and all
 -- ---------------------------------------------------------------------------
 
--- A fresh parent is seated for the caller: the "parent codes require a
--- signed-in claimer" block earlier rebound Parent A's original auth id
+-- A fresh parent is seated for the caller: the parent-claim block earlier
+-- rebound Parent A's original auth id
 -- ('a0000000-0000-0000-0000-000000000001') to a claiming device, so
 -- impersonating it here would make is_parent() false and turn every
 -- lives_ok below into a failure for the wrong reason (as Task 3 hit).
