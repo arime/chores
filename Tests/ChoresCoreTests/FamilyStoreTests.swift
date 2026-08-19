@@ -76,6 +76,16 @@ import Foundation
         #expect(fixture.store.isStale == false)
     }
 
+    /// Screens draw a spinner for this instead of their empty state, so that
+    /// launching does not flash "No children yet" before the family arrives.
+    @Test func isLoadingUntilTheFirstLoadSettles() async throws {
+        let fixture = try await makeFixture()
+
+        #expect(fixture.store.isLoading)
+        await fixture.store.start()
+        #expect(fixture.store.isLoading == false)
+    }
+
     @Test func progressReflectsCompletions() async throws {
         let fixture = try await makeFixture()
         await fixture.store.start()
@@ -155,6 +165,39 @@ import Foundation
         #expect(offline.chores(for: fixture.childID, on: monday).count == 1)
     }
 
+    /// The warm-launch flash: a relaunch adopts the cached snapshot and draws it
+    /// straight away, and until the refresh has actually failed there is nothing
+    /// stale to announce. Marking it stale on adoption put the "Showing saved
+    /// data" banner on screen for the length of every launch's fetch.
+    @Test func aCachedSnapshotIsNotStaleWhileTheFirstRefreshIsStillInFlight() async throws {
+        let fixture = try await makeFixture()
+        await fixture.store.start()   // populates the cache
+
+        let gated = GatedBackend(inner: fixture.backend)
+        let relaunched = FamilyStore(
+            backend: gated,
+            cache: SnapshotCache(directory: fixture.directory),
+            outbox: Outbox(directory: fixture.directory, backend: gated),
+            familyID: fixture.familyID,
+            clock: { Self.mondayNoon })
+
+        let start = Task { await relaunched.start() }
+        var spins = 0
+        while !gated.isFetching, spins < 500 {
+            await Task.yield()
+            spins += 1
+        }
+        try #require(gated.isFetching, "the store never reached the fetch")
+
+        #expect(relaunched.snapshot != nil, "the cached snapshot should already be on screen")
+        #expect(relaunched.isStale == false)
+        #expect(relaunched.isLoading == false)
+
+        gated.release()
+        await start.value
+        #expect(relaunched.isStale == false)
+    }
+
     @Test func togglingWhileOfflineStillUpdatesTheUI() async throws {
         let fixture = try await makeFixture()
         await fixture.store.start()
@@ -212,6 +255,8 @@ import Foundation
 
         #expect(store.snapshot == nil)
         #expect(store.errorMessage != nil)
+        // Not stuck on the spinner: a failed load has still settled.
+        #expect(store.isLoading == false)
     }
 
     /// `SnapshotCache` holds one file for the whole app. After a sign-out hands
