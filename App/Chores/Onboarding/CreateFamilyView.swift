@@ -24,9 +24,9 @@ struct CreateFamilyView: View {
                     .accessibilityIdentifier("createFamily.parentName")
             }
 
-            if let error = model.errorMessage {
+            if let failure = model.failure {
                 Section {
-                    Text(error).foregroundStyle(.red)
+                    Text(failure.text).foregroundStyle(.red)
                 }
             }
 
