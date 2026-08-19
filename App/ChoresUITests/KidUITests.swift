@@ -11,8 +11,7 @@ final class KidUITests: XCTestCase {
 
     private func launchAsKid() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing-kid"]
-        app.launch()
+        app.launchInEnglish("-ui-testing-kid")
         XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 10),
                       "a claimed child should land straight in kid mode")
         return app

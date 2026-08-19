@@ -11,8 +11,7 @@ final class LostSessionUITests: XCTestCase {
 
     private func launchLost() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing-lost-session"]
-        app.launch()
+        app.launchInEnglish("-ui-testing-lost-session")
         XCTAssertTrue(app.staticTexts["This device isn't set up"].waitForExistence(timeout: 10),
                       "a claimed device with no profile should not show plain onboarding")
         return app

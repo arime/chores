@@ -12,8 +12,7 @@ class ParentUITestCase: XCTestCase {
 
     func launchIntoParentMode() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
-        app.launch()
+        app.launchInEnglish("-ui-testing")
 
         XCTAssertTrue(app.buttons["onboarding.parent"].waitForExistence(timeout: 10))
         app.buttons["onboarding.parent"].tap()
