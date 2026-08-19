@@ -32,6 +32,12 @@ public final class SessionViewModel {
 
     private let backend: ChoresBackend
     public private(set) var state: SessionState = .loading
+    /// The identity behind `state`, kept because `.parent` alone no longer says
+    /// how that parent got there: one signed in with Apple, another claimed a
+    /// code on an anonymous device. Manage offers them different ways out, and
+    /// this saves it a round trip to find out which. Read from the same call
+    /// `load()` already makes, so it costs nothing.
+    public private(set) var identity: DeviceIdentity = .none
 
     public init(backend: ChoresBackend) {
         self.backend = backend
@@ -53,7 +59,7 @@ public final class SessionViewModel {
     }
 
     private func load() async throws {
-        let identity = try await backend.currentIdentity()
+        identity = try await backend.currentIdentity()
         guard identity != .none else {
             state = .signedOut
             return

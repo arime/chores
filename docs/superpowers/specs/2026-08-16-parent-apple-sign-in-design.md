@@ -1,9 +1,27 @@
 # Parent Sign In with Apple — Design
 
 **Date:** 2026-08-16
-**Status:** Approved design, ready for implementation planning
+**Status:** Implemented. Two claims below were reversed on 2026-08-19 — see
+"Amended" — and the rest stands.
 **Supersedes:** the "Sign in with Apple" line in the v1 out-of-scope list of
 `2026-08-10-household-chores-app-design.md`
+
+## Amended 2026-08-19
+
+A second parent no longer needs an Apple ID. `claim_profile()` dropped its
+anonymous-caller check, so a parent code may be claimed on an anonymous device
+exactly as a child's is (`20260819090000_parents_may_join_with_a_code.sql`).
+Two things below are therefore no longer true:
+
+- §2, "How does a second parent join?" — it is a claim code alone.
+- §3's rule that **a parent profile may only ever be bound to a non-anonymous
+  auth user**. It now holds for the parent who *creates* a family and not for
+  one who joins it, because `create_family()` keeps its guard.
+
+Manage follows: a parent holding no account is offered neither "Sign out" (there
+is no credential to return with) nor "Delete account" (they never made one),
+and their "Leave this family" calls `delete_account()` so the throwaway
+anonymous auth user goes with the profile.
 
 ## 1. Purpose
 

@@ -390,6 +390,35 @@ struct SupabaseIntegrationTests {
         }
     }
 
+    /// The other half of that rule, and the one that changed: joining a family
+    /// someone else started needs no Apple ID at all. Seen through the real
+    /// server because the in-memory fake never modelled the restriction, so it
+    /// cannot prove the restriction is gone.
+    @Test func anAnonymousDeviceCanClaimAParentCode() async throws {
+        let first = try await Self.makeSignedInBackend(storage: EphemeralStorage())
+        let familyID = try await first.createFamily(
+            familyName: "Koti", parentName: "First", timezone: "Europe/Helsinki")
+        let second = try await first.addParent(familyID: familyID, name: "Second")
+        let code = try await first.generateClaimCode(profileID: second.id)
+
+        let secondDevice = try Self.makeBackend()
+        try await secondDevice.signInAnonymously()
+        #expect(try await secondDevice.currentIdentity() == .anonymous)
+
+        _ = try await secondDevice.claimProfile(code: code)
+
+        let profile = try #require(try await secondDevice.currentProfile())
+        #expect(profile.role == .parent)
+        #expect(profile.displayName == "Second")
+        #expect(try await secondDevice.currentIdentity() == .anonymous,
+                "claiming must not quietly upgrade the device to a durable identity")
+
+        // And the powers are real: RLS grants them by role, not by how the
+        // device signed in.
+        _ = try await secondDevice.addChild(familyID: familyID, name: "Kid",
+                                            color: "#E8710A", sortOrder: 0)
+    }
+
     @Test func aSignedInParentCanCreateLeaveAndStartAgain() async throws {
         let storage = EphemeralStorage()
         let backend = try await Self.makeSignedInBackend(storage: storage)

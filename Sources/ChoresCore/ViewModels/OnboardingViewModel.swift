@@ -54,10 +54,10 @@ public final class OnboardingViewModel {
         errorMessage = nil
 
         do {
-            // A child arrives here with no identity; a second parent arrives
-            // already signed in with Apple. Only the former needs one minting,
-            // and minting one for the latter would discard what makes them a
-            // parent.
+            // A child arrives with no identity, and so does a second parent who
+            // has no Apple ID — both need one minting. A parent who signed in
+            // first arrives holding one already, and minting another would
+            // discard what makes them durable.
             if try await backend.currentIdentity() == .none {
                 try await backend.signInAnonymously()
             }
@@ -86,7 +86,9 @@ public final class OnboardingViewModel {
         case .notAuthenticated:
             return "Couldn't start a session. Try restarting the app."
         case .mustSignIn:
-            return "Only a parent who has signed in with Apple can start or join a family. Sign in with Apple, then try again."
+            // Only `create_family` still raises this. Joining with a code no
+            // longer needs Apple, so the message must not say it does.
+            return "Only a parent who has signed in with Apple can start a family. Sign in with Apple, then try again."
         case .notPermitted:
             return "You're not able to do that."
         case .underlying(let detail):

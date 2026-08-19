@@ -59,7 +59,8 @@ struct RootView: View {
                                     onSignIn: { isSigningIn = true })
                 }
             case .parent(let profile):
-                ParentRootView(environment: environment, profile: profile) {
+                ParentRootView(environment: environment, profile: profile,
+                               identity: session.identity) {
                     await session.refresh()
                 }
             case .child(let profile):

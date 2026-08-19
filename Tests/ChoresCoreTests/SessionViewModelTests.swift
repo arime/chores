@@ -136,4 +136,43 @@ import Foundation
         let model = SessionViewModel(backend: InMemoryChoresBackend())
         #expect(model.state == .loading)
     }
+
+    /// A second parent who has no Apple ID claims a parent code on an anonymous
+    /// device. They are a parent like any other — the role decides the mode —
+    /// and the identity is reported alongside, because Manage offers them a
+    /// different way out.
+    @Test func aParentClaimedOnAnAnonymousDeviceIsStillAParent() async throws {
+        let firstBackend = InMemoryChoresBackend()
+        try await firstBackend.signInWithApple(idToken: "ari", nonce: "n")
+        let familyID = try await firstBackend.createFamily(
+            familyName: "Koti", parentName: "First", timezone: "Europe/Helsinki")
+        let second = try await firstBackend.addParent(familyID: familyID, name: "Second")
+        let code = try await firstBackend.generateClaimCode(profileID: second.id)
+
+        let secondBackend = firstBackend.newDevice()
+        try await secondBackend.signInAnonymously()
+        _ = try await secondBackend.claimProfile(code: code)
+
+        let model = SessionViewModel(backend: secondBackend)
+        await model.start()
+
+        guard case let .parent(profile) = model.state else {
+            Issue.record("expected .parent, got \(model.state)")
+            return
+        }
+        #expect(profile.displayName == "Second")
+        #expect(model.identity == .anonymous)
+    }
+
+    @Test func aParentWhoSignedInReportsADurableIdentity() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "ari", nonce: "n")
+        _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+
+        let model = SessionViewModel(backend: backend)
+        await model.start()
+
+        #expect(model.identity == .signedIn)
+    }
 }
