@@ -158,7 +158,7 @@ struct PeopleView: View {
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
-            errorMessage = "Couldn't add \(name). Check your connection and try again."
+            errorMessage = String(localized: "Couldn't add \(name). Check your connection and try again.")
         }
     }
 
@@ -171,7 +171,7 @@ struct PeopleView: View {
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
-            errorMessage = "Couldn't add \(name). Check your connection and try again."
+            errorMessage = String(localized: "Couldn't add \(name). Check your connection and try again.")
         }
     }
 
@@ -187,7 +187,7 @@ struct PeopleView: View {
             await store.reloadAfterEdit()
         } catch {
             deleting = nil
-            errorMessage = "Couldn't delete \(child.displayName). Check your connection and try again."
+            errorMessage = String(localized: "Couldn't delete \(child.displayName). Check your connection and try again.")
         }
     }
 }

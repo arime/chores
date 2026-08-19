@@ -54,7 +54,7 @@ struct ClaimCodeSheet: View {
             code = try await backend.generateClaimCode(profileID: profile.id)
             errorMessage = nil
         } catch {
-            errorMessage = "Couldn't create a code. Check your connection and try again."
+            errorMessage = String(localized: "Couldn't create a code. Check your connection and try again.")
         }
     }
 }

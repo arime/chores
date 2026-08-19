@@ -152,7 +152,7 @@ struct ScheduleEditorView: View {
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
-            errorMessage = "Couldn't assign \(chore.name). Check your connection and try again."
+            errorMessage = String(localized: "Couldn't assign \(chore.name). Check your connection and try again.")
         }
     }
 
@@ -162,7 +162,7 @@ struct ScheduleEditorView: View {
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
-            errorMessage = "Couldn't remove that chore. Check your connection and try again."
+            errorMessage = String(localized: "Couldn't remove that chore. Check your connection and try again.")
         }
     }
 
@@ -176,7 +176,7 @@ struct ScheduleEditorView: View {
             await store.reloadAfterEdit()
         } catch {
             isCopying = false
-            errorMessage = "Couldn't copy the day. Check your connection and try again."
+            errorMessage = String(localized: "Couldn't copy the day. Check your connection and try again.")
         }
     }
 }

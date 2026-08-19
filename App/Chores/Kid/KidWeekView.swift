@@ -87,8 +87,9 @@ struct KidWeekView: View {
 
     private var hintText: String {
         switch store.eligibility(for: day) {
-        case .future:             return "You can tick these off on the day."
-        case .outsideCurrentWeek: return "This week only."
+        case .future:             return String(localized: "You can tick these off on the day.")
+        case .outsideCurrentWeek: return String(localized: "This week only.")
+        // Unreachable — the label is only shown behind `if !isEditable`.
         case .allowed:            return ""
         }
     }

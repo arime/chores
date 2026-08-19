@@ -104,7 +104,7 @@ struct ChoresView: View {
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
-            errorMessage = "Couldn't add \(name). Check your connection and try again."
+            errorMessage = String(localized: "Couldn't add \(name). Check your connection and try again.")
         }
     }
 
@@ -118,7 +118,7 @@ struct ChoresView: View {
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
-            errorMessage = "Couldn't rename that chore. Check your connection and try again."
+            errorMessage = String(localized: "Couldn't rename that chore. Check your connection and try again.")
         }
     }
 
@@ -132,7 +132,7 @@ struct ChoresView: View {
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
-            errorMessage = "Couldn't update \(chore.name). Check your connection and try again."
+            errorMessage = String(localized: "Couldn't update \(chore.name). Check your connection and try again.")
         }
     }
 }

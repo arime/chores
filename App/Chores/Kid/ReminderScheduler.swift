@@ -31,10 +31,11 @@ enum ReminderScheduler {
 
         for plan in plans {
             let content = UNMutableNotificationContent()
-            content.title = "Chores today"
-            content.body = plan.choreCount == 1
-                ? "You have 1 chore today."
-                : "You have \(plan.choreCount) chores today."
+            content.title = String(localized: "Chores today")
+            // One key with plural variations in the catalog, rather than a
+            // ternary here: Finnish takes the partitive singular after a number
+            // greater than one, which is a rule the catalog already knows.
+            content.body = String(localized: "You have \(plan.choreCount) chores today.")
             content.sound = .default
 
             var components = DateComponents()

@@ -41,7 +41,9 @@ struct ParentWeekView: View {
 
                     // Header row of weekday initials.
                     HStack(spacing: 4) {
-                        Text("").frame(width: 88, alignment: .leading)
+                        // Holds the width of the name column. Verbatim so an
+                        // empty key never reaches the catalog.
+                        Text(verbatim: "").frame(width: 88, alignment: .leading)
                         ForEach(week, id: \.self) { day in
                             Text(WeekdayNames.short(day.isoWeekday))
                                 .font(.caption2)
@@ -109,6 +111,12 @@ struct WeekCell: View {
     let isToday: Bool
     let color: Color
 
+    /// Annotated so the `LocalizedStringKey` overload is chosen by declaration
+    /// rather than inferred from a ternary of two literals.
+    private var accessibilityText: LocalizedStringKey {
+        total == 0 ? "nothing scheduled" : "\(done) of \(total) done"
+    }
+
     private var background: Color {
         if total == 0 { return .secondary.opacity(0.08) }
         return done == total ? color.opacity(0.85) : color.opacity(0.18)
@@ -132,6 +140,6 @@ struct WeekCell: View {
             }
             .frame(height: 34)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(total == 0 ? "nothing scheduled" : "\(done) of \(total) done")
+            .accessibilityLabel(accessibilityText)
     }
 }
