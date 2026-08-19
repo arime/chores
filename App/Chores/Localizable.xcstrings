@@ -1,12 +1,142 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ already has every chore on this day.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaikki tämän päivän tehtävät on jo määritetty: %@."
+          }
+        }
+      }
+    },
+    "%@ · %@": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "ABC123": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "ABC123"
+          }
+        }
+      }
+    },
+    "Active": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Käytössä"
+          }
+        }
+      }
+    },
+    "Add": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää"
+          }
+        }
+      }
+    },
+    "Add a child under Manage → People first.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää ensin lapsi kohdassa Hallinta → Ihmiset."
+          }
+        }
+      }
+    },
+    "Add child": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää lapsi"
+          }
+        }
+      }
+    },
+    "Add chore": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää tehtävä"
+          }
+        }
+      }
+    },
+    "Add parent": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää vanhempi"
+          }
+        }
+      }
+    },
+    "Add some chores under Manage → Chores first.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää ensin tehtäviä kohdassa Hallinta → Tehtävät."
+          }
+        }
+      }
+    },
+    "Add them under Manage → People.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää heidät kohdassa Hallinta → Ihmiset."
+          }
+        }
+      }
+    },
+    "Archive": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arkistoi"
+          }
+        }
+      }
+    },
+    "Archived (%lld)": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arkistoidut (%lld)"
+          }
+        }
+      }
+    },
+    "Archived chores keep their history and their place in the schedule, but don't appear on anyone's list.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arkistoidut tehtävät säilyttävät historiansa ja paikkansa aikataulussa, mutta eivät näy kenenkään listalla."
           }
         }
       }
@@ -27,6 +157,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pyydä vanhempaa avaamaan Hallinta → Ihmiset ja näyttämään sinulle uusi koodi."
+          }
+        }
+      }
+    },
+    "Assign to %@": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisää tehtävä: %@"
           }
         }
       }
@@ -71,12 +211,182 @@
         }
       }
     },
+    "Children": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lapset"
+          }
+        }
+      }
+    },
+    "Chores": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tehtävät"
+          }
+        }
+      }
+    },
+    "Colour": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Väri"
+          }
+        }
+      }
+    },
     "Continue": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "Jatka"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopioi"
+          }
+        }
+      }
+    },
+    "Copy %@": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopioi päivä"
+          }
+        }
+      }
+    },
+    "Copy %@ to…": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopioi tämä päivä…"
+          }
+        }
+      }
+    },
+    "Copy to": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopioi päiville"
+          }
+        }
+      }
+    },
+    "Copying replaces everything already assigned on the target days.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiointi korvaa kaiken, mitä kohdepäiville on jo määritetty."
+          }
+        }
+      }
+    },
+    "Couldn't add %@. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lisääminen epäonnistui: %@. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't assign %@. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Määrittäminen epäonnistui: %@. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't copy the day. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivän kopiointi epäonnistui. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't create a code. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodin luominen epäonnistui. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't delete %@. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistaminen epäonnistui: %@. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't do that. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toiminto ei onnistunut. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't remove that chore. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tehtävän poistaminen epäonnistui. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't rename that chore. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nimen vaihtaminen epäonnistui. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't save. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallennus epäonnistui. Tarkista verkkoyhteys ja yritä uudelleen."
           }
         }
       }
@@ -101,12 +411,82 @@
         }
       }
     },
+    "Couldn't update %@. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivittäminen epäonnistui: %@. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
     "Create": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "Luo"
+          }
+        }
+      }
+    },
+    "Day": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivä"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista"
+          }
+        }
+      }
+    },
+    "Delete %@?": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistetaanko %@?"
+          }
+        }
+      }
+    },
+    "Delete account": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista tili"
+          }
+        }
+      }
+    },
+    "Delete your account?": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistetaanko tilisi?"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valmis"
           }
         }
       }
@@ -137,6 +517,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Syötä koodi, jonka sait vanhemmaltasi."
+          }
+        }
+      }
+    },
+    "Enter this on %@'s device": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syötä tämä koodi laitteella, jota %@ käyttää"
+          }
+        }
+      }
+    },
+    "Expires in 7 days. Generating a new code cancels this one.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vanhenee 7 päivässä. Uuden koodin luominen mitätöi tämän."
           }
         }
       }
@@ -201,12 +601,142 @@
         }
       }
     },
+    "Last updated %@": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Päivitetty viimeksi %@"
+          }
+        }
+      }
+    },
+    "Leave": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistu"
+          }
+        }
+      }
+    },
+    "Leave this family": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistu perheestä"
+          }
+        }
+      }
+    },
+    "Leave this family?": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistutaanko perheestä?"
+          }
+        }
+      }
+    },
+    "Leaving gives up your place. Getting back in needs a new code from the other parent.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poistuminen luovuttaa paikkasi. Takaisin pääsy vaatii uuden koodin toiselta vanhemmalta."
+          }
+        }
+      }
+    },
+    "Manage": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hallinta"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nimi"
+          }
+        }
+      }
+    },
+    "New code": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uusi koodi"
+          }
+        }
+      }
+    },
     "New family": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "Uusi perhe"
+          }
+        }
+      }
+    },
+    "No children yet": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei vielä lapsia"
+          }
+        }
+      }
+    },
+    "No children yet.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei vielä lapsia."
+          }
+        }
+      }
+    },
+    "No chores yet.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei vielä tehtäviä."
+          }
+        }
+      }
+    },
+    "Not set up": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei käytössä"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
           }
         }
       }
@@ -221,12 +751,52 @@
         }
       }
     },
+    "Only needed if they get a new device or reinstall the app.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarvitaan vain, jos hän saa uuden laitteen tai asentaa sovelluksen uudelleen."
+          }
+        }
+      }
+    },
     "Parent": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "Vanhempi"
+          }
+        }
+      }
+    },
+    "Parents": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vanhemmat"
+          }
+        }
+      }
+    },
+    "Parents share everything: each can edit chores and the schedule, and tick anything off. Tap another parent to show a setup code for their device.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vanhemmilla on samat oikeudet: kumpi tahansa voi muokata tehtäviä ja aikataulua ja merkitä mitä tahansa tehdyksi. Napauta toista vanhempaa näyttääksesi käyttöönottokoodin hänen laitteelleen."
+          }
+        }
+      }
+    },
+    "People": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihmiset"
           }
         }
       }
@@ -241,12 +811,82 @@
         }
       }
     },
+    "Remove": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poista"
+          }
+        }
+      }
+    },
+    "Rename chore": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vaihda tehtävän nimi"
+          }
+        }
+      }
+    },
+    "Restore": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palauta"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tallenna"
+          }
+        }
+      }
+    },
+    "Schedule": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aikataulu"
+          }
+        }
+      }
+    },
     "Set up this device.": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "Ota tämä laite käyttöön."
+          }
+        }
+      }
+    },
+    "Show setup code": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytä käyttöönottokoodi"
+          }
+        }
+      }
+    },
+    "Showing saved data": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Näytetään tallennetut tiedot"
           }
         }
       }
@@ -271,12 +911,42 @@
         }
       }
     },
+    "Sign out": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu ulos"
+          }
+        }
+      }
+    },
     "Signing in with Apple is what lets your family come back if this phone is replaced, wiped, or the app is reinstalled.": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "Apple-kirjautuminen on se, mikä tuo perheesi takaisin, jos puhelin vaihtuu, tyhjennetään tai sovellus asennetaan uudelleen."
+          }
+        }
+      }
+    },
+    "Signing out keeps your place — sign back in with Apple to return. Leaving gives it up, and deleting your account removes your sign-in with it.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uloskirjautuminen säilyttää paikkasi – kirjaudu takaisin Applella. Poistuminen luovuttaa paikan, ja tilin poistaminen vie Apple-kirjautumisen mukanaan."
+          }
+        }
+      }
+    },
+    "Something went wrong": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jotain meni vikaan"
           }
         }
       }
@@ -297,6 +967,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aloita uusi perhe tai liity perheeseen, johon sinulle on annettu koodi."
+          }
+        }
+      }
+    },
+    "Tap a child to rename them, change their colour, or show a setup code.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta lasta vaihtaaksesi nimen tai värin, tai näyttääksesi käyttöönottokoodin."
+          }
+        }
+      }
+    },
+    "Tap to rename. Swipe to archive.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Napauta vaihtaaksesi nimen. Pyyhkäise arkistoidaksesi."
           }
         }
       }
@@ -331,6 +1021,46 @@
         }
       }
     },
+    "This child's device isn't set up yet.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämän lapsen laitetta ei ole vielä otettu käyttöön."
+          }
+        }
+      }
+    },
+    "This day hasn't happened yet.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä päivä ei ole vielä koittanut."
+          }
+        }
+      }
+    },
+    "This deletes your Apple sign-in for Chores and removes you from the family. This cannot be undone.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä poistaa Chores-sovelluksen Apple-kirjautumisen ja poistaa sinut perheestä. Tätä ei voi peruuttaa."
+          }
+        }
+      }
+    },
+    "This device": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä laite"
+          }
+        }
+      }
+    },
     "This device is already set up.": {
       "localizations": {
         "fi": {
@@ -361,6 +1091,36 @@
         }
       }
     },
+    "This removes %@ from the family, takes them off the schedule, and deletes everything they've ever ticked off. This cannot be undone.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä poistaa perheestä: %@. Hän katoaa aikataulusta, ja kaikki hänen tekemikseen merkityt tehtävät poistetaan. Tätä ei voi peruuttaa."
+          }
+        }
+      }
+    },
+    "This week": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä viikko"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tänään"
+          }
+        }
+      }
+    },
     "Try again": {
       "localizations": {
         "fi": {
@@ -381,12 +1141,32 @@
         }
       }
     },
+    "Week": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viikko"
+          }
+        }
+      }
+    },
     "You": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "Sinä"
+          }
+        }
+      }
+    },
+    "You'll be removed from this family. The other parent can give you a new code if you want back in.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinut poistetaan tästä perheestä. Toinen vanhempi voi antaa sinulle uuden koodin, jos haluat takaisin."
           }
         }
       }
@@ -407,6 +1187,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Olet kirjautunut sisään"
+          }
+        }
+      }
+    },
+    "You're the only parent, so leaving or deleting your account removes the whole family.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet perheen ainoa vanhempi, joten poistuminen tai tilin poistaminen poistaa koko perheen."
+          }
+        }
+      }
+    },
+    "You're the only parent, so leaving removes the whole family.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet perheen ainoa vanhempi, joten poistuminen poistaa koko perheen."
+          }
+        }
+      }
+    },
+    "You're the only parent, so this deletes the family, the children, the chores and all their history. This cannot be undone.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet perheen ainoa vanhempi, joten tämä poistaa perheen, lapset, tehtävät ja koko historian. Tätä ei voi peruuttaa."
+          }
+        }
+      }
+    },
+    "You're the only parent, so this deletes your Apple sign-in for Chores along with the family, the children, the chores and all their history. This cannot be undone.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet perheen ainoa vanhempi, joten tämä poistaa Chores-sovelluksen Apple-kirjautumisen sekä perheen, lapset, tehtävät ja koko historian. Tätä ei voi peruuttaa."
           }
         }
       }
