@@ -21,6 +21,26 @@
         }
       }
     },
+    "%lld of %lld done": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld tehty, %2$lld yhteensä"
+          }
+        }
+      }
+    },
+    "%lld/%lld": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
     "ABC123": {
       "localizations": {
         "fi": {
@@ -227,6 +247,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tehtävät"
+          }
+        }
+      }
+    },
+    "Chores today": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tehtäviä tänään"
           }
         }
       }
@@ -491,6 +521,16 @@
         }
       }
     },
+    "Enjoy it.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauti siitä."
+          }
+        }
+      }
+    },
     "Enter a code": {
       "localizations": {
         "fi": {
@@ -727,6 +767,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ei käytössä"
+          }
+        }
+      }
+    },
+    "Nothing scheduled": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei tehtäviä"
+          }
+        }
+      }
+    },
+    "Nothing today": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei tehtäviä tänään"
           }
         }
       }
@@ -1111,6 +1171,16 @@
         }
       }
     },
+    "This week only.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vain tämä viikko."
+          }
+        }
+      }
+    },
     "Today": {
       "localizations": {
         "fi": {
@@ -1157,6 +1227,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sinä"
+          }
+        }
+      }
+    },
+    "You can tick these off on the day.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voit merkitä nämä tehdyiksi kyseisenä päivänä."
+          }
+        }
+      }
+    },
+    "You have %lld chores today.": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You have 1 chore today."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You have %lld chores today."
+                }
+              }
+            }
+          }
+        },
+        "fi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sinulla on 1 tehtävä tänään."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sinulla on %lld tehtävää tänään."
+                }
+              }
+            }
           }
         }
       }
@@ -1247,6 +1367,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nimesi"
+          }
+        }
+      }
+    },
+    "nothing scheduled": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ei tehtäviä"
           }
         }
       }
