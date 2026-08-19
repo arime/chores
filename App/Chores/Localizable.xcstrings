@@ -1,0 +1,436 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "ABC123": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ABC123"
+          }
+        }
+      }
+    },
+    "Ask a parent to open Manage → People and show you a code.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pyydä vanhempaa avaamaan Hallinta → Ihmiset ja näyttämään sinulle koodi."
+          }
+        }
+      }
+    },
+    "Ask a parent to open Manage → People and show you a new code.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pyydä vanhempaa avaamaan Hallinta → Ihmiset ja näyttämään sinulle uusi koodi."
+          }
+        }
+      }
+    },
+    "Can't reach the server": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelimeen ei saada yhteyttä"
+          }
+        }
+      }
+    },
+    "Can't reach the server. Check your connection and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelimeen ei saada yhteyttä. Tarkista verkkoyhteys ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peruuta"
+          }
+        }
+      }
+    },
+    "Check this device's connection first.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tarkista ensin tämän laitteen verkkoyhteys."
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jatka"
+          }
+        }
+      }
+    },
+    "Couldn't sign in. Please try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjautuminen ei onnistunut. Yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Couldn't start a session. Try restarting the app.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Istunnon aloitus ei onnistunut. Käynnistä sovellus uudelleen."
+          }
+        }
+      }
+    },
+    "Create": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luo"
+          }
+        }
+      }
+    },
+    "Enter a code": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syötä koodi"
+          }
+        }
+      }
+    },
+    "Enter code": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syötä koodi"
+          }
+        }
+      }
+    },
+    "Enter the code from your parent.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syötä koodi, jonka sait vanhemmaltasi."
+          }
+        }
+      }
+    },
+    "Family name": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perheen nimi"
+          }
+        }
+      }
+    },
+    "Household": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koti"
+          }
+        }
+      }
+    },
+    "I have a code": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minulla on koodi"
+          }
+        }
+      }
+    },
+    "I'm a parent": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olen vanhempi"
+          }
+        }
+      }
+    },
+    "I'm a parent — sign in": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olen vanhempi – kirjaudu sisään"
+          }
+        }
+      }
+    },
+    "If other devices can't connect either, the Supabase project has probably paused after a week of inactivity. Open the Supabase dashboard and resume it — nothing is lost.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jos muutkaan laitteet eivät saa yhteyttä, Supabase-projekti on todennäköisesti keskeytetty viikon käyttämättömyyden jälkeen. Avaa Supabasen hallintapaneeli ja jatka projektia – mitään ei katoa."
+          }
+        }
+      }
+    },
+    "New family": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uusi perhe"
+          }
+        }
+      }
+    },
+    "Only a parent who has signed in with Apple can start a family. Sign in with Apple, then try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vain Applella kirjautunut vanhempi voi aloittaa perheen. Kirjaudu Applella ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "Parent": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vanhempi"
+          }
+        }
+      }
+    },
+    "Please fill in both names.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Täytä molemmat nimet."
+          }
+        }
+      }
+    },
+    "Set up this device.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ota tämä laite käyttöön."
+          }
+        }
+      }
+    },
+    "Sign in to keep your family": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu sisään, niin perheesi ei katoa"
+          }
+        }
+      }
+    },
+    "Sign in with Apple": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirjaudu Applella"
+          }
+        }
+      }
+    },
+    "Signing in with Apple is what lets your family come back if this phone is replaced, wiped, or the app is reinstalled.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple-kirjautuminen on se, mikä tuo perheesi takaisin, jos puhelin vaihtuu, tyhjennetään tai sovellus asennetaan uudelleen."
+          }
+        }
+      }
+    },
+    "Start a family": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aloita perhe"
+          }
+        }
+      }
+    },
+    "Start a new family, or join one you've been given a code for.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aloita uusi perhe tai liity perheeseen, johon sinulle on annettu koodi."
+          }
+        }
+      }
+    },
+    "That code has already been used. Ask your parent for a new one.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodi on jo käytetty. Pyydä vanhemmaltasi uusi."
+          }
+        }
+      }
+    },
+    "That code has expired. Ask your parent for a new one.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodi on vanhentunut. Pyydä vanhemmaltasi uusi."
+          }
+        }
+      }
+    },
+    "The server refused the request": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palvelin hylkäsi pyynnön"
+          }
+        }
+      }
+    },
+    "This device is already set up.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tämä laite on jo otettu käyttöön."
+          }
+        }
+      }
+    },
+    "This device isn't set up": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tätä laitetta ei ole otettu käyttöön"
+          }
+        }
+      }
+    },
+    "This is a fault in the app or its database, not in this device's connection.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vika on sovelluksessa tai sen tietokannassa, ei tämän laitteen verkkoyhteydessä."
+          }
+        }
+      }
+    },
+    "Try again": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yritä uudelleen"
+          }
+        }
+      }
+    },
+    "We don't recognise that code. Check for typos and try again.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodia ei löytynyt. Tarkista kirjoitusvirheet ja yritä uudelleen."
+          }
+        }
+      }
+    },
+    "You": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinä"
+          }
+        }
+      }
+    },
+    "You're not able to do that.": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinulla ei ole oikeutta tähän."
+          }
+        }
+      }
+    },
+    "You're signed in": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Olet kirjautunut sisään"
+          }
+        }
+      }
+    },
+    "Your code": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koodisi"
+          }
+        }
+      }
+    },
+    "Your name": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nimesi"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
