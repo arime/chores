@@ -6,7 +6,7 @@ Children see their own chores for the day and tick them off; a parent maintains 
 of children and chores, defines a repeating weekly schedule, and sees at a glance who has
 done what.
 
-- **Client:** SwiftUI (iOS), distributed via TestFlight
+- **Client:** SwiftUI (iOS), English and Finnish, distributed via TestFlight
 - **Backend:** Supabase (Postgres, anonymous auth, row-level security)
 
 ## Status
