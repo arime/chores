@@ -18,7 +18,7 @@
 - **Cross-references must match the tab and row names they point at.** Three strings say "Manage → People" and one says "Manage → Chores"; in Finnish those are `Hallinta → Ihmiset` and `Hallinta → Tehtävät`, matching the `Label` strings in `ManageView`.
 - **Every substituted value stays in the nominative.** Finnish inflects and `%@` cannot. Reword the Finnish rather than inflecting a name or weekday — see spec §6.
 - **Never touch a string passed to `.accessibilityIdentifier(...)`.** Those are identifiers the UI tests query by, not text anyone reads.
-- **`swift test` must stay at 111 passing tests** throughout. No test is deleted by this plan; four change what they assert.
+- **`swift test` must stay at 141 passing tests** throughout. No test is deleted by this plan; four change what they assert. (`README.md:29` says 111 — it is stale, and was already stale before this work.)
 - **Two strings are deliberately kept out of the catalog** — see Task 3, Step 1. The app name `"Chores"` on the launch screen and the empty `Text("")` spacer both become `Text(verbatim:)`.
 
 ---

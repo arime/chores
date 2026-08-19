@@ -32,9 +32,9 @@ struct ClaimCodeView: View {
                 Text("Ask a parent to open Manage → People and show you a code.")
             }
 
-            if let error = model.errorMessage {
+            if let failure = model.failure {
                 Section {
-                    Text(error).foregroundStyle(.red)
+                    Text(failure.text).foregroundStyle(.red)
                 }
             }
 

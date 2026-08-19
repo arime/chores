@@ -29,7 +29,7 @@ import Foundation
         let succeeded = await model.createFamily()
 
         #expect(succeeded)
-        #expect(model.errorMessage == nil)
+        #expect(model.failure == nil)
         #expect(try await backend.currentProfile()?.role == .parent)
     }
 
@@ -54,7 +54,7 @@ import Foundation
         let succeeded = await model.createFamily()
 
         #expect(!succeeded)
-        #expect(model.errorMessage != nil)
+        #expect(model.failure != nil)
         #expect(try await backend.currentProfile() == nil)
     }
 
@@ -90,7 +90,7 @@ import Foundation
         model.code = "   "
 
         #expect(!(await model.claim()))
-        #expect(model.errorMessage != nil)
+        #expect(model.failure != nil)
     }
 
     /// Each failure has a different remedy, so each needs its own wording. This is
@@ -102,7 +102,7 @@ import Foundation
         model.code = "ZZZZZZ"
 
         #expect(!(await model.claim()))
-        #expect(model.errorMessage?.contains("don't recognise") == true)
+        #expect(model.failure == .unknownClaimCode)
     }
 
     @Test func usedCodeTellsTheChildToAskForANewOne() async throws {
@@ -118,8 +118,7 @@ import Foundation
         model.code = fixture.code
 
         #expect(!(await model.claim()))
-        #expect(model.errorMessage?.contains("already been used") == true)
-        #expect(model.errorMessage?.contains("new one") == true)
+        #expect(model.failure == .claimCodeAlreadyUsed)
     }
 
     @Test func unreachableBackendReportsAConnectionProblem() async {
@@ -127,7 +126,7 @@ import Foundation
         model.code = "ABC123"
 
         #expect(!(await model.claim()))
-        #expect(model.errorMessage?.contains("reach the server") == true)
+        #expect(model.failure == .projectUnavailable)
     }
 
     @Test func isBusyIsClearedAfterAFailedCall() async throws {
@@ -149,11 +148,11 @@ import Foundation
 
         model.code = "ZZZZZZ"
         _ = await model.claim()
-        #expect(model.errorMessage != nil)
+        #expect(model.failure != nil)
 
         model.code = fixture.code
         #expect(await model.claim())
-        #expect(model.errorMessage == nil)
+        #expect(model.failure == nil)
     }
 
     /// The child door is the only place an anonymous identity is created now that
