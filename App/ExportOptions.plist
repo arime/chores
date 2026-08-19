@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Options for `xcodebuild -exportArchive`, the command-line equivalent of Xcode's
+  Distribute App button. See `xcodebuild -help` for every available key.
+
+  The archive itself is signed with a development identity, because the Release
+  configuration says so. That signature is scratch work: exportArchive re-signs
+  the bundle for the chosen distribution method, which is what puts the
+  Apple Distribution certificate on the build that reaches TestFlight and strips
+  `get-task-allow` from its entitlements.
+-->
+<plist version="1.0">
+<dict>
+	<!-- Formerly `app-store`, which still works but is deprecated. -->
+	<key>method</key>
+	<string>app-store-connect</string>
+
+	<!--
+	  `upload` sends the build to App Store Connect as part of this same command;
+	  `export` would leave an .ipa in the export path instead. Switch to `export`
+	  when you want to inspect the package before it leaves the machine — the
+	  upload is then `xcrun altool --upload-app`.
+	-->
+	<key>destination</key>
+	<string>upload</string>
+
+	<key>teamID</key>
+	<string>HPD6U8BLB5</string>
+
+	<!--
+	  Matches the project's CODE_SIGN_STYLE. Xcode fetches the App Store
+	  provisioning profile itself, which is why the export command needs
+	  -allowProvisioningUpdates. Note that `signingCertificate` cannot pin the
+	  identity here: it applies to manual signing only.
+	-->
+	<key>signingStyle</key>
+	<string>automatic</string>
+
+	<!--
+	  Defaults to YES, which lets Xcode rewrite the build number during upload.
+	  NO keeps the CURRENT_PROJECT_VERSION passed to the archive command, so the
+	  number in App Store Connect is the one the archive was built with.
+	-->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+
+	<!-- Ships the dSYM so App Store Connect can symbolicate tester crash reports. -->
+	<key>uploadSymbols</key>
+	<true/>
+</dict>
+</plist>
