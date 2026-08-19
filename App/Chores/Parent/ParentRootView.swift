@@ -41,7 +41,6 @@ struct ManageView: View {
     let parent: Profile
     let onSessionChanged: () async -> Void
 
-    @State private var isShowingOwnCode = false
     @State private var isConfirmingLeave = false
     @State private var isConfirmingDelete = false
     @State private var errorMessage: String?
@@ -70,21 +69,6 @@ struct ManageView: View {
                 }
 
                 Section {
-                    Button {
-                        isShowingOwnCode = true
-                    } label: {
-                        Label("Get a code for this device", systemImage: "iphone.and.arrow.forward")
-                    }
-                    .accessibilityIdentifier("manage.ownCode")
-                } footer: {
-                    Text("""
-                        A code is how you move parent access to another device, or get back \
-                        in if this one is wiped or replaced. Make one when you need it — they \
-                        last 7 days.
-                        """)
-                }
-
-                Section {
                     Button("Sign out") {
                         Task { await perform { try await environment.backend.signOut() } }
                     }
@@ -106,9 +90,6 @@ struct ManageView: View {
                 }
             }
             .navigationTitle("Manage")
-            .sheet(isPresented: $isShowingOwnCode) {
-                ClaimCodeSheet(profile: parent, backend: environment.backend, isOwnProfile: true)
-            }
             .confirmationDialog("Leave this family?",
                                 isPresented: $isConfirmingLeave, titleVisibility: .visible) {
                 Button("Leave", role: .destructive) {

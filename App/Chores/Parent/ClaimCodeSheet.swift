@@ -4,9 +4,6 @@ import ChoresCore
 struct ClaimCodeSheet: View {
     let profile: Profile
     let backend: any ChoresBackend
-    /// A parent making a code for their own profile, rather than for a child's
-    /// device. Same mechanism, different thing to say about it.
-    var isOwnProfile = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var code: String?
@@ -18,21 +15,14 @@ struct ClaimCodeSheet: View {
                 Spacer()
 
                 if let code {
-                    Text(isOwnProfile
-                         ? "Enter this on the device you want to use as parent"
-                         : "Enter this on \(profile.displayName)'s device")
+                    Text("Enter this on \(profile.displayName)'s device")
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                     Text(code)
                         .font(.system(size: 44, weight: .bold, design: .monospaced))
                         .textSelection(.enabled)
                         .accessibilityIdentifier("claimCodeSheet.code")
-                    Text(isOwnProfile
-                         ? """
-                           Expires in 7 days. Entering it somewhere else moves your \
-                           parent access there, and this device will need a code of its own.
-                           """
-                         : "Expires in 7 days. Generating a new code cancels this one.")
+                    Text("Expires in 7 days. Generating a new code cancels this one.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -48,7 +38,7 @@ struct ClaimCodeSheet: View {
                     .buttonStyle(.bordered)
             }
             .padding(32)
-            .navigationTitle(isOwnProfile ? "This device" : profile.displayName)
+            .navigationTitle(profile.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

@@ -65,25 +65,36 @@ struct PeopleView: View {
 
             Section {
                 ForEach(parents) { parent in
-                    Button {
-                        showingCodeFor = parent
-                    } label: {
+                    // Your own row is inert. A code for your own profile only ever
+                    // hands it to a different Apple ID and leaves you bound to
+                    // nothing, which is not something to offer by accident —
+                    // signing in with Apple is how you reach your own family.
+                    if parent.id == me.id {
                         HStack {
                             Text(parent.displayName)
                             Spacer()
-                            if parent.id == me.id {
-                                Text("This device")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else if parent.authUserID == nil {
-                                Text("Not set up")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                            Text("This device")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityIdentifier("people.parent.\(parent.displayName)")
+                    } else {
+                        Button {
+                            showingCodeFor = parent
+                        } label: {
+                            HStack {
+                                Text(parent.displayName)
+                                Spacer()
+                                if parent.authUserID == nil {
+                                    Text("Not set up")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
+                        .tint(.primary)
+                        .accessibilityIdentifier("people.parent.\(parent.displayName)")
                     }
-                    .tint(.primary)
-                    .accessibilityIdentifier("people.parent.\(parent.displayName)")
                 }
                 Button("Add parent") { isAddingParent = true }
                     .accessibilityIdentifier("people.addParent")
@@ -92,7 +103,8 @@ struct PeopleView: View {
             } footer: {
                 Text("""
                     Parents share everything: each can edit chores and the schedule, and \
-                    tick anything off. Tap one to show a setup code for their device.
+                    tick anything off. Tap another parent to show a setup code for their \
+                    device.
                     """)
             }
         }
@@ -111,8 +123,7 @@ struct PeopleView: View {
             EditChildSheet(child: child, store: store, backend: backend)
         }
         .sheet(item: $showingCodeFor) { parent in
-            ClaimCodeSheet(profile: parent, backend: backend,
-                           isOwnProfile: parent.id == me.id)
+            ClaimCodeSheet(profile: parent, backend: backend)
         }
         .confirmationDialog("Delete \(deleting?.displayName ?? "")?",
                             isPresented: Binding(
