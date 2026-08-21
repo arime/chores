@@ -13,10 +13,11 @@ struct OnboardingView: View {
                 Image(systemName: "checklist")
                     .font(.system(size: 64))
                     .foregroundStyle(.tint)
-                // The app's own name, not a word to translate — and it would
-                // otherwise share a key with the chore list's "Chores" title,
-                // which does become "Tehtävät".
-                Text(verbatim: "Chores")
+                // The app's own name, read from the bundle: not a word to
+                // translate, and not a literal to keep in step with the project
+                // file by hand. A key of its own would also collide with the
+                // chore list's "Chores" title, which does become "Tehtävät".
+                Text(verbatim: AppIdentity.displayName)
                     .font(.largeTitle.bold())
                 Text("Set up this device.")
                     .foregroundStyle(.secondary)

@@ -132,10 +132,10 @@ struct ManageView: View {
                     }
                     .accessibilityIdentifier("manage.help")
                 } footer: {
-                    // Not localized: a version number reads the same in both
-                    // languages, and "Chores" is the app's name rather than a
-                    // word to translate.
-                    Text(verbatim: "Chores \(AppLinks.marketingVersion)")
+                    // The build number earns its place here: it is the one thing
+                    // someone can quote in a support email that identifies the
+                    // exact binary, and build/uploads.log maps it to a commit.
+                    Text(verbatim: AppIdentity.summary)
                 }
 
                 // A parent with no account gets one way out rather than three.

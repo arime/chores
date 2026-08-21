@@ -26,10 +26,4 @@ enum AppLinks {
         return url.appendingPathComponent("fi")
     }
 
-    /// `CFBundleShortVersionString` is `MARKETING_VERSION`, the version users see;
-    /// `CFBundleVersion` is the build number, which comes from the clock at
-    /// archive time and means nothing to anyone reading it.
-    static var marketingVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-    }
 }
