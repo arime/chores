@@ -591,6 +591,16 @@
         }
       }
     },
+    "Help": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohjeet"
+          }
+        }
+      }
+    },
     "Household": {
       "localizations": {
         "fi": {
@@ -867,6 +877,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Täytä molemmat nimet."
+          }
+        }
+      }
+    },
+    "Privacy policy": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tietosuojakäytäntö"
           }
         }
       }
