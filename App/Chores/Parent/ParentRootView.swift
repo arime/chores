@@ -102,16 +102,40 @@ struct ManageView: View {
                     } label: {
                         Label("People", systemImage: "person.2")
                     }
+                    .accessibilityIdentifier("manage.people")
                     NavigationLink {
                         ChoresView(store: store, backend: environment.backend)
                     } label: {
                         Label("Chores", systemImage: "list.bullet")
                     }
+                    .accessibilityIdentifier("manage.chores")
                     NavigationLink {
                         ScheduleEditorView(store: store, backend: environment.backend)
                     } label: {
                         Label("Schedule", systemImage: "calendar.badge.clock")
                     }
+                    .accessibilityIdentifier("manage.schedule")
+                }
+
+                // Both pages are also what the App Store listing points at. They
+                // are here because this is where someone looks for them, and
+                // only in parent mode — the child's side has no way out to the
+                // web, which is a thing worth keeping true.
+                Section {
+                    Link(destination: AppLinks.privacyPolicy) {
+                        Label("Privacy policy", systemImage: "hand.raised")
+                    }
+                    .accessibilityIdentifier("manage.privacyPolicy")
+
+                    Link(destination: AppLinks.support) {
+                        Label("Help", systemImage: "questionmark.circle")
+                    }
+                    .accessibilityIdentifier("manage.help")
+                } footer: {
+                    // Not localized: a version number reads the same in both
+                    // languages, and "Chores" is the app's name rather than a
+                    // word to translate.
+                    Text(verbatim: "Chores \(AppLinks.marketingVersion)")
                 }
 
                 // A parent with no account gets one way out rather than three.
