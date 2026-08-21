@@ -1,0 +1,47 @@
+Chores is a chore chart for one household. It has two sides: a parent, who keeps
+the list, and a child, who ticks chores off. Both are in this one app, and which
+one a device shows is decided when the device is set up.
+
+SIGNING IN
+
+The parent side uses Sign in with Apple, and any Apple ID works — including
+yours. No demo account is needed and none exists. Tap "I'm a parent", sign in,
+then give the family and yourself a name.
+
+SEEING THE CHILD'S SIDE
+
+A child's device is set up with a code generated on a parent's device, so in
+normal use the two sides are on two phones. On a single device, this reaches
+both:
+
+1. As the parent, open Manage > People, add a child, tap the child, and tap
+   "Show setup code". Note the code down.
+2. Delete the app and install it again.
+3. Tap "I have a code" and type the code in. The device now belongs to that
+   child and shows only that child's chores, with no way to change the list.
+4. To go back to the parent side, delete and reinstall once more, then sign in
+   with Apple. The family is still there — that is what the sign-in is for.
+
+A code is valid for seven days.
+
+WHAT THE APP DOES NOT HAVE
+
+No accounts for children: a parent adds a child by first name, and that is the
+whole of it. No messaging or any other content from one user to another. No
+in-app purchases, no advertising, no analytics and no tracking. The child's side
+has no links out to the web at all.
+
+ACCOUNT DELETION
+
+Manage > Delete account. It deletes the Apple sign-in for this app, and — when
+that parent is the only one — the family, the children, the chores and their
+history with it. Manage > Leave this family is the same thing without deleting
+the sign-in.
+
+WHERE THE DATA IS
+
+A Supabase project (managed Postgres, in the EU), reached over HTTPS, with
+row-level security so a device can only read its own family's rows. What is
+stored is what the family typed: display names, chore names, the weekly
+schedule, and which chore was ticked off on which day. The daily reminder is a
+local notification scheduled on the device; there is no push service.
