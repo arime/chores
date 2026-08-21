@@ -78,10 +78,16 @@ public final class FamilyStore {
         await outbox.flush()
         do {
             let fresh = try await backend.fetchSnapshot(familyID: familyID, weekOf: today)
-            snapshot = fresh
+            // Not `fresh` itself. The flush above sends what it can, but writes
+            // can outlive it either way: one still in flight when a pull-to-refresh
+            // lands, or one queued behind a server that takes reads and refuses
+            // writes. Both would otherwise come back as a tick undoing itself
+            // under the hand that made it.
+            let merged = fresh.applying(await outbox.pending, at: clock())
+            snapshot = merged
             isStale = false
             errorMessage = nil
-            await cache.save(fresh)
+            await cache.save(merged)
         } catch {
             isStale = snapshot != nil
             errorMessage = snapshot == nil ? Self.message(for: error) : nil
@@ -123,23 +129,16 @@ public final class FamilyStore {
                              on day: CalendarDay, actor actorProfileID: UUID) async {
         guard snapshot != nil else { return }
 
-        // Remove any existing row for this key either way, so completing twice
-        // cannot duplicate.
-        snapshot?.completions.removeAll {
-            $0.profileID == profileID && $0.choreID == chore.id && $0.dueOn == day
-        }
+        let operation: OutboxOperation = completed
+            ? .complete(familyID: familyID, profileID: profileID, choreID: chore.id,
+                        dueOn: day, completedBy: actorProfileID)
+            : .uncomplete(profileID: profileID, choreID: chore.id, dueOn: day)
 
-        if completed {
-            snapshot?.completions.append(Completion(
-                id: UUID(), familyID: familyID, profileID: profileID, choreID: chore.id,
-                dueOn: day, completedAt: clock(), completedBy: actorProfileID))
-            await outbox.enqueue(.complete(
-                familyID: familyID, profileID: profileID, choreID: chore.id,
-                dueOn: day, completedBy: actorProfileID))
-        } else {
-            await outbox.enqueue(.uncomplete(
-                profileID: profileID, choreID: chore.id, dueOn: day))
-        }
+        // Applied through the same rule the refresh path uses, so the view a tap
+        // produces and the view a refresh produces cannot drift apart — and so
+        // that replacing a row for the same (child, chore, date) is defined once.
+        snapshot = snapshot?.applying([operation], at: clock())
+        await outbox.enqueue(operation)
 
         if let snapshot { await cache.save(snapshot) }
         await outbox.flush()

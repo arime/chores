@@ -55,6 +55,11 @@ public actor Outbox {
 
     public var pendingCount: Int { queue.count }
 
+    /// What has not reached the server yet, in the order it will be sent. The
+    /// read model lays these back over a fetched snapshot, so that a refresh
+    /// arriving while a write is still queued cannot draw it as never made.
+    public var pending: [OutboxOperation] { queue }
+
     public func enqueue(_ operation: OutboxOperation) {
         // If an unsent operation targets the same row in the opposite direction, the
         // server never observed either — drop both rather than sending a write and

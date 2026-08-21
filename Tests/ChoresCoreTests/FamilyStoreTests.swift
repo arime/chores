@@ -124,6 +124,82 @@ import Foundation
         #expect(fixture.store.chores(for: fixture.childID, on: monday)[0].isCompleted)
     }
 
+    /// A pull-to-refresh arriving while a tick is still on the wire. The tick is
+    /// in the outbox and on the screen; the server has not recorded it yet. If the
+    /// fetched snapshot simply replaces what is shown, the tick disappears under
+    /// the parent's finger and only comes back at some later refresh.
+    @Test func aRefreshDoesNotDropATickStillInFlight() async throws {
+        let fixture = try await makeFixture()
+        let parked = ParkedWriteBackend(inner: fixture.backend)
+        let store = FamilyStore(
+            backend: parked,
+            cache: SnapshotCache(directory: fixture.directory),
+            outbox: Outbox(directory: fixture.directory, backend: parked),
+            familyID: fixture.familyID,
+            clock: { FamilyStoreTests.mondayNoon })
+        await store.start()
+        let chore = store.chores(for: fixture.childID, on: monday)[0].chore
+
+        async let ticked: Void = store.setCompleted(
+            true, chore: chore, profileID: fixture.childID, on: monday, actor: fixture.childID)
+        await parked.gate.waitForArrivals(1)
+        #expect(store.chores(for: fixture.childID, on: monday)[0].isCompleted)
+
+        await store.refresh()
+        #expect(store.chores(for: fixture.childID, on: monday)[0].isCompleted)
+
+        await parked.gate.releaseAll()
+        await ticked
+    }
+
+    /// Reads working while writes are refused — a transient failure, or a
+    /// permission that the completions table alone withholds. The tick stays in
+    /// the outbox, so it must stay on the screen too.
+    @Test func aRefreshKeepsATickTheServerHasNotAcceptedYet() async throws {
+        let fixture = try await makeFixture()
+        let flaky = FlakyBackend(inner: fixture.backend)
+        let store = FamilyStore(
+            backend: flaky,
+            cache: SnapshotCache(directory: fixture.directory),
+            outbox: Outbox(directory: fixture.directory, backend: flaky),
+            familyID: fixture.familyID,
+            clock: { FamilyStoreTests.mondayNoon })
+        await store.start()
+        let chore = store.chores(for: fixture.childID, on: monday)[0].chore
+
+        flaky.shouldFail = true
+        await store.setCompleted(true, chore: chore, profileID: fixture.childID,
+                                 on: monday, actor: fixture.childID)
+        await store.refresh()
+
+        #expect(store.chores(for: fixture.childID, on: monday)[0].isCompleted)
+    }
+
+    /// The mirror image, and the one a merge could easily get backwards: the
+    /// server still holds the completion because the delete has not been sent.
+    /// What the person last did wins over what the server still believes.
+    @Test func aRefreshKeepsAnUntickTheServerHasNotAcceptedYet() async throws {
+        let fixture = try await makeFixture()
+        let flaky = FlakyBackend(inner: fixture.backend)
+        let store = FamilyStore(
+            backend: flaky,
+            cache: SnapshotCache(directory: fixture.directory),
+            outbox: Outbox(directory: fixture.directory, backend: flaky),
+            familyID: fixture.familyID,
+            clock: { FamilyStoreTests.mondayNoon })
+        await store.start()
+        let chore = store.chores(for: fixture.childID, on: monday)[0].chore
+        await store.setCompleted(true, chore: chore, profileID: fixture.childID,
+                                 on: monday, actor: fixture.childID)
+
+        flaky.shouldFail = true
+        await store.setCompleted(false, chore: chore, profileID: fixture.childID,
+                                 on: monday, actor: fixture.childID)
+        await store.refresh()
+
+        #expect(store.chores(for: fixture.childID, on: monday)[0].isCompleted == false)
+    }
+
     @Test func uncompletingRemovesTheCompletion() async throws {
         let fixture = try await makeFixture()
         await fixture.store.start()
