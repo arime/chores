@@ -69,8 +69,8 @@ content from anyone else.</p>
 
 <p>Family data is held in a managed PostgreSQL database run by Supabase in the European
 Union, and is reached over HTTPS. Row-level security in the database means a device can
-read and write only the rows belonging to its own family; this is enforced by the
-database itself rather than by the app asking nicely. Supabase acts as a processor. A
+read and write only the rows belonging to its own family. The database itself
+enforces that, rather than the app asking nicely. Supabase acts as a processor. A
 copy of the current chart is also cached on the device, so the app works with no signal.</p>
 
 <h2>Notifications</h2>
@@ -95,7 +95,7 @@ request to anyone:</p>
 </ul>
 
 <p>These deletions are immediate and cannot be undone. Deleting the app removes the
-cached copy on the device; it does not delete the family from the server, since the
+cached copy on the device. It does not delete the family from the server, since the
 other devices in the family are still using it.</p>
 
 <h2>Your rights</h2>
