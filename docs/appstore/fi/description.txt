@@ -1,0 +1,27 @@
+Chores on yhden kotitalouden tehtävätaulu, joka toimii puhelimilla jotka teillä on jo.
+
+Vanhempi ylläpitää listaa: keitä perheeseen kuuluu, mitkä tehtävät ovat olemassa ja kenen tehtävä mikä on minä päivänä. Kuvio toistuu joka viikko, joten käyttöönotto tehdään kertaalleen.
+
+Jokainen lapsi saa oman laitteensa ja näkee yhden asian — päivän omat tehtävänsä ja renkaan, joka täyttyy kun ne kuitataan tehdyiksi. Ruudulla ei ole muuta: ei pisteitä joita vertailla sisarukseen, ei viestejä, ei tapaa muokata listaa, ei mitään ostettavaa.
+
+MITÄ VANHEMPI NÄKEE
+
+• Tänään: jokainen lapsi ja kuinka suuri osa päivästä on tehty.
+• Viikko: koko viikko ruudukkona, joten useampi ohitettu päivä näkyy yhdellä silmäyksellä.
+• Yhdellä painalluksella tehtävän voi kuitata lapsen puolesta — sitä iltaa varten, jolloin se todella tehtiin eikä kukaan sanonut.
+• Ihmiset, Tehtävät ja Aikataulu, eli koko käyttöönotto.
+
+MITÄ LAPSI NÄKEE
+
+• Päivän tehtävät, eikä mitään mihin hänellä ei ole asiaa.
+• Viikon, joten huominen ei tule yllätyksenä. Päivää joka ei ole vielä koittanut ei voi kuitata etuajassa.
+• Halutessaan muistutuksen iltapäivällä niinä päivinä, joilla on tehtäviä.
+
+TEHTY PYSYMÄÄN TIELTÄ POIS
+
+• Toimii ilman verkkoyhteyttä. Kuitattu tehtävä lasketaan heti ja päätyy muille laitteille kun yhteys palaa.
+• Lapsille ei tarvita tilejä. Vanhempi lisää lapsen etunimellä ja antaa lapsen laitteeseen lyhyen koodin; siinä on koko käyttöönotto lapsen puolella.
+• Ei mainoksia, ei analytiikkaa, ei seurantaa, ei sovelluksen sisäisiä ostoja eikä tilausmaksua.
+• Suomeksi ja englanniksi, puhelimen kielen mukaan.
+
+Kaikki mitä sovellus säilyttää on sitä, mitä joku perheessä on kirjoittanut. Tilin poistaminen poistaa sen — perheen, lapset, tehtävät ja koko historian — sovelluksen sisältä, heti, ilman että keneltäkään tarvitsee pyytää mitään.

@@ -1,0 +1,27 @@
+Chores is a chore chart for one household, running on the phones you already have.
+
+A parent keeps the list: who is in the family, what the chores are, and which chores belong to which child on which day. That pattern repeats every week, so the setting up happens once.
+
+Each child gets their own device and sees one thing — their chores for today, and a ring that fills as they tick them off. Nothing else is on the screen: no scores to compare against a sibling, no messages, no way to edit the list, nothing to buy.
+
+WHAT A PARENT SEES
+
+• Today: every child, and how much of their day is done.
+• Week: the whole week as a grid, so a run of missed days is obvious at a glance.
+• One tap to tick something off on a child's behalf, for the evening it genuinely was done and nobody said so.
+• People, Chores and Schedule, which is the whole of the setup.
+
+WHAT A CHILD SEES
+
+• Today's chores, and nothing they are not allowed to do.
+• The week, so tomorrow is not a surprise. A day that has not arrived yet cannot be ticked off early.
+• A reminder in the afternoon on days that have chores, if they want one.
+
+BUILT TO STAY OUT OF THE WAY
+
+• Works with no signal. A chore ticked off counts immediately and reaches the other devices when the connection comes back.
+• No accounts for children. A parent adds a child by first name and hands their device a short code; that is the entire setup on the child's side.
+• No advertising, no analytics, no tracking, no in-app purchases and no subscription.
+• English and Finnish, and it follows the language of the phone.
+
+Everything the app holds is what somebody in the family typed. Deleting your account deletes it — the family, the children, the chores and all of their history — from inside the app, immediately, with nothing to ask anybody for.

@@ -23,7 +23,7 @@ asc_token_cache=''
 asc_require_credentials() {
 	[ -n "${ASC_KEY_PATH:-}" ] && [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ] || {
 		cat >&2 <<-'EOF'
-		error: external distribution needs an App Store Connect API key.
+		error: this needs an App Store Connect API key.
 
 		The Apple ID signed into Xcode is enough to upload a build, but not to
 		call the API — there is no way to mint a token from it. Create a key at
@@ -34,7 +34,7 @@ asc_require_credentials() {
 		  ASC_ISSUER_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
 		The key needs the App Manager or Admin role. A Developer-role key can
-		upload but cannot manage beta groups.
+		upload a build but cannot manage beta groups or the App Store listing.
 		EOF
 		exit 1
 	}
@@ -140,6 +140,292 @@ in before external distribution is possible at all."
 	printf '%s' "$(printf '%s' "$group" | cut -f1)"
 }
 
+asc_app_name() {
+	asc_request GET "/apps/$1" | jq -r '.data.attributes.name // empty'
+}
+
+# "Does your app contain, show, or access third-party content?" — an app-level
+# declaration, required before a first submission and easy to forget because
+# nothing asks for it until the submission is refused.
+asc_set_content_rights() {
+	asc_request PATCH "/apps/$1" "$(jq -nc --arg id "$1" --arg declaration "$2" \
+		'{data: {type: "apps", id: $id, attributes: {contentRightsDeclaration: $declaration}}}')" >/dev/null
+}
+
+# id and build number of the most recently uploaded build, tab separated. Used
+# when no --build is given: the last thing uploaded is nearly always the thing
+# meant.
+asc_latest_build() {
+	asc_request GET "/builds?filter%5Bapp%5D=$1&sort=-uploadedDate&limit=1" |
+		jq -r '.data[0] | select(.) | [.id, .attributes.version] | @tsv'
+}
+
+# ---------------------------------------------------------------------------
+# The App Store version, and everything hanging off it
+#
+# The shape, because it is not obvious and the names are nearly the same:
+#
+#   app
+#    ├── appInfo                       one per app, not per version
+#    │    ├── appInfoLocalizations     name, subtitle, privacy policy URL
+#    │    └── primary/secondaryCategory
+#    └── appStoreVersion               one per version number
+#         ├── appStoreVersionLocalizations   description, keywords, URLs,
+#         │    └── appScreenshotSets          what's new, promotional text
+#         │         └── appScreenshots
+#         ├── appStoreReviewDetail      contact details and notes for review
+#         └── build                     the binary this version ships
+#
+# So the subtitle and the description live in different places, on different
+# sides of the version boundary — which is why editing one leaves the other
+# alone, and why a new version inherits the subtitle but not the description.
+# ---------------------------------------------------------------------------
+
+# Each of the four lookups below has a find_ form that reports what is there and
+# a plain form that creates what is missing. Reading the state of a listing must
+# not bring half of it into existence — `--status` uses the find_ forms
+# throughout, and a status command with side effects would be its own bug.
+
+# Prints "<id>\t<state>", or nothing if this version does not exist yet.
+asc_find_version() {
+	asc_request GET "/apps/$1/appStoreVersions?filter%5Bplatform%5D=IOS&limit=50" |
+		jq -r --arg version "$2" '
+			.data[]
+			| select(.attributes.versionString == $version)
+			| [.id, (.attributes.appVersionState // .attributes.appStoreState // "UNKNOWN")]
+			| @tsv'
+}
+
+# The version resource for `version_string`, creating it if App Store Connect
+# has never heard of it. Prints "<id>\t<state>".
+asc_version() {
+	local app_id="$1" version_string="$2" found id
+	found="$(asc_find_version "$app_id" "$version_string")"
+
+	if [ -n "$found" ]; then
+		printf '%s' "$found"
+		return 0
+	fi
+
+	id="$(asc_request POST '/appStoreVersions' "$(jq -nc \
+		--arg app "$app_id" --arg version "$version_string" \
+		'{data: {type: "appStoreVersions",
+		         attributes: {platform: "IOS", versionString: $version},
+		         relationships: {app: {data: {type: "apps", id: $app}}}}}')" |
+		jq -r '.data.id')"
+	printf '%s\tPREPARE_FOR_SUBMISSION' "$id"
+}
+
+# How many iOS versions the app has ever had. One means this is the first
+# release, which is the only case where What's New must not be sent — there is
+# nothing for it to be new since, and App Store Connect rejects it.
+asc_version_count() {
+	asc_request GET "/apps/$1/appStoreVersions?filter%5Bplatform%5D=IOS&limit=200" |
+		jq -r '.data | length'
+}
+
+asc_patch_version() {
+	asc_request PATCH "/appStoreVersions/$1" "$(jq -nc --arg id "$1" --argjson attrs "$2" \
+		'{data: {type: "appStoreVersions", id: $id, attributes: $attrs}}')" >/dev/null
+}
+
+asc_app_info_id() {
+	# An app has one appInfo per state; the editable one is whichever is not
+	# already on the store.
+	asc_request GET "/apps/$1/appInfos?limit=10" |
+		jq -r '[.data[] | select((.attributes.appStoreState // .attributes.state // "") != "READY_FOR_SALE")][0].id
+			// .data[0].id // empty'
+}
+
+asc_set_categories() {
+	local app_info_id="$1" primary="$2" secondary="$3" relationships
+	relationships="$(jq -nc --arg primary "$primary" --arg secondary "$secondary" '
+		{primaryCategory: {data: (if $primary == "" then null else {type: "appCategories", id: $primary} end)},
+		 secondaryCategory: {data: (if $secondary == "" then null else {type: "appCategories", id: $secondary} end)}}')"
+	asc_request PATCH "/appInfos/$app_info_id" "$(jq -nc \
+		--arg id "$app_info_id" --argjson rel "$relationships" \
+		'{data: {type: "appInfos", id: $id, relationships: $rel}}')" >/dev/null
+}
+
+# The localization for `locale`, created if absent. The set of locales an app
+# has is not fixed by anything in this repository — adding a language to the
+# listing is adding a directory under docs/appstore/ and running this.
+asc_find_app_info_localization() {
+	asc_request GET "/appInfos/$1/appInfoLocalizations?limit=200" |
+		jq -r --arg locale "$2" '.data[] | select(.attributes.locale == $locale) | .id'
+}
+
+asc_app_info_localization() {
+	local app_info_id="$1" locale="$2" id
+	id="$(asc_find_app_info_localization "$app_info_id" "$locale")"
+	[ -z "$id" ] || { printf '%s' "$id"; return 0; }
+
+	asc_request POST '/appInfoLocalizations' "$(jq -nc \
+		--arg info "$app_info_id" --arg locale "$locale" \
+		'{data: {type: "appInfoLocalizations", attributes: {locale: $locale},
+		         relationships: {appInfo: {data: {type: "appInfos", id: $info}}}}}')" |
+		jq -r '.data.id'
+}
+
+# Deliberately never sends `name`: the store name was reserved by hand and a
+# script overwriting it is a rename nobody asked for. Everything else in this
+# resource is fair game.
+asc_patch_app_info_localization() {
+	asc_request PATCH "/appInfoLocalizations/$1" "$(jq -nc --arg id "$1" --argjson attrs "$2" \
+		'{data: {type: "appInfoLocalizations", id: $id, attributes: $attrs}}')" >/dev/null
+}
+
+asc_find_version_localization() {
+	asc_request GET "/appStoreVersions/$1/appStoreVersionLocalizations?limit=200" |
+		jq -r --arg locale "$2" '.data[] | select(.attributes.locale == $locale) | .id'
+}
+
+asc_version_localization() {
+	local version_id="$1" locale="$2" id
+	id="$(asc_find_version_localization "$version_id" "$locale")"
+	[ -z "$id" ] || { printf '%s' "$id"; return 0; }
+
+	asc_request POST '/appStoreVersionLocalizations' "$(jq -nc \
+		--arg version "$version_id" --arg locale "$locale" \
+		'{data: {type: "appStoreVersionLocalizations", attributes: {locale: $locale},
+		         relationships: {appStoreVersion: {data: {type: "appStoreVersions", id: $version}}}}}')" |
+		jq -r '.data.id'
+}
+
+asc_patch_version_localization() {
+	asc_request PATCH "/appStoreVersionLocalizations/$1" "$(jq -nc --arg id "$1" --argjson attrs "$2" \
+		'{data: {type: "appStoreVersionLocalizations", id: $id, attributes: $attrs}}')" >/dev/null
+}
+
+asc_set_review_detail() {
+	local version_id="$1" attrs="$2" id
+	id="$(asc_request GET "/appStoreVersions/$version_id/appStoreReviewDetail" |
+		jq -r '.data.id // empty')"
+
+	if [ -n "$id" ]; then
+		asc_request PATCH "/appStoreReviewDetails/$id" "$(jq -nc --arg id "$id" --argjson attrs "$attrs" \
+			'{data: {type: "appStoreReviewDetails", id: $id, attributes: $attrs}}')" >/dev/null
+	else
+		asc_request POST '/appStoreReviewDetails' "$(jq -nc \
+			--arg version "$version_id" --argjson attrs "$attrs" \
+			'{data: {type: "appStoreReviewDetails", attributes: $attrs,
+			         relationships: {appStoreVersion: {data: {type: "appStoreVersions", id: $version}}}}}')" >/dev/null
+	fi
+}
+
+asc_set_age_rating() {
+	local version_id="$1" attrs="$2" id
+	id="$(asc_request GET "/appStoreVersions/$version_id/ageRatingDeclaration" |
+		jq -r '.data.id // empty')"
+	[ -n "$id" ] || fail 'this version has no age rating declaration to patch.'
+	asc_request PATCH "/ageRatingDeclarations/$id" "$(jq -nc --arg id "$id" --argjson attrs "$attrs" \
+		'{data: {type: "ageRatingDeclarations", id: $id, attributes: $attrs}}')" >/dev/null
+}
+
+asc_attach_build() {
+	asc_request PATCH "/appStoreVersions/$1/relationships/build" "$(jq -nc --arg build "$2" \
+		'{data: {type: "builds", id: $build}}')" >/dev/null
+}
+
+asc_attached_build() {
+	asc_request GET "/appStoreVersions/$1/build" | jq -r '.data.attributes.version // empty'
+}
+
+# ---------------------------------------------------------------------------
+# Screenshots
+#
+# Three steps per image, none of which can be skipped: reserve a slot and get
+# back one or more pre-signed PUTs, send the bytes, then say it is done and
+# prove it with a checksum. Apple verifies the checksum, so a truncated upload
+# fails here rather than showing up as a corrupt screenshot on the store.
+# ---------------------------------------------------------------------------
+
+asc_find_screenshot_set() {
+	asc_request GET "/appStoreVersionLocalizations/$1/appScreenshotSets?limit=50" |
+		jq -r --arg type "$2" '.data[] | select(.attributes.screenshotDisplayType == $type) | .id'
+}
+
+asc_screenshot_set() {
+	local localization_id="$1" display_type="$2" id
+	id="$(asc_find_screenshot_set "$localization_id" "$display_type")"
+	[ -z "$id" ] || { printf '%s' "$id"; return 0; }
+
+	asc_request POST '/appScreenshotSets' "$(jq -nc \
+		--arg localization "$localization_id" --arg type "$display_type" \
+		'{data: {type: "appScreenshotSets", attributes: {screenshotDisplayType: $type},
+		         relationships: {appStoreVersionLocalization:
+		           {data: {type: "appStoreVersionLocalizations", id: $localization}}}}}')" |
+		jq -r '.data.id'
+}
+
+# Emptied before uploading, so what is on the store is what is in build/, in the
+# order the filenames give. Appending instead would silently double the set on
+# the second run.
+asc_clear_screenshot_set() {
+	local set_id="$1" id
+	while IFS= read -r id; do
+		[ -n "$id" ] || continue
+		asc_request DELETE "/appScreenshots/$id" >/dev/null
+	done < <(asc_request GET "/appScreenshotSets/$set_id/appScreenshots?limit=200" |
+		jq -r '.data[].id')
+}
+
+asc_upload_screenshot() {
+	local set_id="$1" path="$2"
+	local name size reservation screenshot_id count index operation
+	local method url offset length checksum state
+
+	name="$(basename "$path")"
+	size="$(wc -c < "$path" | tr -d ' ')"
+
+	reservation="$(asc_request POST '/appScreenshots' "$(jq -nc \
+		--arg set "$set_id" --arg name "$name" --argjson size "$size" \
+		'{data: {type: "appScreenshots", attributes: {fileName: $name, fileSize: $size},
+		         relationships: {appScreenshotSet: {data: {type: "appScreenshotSets", id: $set}}}}}')")"
+
+	screenshot_id="$(printf '%s' "$reservation" | jq -r '.data.id')"
+	count="$(printf '%s' "$reservation" | jq -r '.data.attributes.uploadOperations | length')"
+	[ "$count" -gt 0 ] || fail "App Store Connect reserved $name but offered nowhere to upload it to"
+
+	for ((index = 0; index < count; index++)); do
+		operation="$(printf '%s' "$reservation" | jq -c ".data.attributes.uploadOperations[$index]")"
+		method="$(printf '%s' "$operation" | jq -r '.method')"
+		url="$(printf '%s' "$operation" | jq -r '.url')"
+		offset="$(printf '%s' "$operation" | jq -r '.offset')"
+		length="$(printf '%s' "$operation" | jq -r '.length')"
+
+		# The pre-signed URL carries its own authorization; the API bearer token
+		# must not be sent with it.
+		local headers=()
+		local header value
+		while IFS=$'\t' read -r header value; do
+			[ -n "$header" ] || continue
+			headers+=(-H "$header: $value")
+		done < <(printf '%s' "$operation" | jq -r '.requestHeaders[]? | [.name, .value] | @tsv')
+
+		tail -c "+$((offset + 1))" "$path" | head -c "$length" |
+			curl -sS -f -X "$method" "${headers[@]+"${headers[@]}"}" --data-binary @- "$url" ||
+			fail "uploading $name failed on part $((index + 1)) of $count"
+	done
+
+	checksum="$(md5 -q "$path")"
+	asc_request PATCH "/appScreenshots/$screenshot_id" "$(jq -nc \
+		--arg id "$screenshot_id" --arg sum "$checksum" \
+		'{data: {type: "appScreenshots", id: $id,
+		         attributes: {uploaded: true, sourceFileChecksum: $sum}}}')" >/dev/null
+
+	# Apple validates size and format asynchronously. Reading the state back is
+	# the difference between "uploaded" and "accepted", and a rejected image is
+	# otherwise only visible in the web interface.
+	state="$(asc_request GET "/appScreenshots/$screenshot_id" |
+		jq -r '.data.attributes.assetDeliveryState.state // "UNKNOWN"')"
+	case "$state" in
+		FAILED|INVALID)
+			fail "App Store Connect rejected $name: $(asc_request GET "/appScreenshots/$screenshot_id" |
+				jq -r '[.data.attributes.assetDeliveryState.errors[]?.description] | join("; ")')" ;;
+	esac
+}
+
 # ---------------------------------------------------------------------------
 # The external sequence
 # ---------------------------------------------------------------------------
@@ -216,4 +502,63 @@ asc_submit_review() {
 	body="$(jq -nc --arg id "$build_id" \
 		'{data: {type: "betaAppReviewSubmissions", relationships: {build: {data: {type: "builds", id: $id}}}}}')"
 	asc_request POST '/betaAppReviewSubmissions' "$body" >/dev/null
+}
+
+# ---------------------------------------------------------------------------
+# App Review submission
+#
+# Not the same thing as Beta App Review above, and not the same API either. A
+# submission is a container: it is created empty, one item per thing being
+# reviewed is added to it, and then the whole container is submitted. The older
+# appStoreVersionSubmissions endpoint submitted a version directly and no longer
+# covers everything a submission can contain.
+# ---------------------------------------------------------------------------
+
+# Prints "<id>\t<state>" for a submission that is neither finished nor being
+# cancelled, or nothing if there is none.
+asc_find_review_submission() {
+	asc_request GET "/reviewSubmissions?filter%5Bapp%5D=$1&filter%5Bplatform%5D=IOS&limit=50" |
+		jq -r '[.data[] | select(.attributes.state != "COMPLETE" and .attributes.state != "CANCELING")][0]
+			| select(.) | [.id, .attributes.state] | @tsv'
+}
+
+# An open submission that has not been sent yet, created if there is none.
+# Prints "<id>\t<state>". A submission already in review is returned as it is —
+# what to do about that is the caller's decision, not this function's.
+asc_review_submission() {
+	local app_id="$1" found id
+	found="$(asc_find_review_submission "$app_id")"
+
+	if [ -n "$found" ]; then
+		printf '%s' "$found"
+		return 0
+	fi
+
+	id="$(asc_request POST '/reviewSubmissions' "$(jq -nc --arg app "$app_id" \
+		'{data: {type: "reviewSubmissions", attributes: {platform: "IOS"},
+		         relationships: {app: {data: {type: "apps", id: $app}}}}}')" |
+		jq -r '.data.id')"
+	printf '%s\tREADY_FOR_REVIEW' "$id"
+}
+
+# Idempotent by inspection rather than by Apple: adding the same version twice
+# is an error, and the second run of a script that failed on the step after this
+# one is exactly when that would happen.
+asc_add_submission_item() {
+	local submission_id="$1" version_id="$2" existing
+	existing="$(asc_request GET "/reviewSubmissions/$submission_id/items?limit=50" |
+		jq -r --arg version "$version_id" \
+			'.data[] | select(.relationships.appStoreVersion.data.id == $version) | .id')"
+	[ -z "$existing" ] || return 0
+
+	asc_request POST '/reviewSubmissionItems' "$(jq -nc \
+		--arg submission "$submission_id" --arg version "$version_id" \
+		'{data: {type: "reviewSubmissionItems",
+		         relationships: {reviewSubmission: {data: {type: "reviewSubmissions", id: $submission}},
+		                         appStoreVersion: {data: {type: "appStoreVersions", id: $version}}}}}')" >/dev/null
+}
+
+asc_submit_review_submission() {
+	asc_request PATCH "/reviewSubmissions/$1" "$(jq -nc --arg id "$1" \
+		'{data: {type: "reviewSubmissions", id: $id, attributes: {submitted: true}}}')" >/dev/null
 }

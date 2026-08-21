@@ -1,0 +1,1 @@
+Tehtävätaulu jonka perhe näkee. Tee viikko kertaalleen; kukin lapsi kuittaa oman päivänsä omalla puhelimella. Ei mainoksia, ei tilejä lapsille, toimii ilman verkkoa.
