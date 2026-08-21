@@ -7,7 +7,14 @@ extension XCUIApplication {
     /// written in. A Finnish simulator would otherwise fail every one of them
     /// while the app was working correctly.
     func launchInEnglish(_ arguments: String...) {
-        launchArguments = arguments + ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        launch(inLanguage: "en", locale: "en_US", arguments: arguments)
+    }
+
+    /// The general form, for the screenshot captures — they are taken once per
+    /// App Store listing language, so they are the one caller that needs to
+    /// choose.
+    func launch(inLanguage language: String, locale: String, arguments: [String]) {
+        launchArguments = arguments + ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         launch()
     }
 }

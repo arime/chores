@@ -30,11 +30,44 @@ final class AppEnvironment {
     /// in-memory backend starts empty on every launch.
     static let uiTestLostSessionFlag = "-ui-testing-lost-session"
 
+    /// The two App Store screenshot fixtures: a lived-in family, seen from the
+    /// parent's side and from a child's. `tools/screenshots.sh` launches with
+    /// these, and nothing else does.
+    ///
+    /// They are separate from the flags above because the seeds pull in opposite
+    /// directions. A test wants the smallest family that can carry an assertion;
+    /// a screenshot wants a full week of chores and a history of ticking them
+    /// off. Sharing one fixture would make every test read around data it does
+    /// not care about.
+    static let screenshotParentFlag = "-screenshots-parent"
+    static let screenshotKidFlag = "-screenshots-kid"
+
     static var isUITesting: Bool {
         let arguments = ProcessInfo.processInfo.arguments
         return arguments.contains(uiTestFlag)
             || arguments.contains(uiTestKidFlag)
             || arguments.contains(uiTestLostSessionFlag)
+            || arguments.contains(screenshotParentFlag)
+            || arguments.contains(screenshotKidFlag)
+    }
+
+    /// The names in the screenshots, in whichever language the app has resolved.
+    ///
+    /// Deliberately not in the string catalogue: these are reachable only behind
+    /// a launch flag, so putting them there would mean shipping — and asking
+    /// anyone reviewing translations to read — strings no user can ever see. The
+    /// App Store shows one set of screenshots per listing language, and the
+    /// listing has two.
+    private static var screenshotFamily:
+        (family: String, parent: String, children: [String], chores: [String]) {
+        if Locale.current.language.languageCode?.identifier == "fi" {
+            return ("Koti", "Äiti",
+                    ["Aino", "Eero", "Väinö"],
+                    ["Roskat", "Tiskit", "Imurointi", "Sängyn petaus", "Kissan ruoka", "Pyykit"])
+        }
+        return ("Home", "Mum",
+                ["Ada", "Oscar", "Iris"],
+                ["Bins", "Dishes", "Vacuum", "Make bed", "Feed the cat", "Laundry"])
     }
 
     /// Set once a device resolves to a profile. Lives here so the UI-test reset
@@ -71,6 +104,25 @@ final class AppEnvironment {
             } else {
                 UserDefaults.standard.removeObject(forKey: hasBeenClaimedKey)
             }
+        }
+        if arguments.contains(screenshotParentFlag) || arguments.contains(screenshotKidFlag) {
+            let content = screenshotFamily
+            let backend = InMemoryChoresBackend()
+            backend.seedDemoFamily(
+                familyName: content.family,
+                parentName: content.parent,
+                childNames: content.children,
+                childColors: ProfilePalette.options,
+                choreNames: content.chores,
+                today: CalendarDay(Date(), in: .current),
+                // The second child, whose day is halfway done — the most
+                // informative of the three to photograph.
+                claimingChildAt: arguments.contains(screenshotKidFlag) ? 1 : nil)
+            return AppEnvironment(
+                backend: backend,
+                directory: FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString),
+                appleTokens: StubAppleTokenProvider())
         }
         if arguments.contains(uiTestKidFlag) {
             let backend = InMemoryChoresBackend()
