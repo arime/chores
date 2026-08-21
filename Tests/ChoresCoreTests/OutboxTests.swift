@@ -219,6 +219,48 @@ import Foundation
         #expect(await Outbox(directory: directory, backend: backend).pendingCount == 1)
     }
 
+    /// Three ticks in a row each kick off their own flush, and the network call
+    /// in the middle of one is a suspension point the others can walk straight
+    /// through. Two flushes draining the same queue is what took the app down: one
+    /// of them eventually asks an already-emptied queue for its first element.
+    @Test func overlappingFlushesDrainTheQueueOnce() async throws {
+        let backend = OverlappingWriteBackend()
+        let outbox = Outbox(directory: try makeTestDirectory(), backend: backend)
+        for _ in 0..<3 {
+            await outbox.enqueue(.complete(familyID: familyID, profileID: profileID,
+                                           choreID: UUID(), dueOn: day, completedBy: profileID))
+        }
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<3 {
+                group.addTask { _ = await outbox.flush() }
+            }
+        }
+
+        #expect(await backend.tally.peak == 1)
+        #expect(await backend.tally.calls == 3)
+        #expect(await outbox.pendingCount == 0)
+    }
+
+    /// A tick undone while the tick itself is still on the wire. The pair may not
+    /// collapse here: the server has already been told, or is about to be, so the
+    /// undo is the only thing that can put it right. Taking the sent operation off
+    /// a queue that shrank underneath is also how the app dies.
+    @Test func anUndoArrivingMidSendIsStillDelivered() async throws {
+        let backend = ParkedWriteBackend()
+        let outbox = Outbox(directory: try makeTestDirectory(), backend: backend)
+        await outbox.enqueue(completeOperation)
+
+        async let flushed: Int = outbox.flush()
+        await backend.gate.waitForArrivals(1)
+        await outbox.enqueue(uncompleteOperation)
+        await backend.gate.releaseAll()
+
+        #expect(await flushed == 2)
+        #expect(backend.uncompleteCallCount == 1)
+        #expect(await outbox.pendingCount == 0)
+    }
+
     @Test func corruptQueueFileIsTreatedAsEmpty() async throws {
         let directory = try makeTestDirectory()
         try Data("not json".utf8)

@@ -39,6 +39,10 @@ public actor Outbox {
     private let fileURL: URL
     private let backend: ChoresBackend
     private var queue: [OutboxOperation]
+    /// True for as long as a flush is running. Anything that observes it has, by
+    /// definition, interleaved with that flush's send, so the operation at the
+    /// front of the queue is one already on its way to the server.
+    private var isFlushing = false
 
     public init(directory: URL, backend: ChoresBackend) {
         self.fileURL = directory.appendingPathComponent("outbox.json")
@@ -55,7 +59,13 @@ public actor Outbox {
         // If an unsent operation targets the same row in the opposite direction, the
         // server never observed either — drop both rather than sending a write and
         // then immediately undoing it.
-        if let index = queue.lastIndex(where: { $0.key == operation.key }),
+        //
+        // The one at the front of a running flush does not count as unsent: it is
+        // on the wire, and the server may already have it. Cancelling that pair
+        // would leave a completion standing on the server that the screen no
+        // longer shows, and no operation left to correct it.
+        let unsent = queue.indices.dropFirst(isFlushing ? 1 : 0)
+        if let index = unsent.last(where: { queue[$0].key == operation.key }),
            queue[index].isComplete != operation.isComplete {
             queue.remove(at: index)
         } else {
@@ -66,8 +76,25 @@ public actor Outbox {
 
     /// Sends queued operations in order, stopping at the first failure so ordering
     /// is preserved. Returns how many were sent.
+    ///
+    /// Actor isolation does not make this safe on its own: the send in the middle
+    /// is a suspension point, and a second caller can walk in through it. Two
+    /// flushes then drain one queue — each sends the operation the other has
+    /// already sent, and each removes whatever happens to be first when it comes
+    /// back, until one of them asks an emptied queue for its first element and the
+    /// app dies. Which is what ticking off three chores in a row did: three taps,
+    /// three flushes, one crash.
+    ///
+    /// So only one flush runs at a time. A caller who finds one already running
+    /// can simply leave: it has enqueued its operation before asking, and the
+    /// running flush keeps taking from the front until the queue is empty, so it
+    /// will carry that operation too.
     @discardableResult
     public func flush() async -> Int {
+        guard !isFlushing else { return 0 }
+        isFlushing = true
+        defer { isFlushing = false }
+
         var sent = 0
         while let operation = queue.first {
             do {
@@ -80,9 +107,15 @@ public actor Outbox {
                     try await backend.uncomplete(profileID: profileID, choreID: choreID,
                                                  dueOn: dueOn)
                 }
-                queue.removeFirst()
+                // Not `removeFirst`: the send suspended, and the queue can have
+                // moved on meanwhile — a sign-out cleared it, a deleted child's
+                // operations were dropped. Take out the operation that actually
+                // went, if it is still there, and let the loop re-read the front.
+                if let index = queue.firstIndex(of: operation) {
+                    queue.remove(at: index)
+                    persist()
+                }
                 sent += 1
-                persist()
             } catch {
                 break
             }

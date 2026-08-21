@@ -129,6 +129,86 @@ final class GatedBackend: ForwardingBackend, @unchecked Sendable {
     }
 }
 
+/// Records how many completion writes are inside the backend at the same moment.
+actor ConcurrencyTally {
+    private(set) var peak = 0
+    private(set) var calls = 0
+    private var current = 0
+
+    func enter() {
+        current += 1
+        calls += 1
+        peak = max(peak, current)
+    }
+
+    func leave() { current -= 1 }
+}
+
+/// A backend whose completion writes stay suspended long enough for a second
+/// flush to reach them, so a test can see whether two flushes overlapped rather
+/// than having to guess from timing.
+final class OverlappingWriteBackend: ForwardingBackend, @unchecked Sendable {
+    let tally = ConcurrencyTally()
+
+    override func complete(familyID: UUID, profileID: UUID, choreID: UUID,
+                           dueOn: CalendarDay, completedBy: UUID) async throws {
+        await tally.enter()
+        for _ in 0..<8 { await Task.yield() }
+        await tally.leave()
+        try await super.complete(familyID: familyID, profileID: profileID,
+                                 choreID: choreID, dueOn: dueOn, completedBy: completedBy)
+    }
+}
+
+/// Holds completion writes suspended until a test releases them, so a test can
+/// act on the outbox at the exact moment a flush is mid-send.
+actor CompletionGate {
+    private var parked: [CheckedContinuation<Void, Never>] = []
+    private var arrivals = 0
+    private var waiters: [(target: Int, continuation: CheckedContinuation<Void, Never>)] = []
+
+    func park() async {
+        await withCheckedContinuation { continuation in
+            parked.append(continuation)
+            arrivals += 1
+            let ready = waiters.filter { $0.target <= arrivals }
+            waiters.removeAll { $0.target <= arrivals }
+            ready.forEach { $0.continuation.resume() }
+        }
+    }
+
+    /// Suspends until `count` writes have parked, so a test never has to sleep.
+    func waitForArrivals(_ count: Int) async {
+        guard arrivals < count else { return }
+        await withCheckedContinuation { waiters.append((count, $0)) }
+    }
+
+    func releaseAll() {
+        let waiting = parked
+        parked = []
+        waiting.forEach { $0.resume() }
+    }
+}
+
+/// A backend whose completion writes park in the gate. Deletes go straight
+/// through: it is the send in flight that a test needs to hold still.
+final class ParkedWriteBackend: ForwardingBackend, @unchecked Sendable {
+    let gate = CompletionGate()
+    private(set) var uncompleteCallCount = 0
+
+    override func complete(familyID: UUID, profileID: UUID, choreID: UUID,
+                           dueOn: CalendarDay, completedBy: UUID) async throws {
+        await gate.park()
+        try await super.complete(familyID: familyID, profileID: profileID,
+                                 choreID: choreID, dueOn: dueOn, completedBy: completedBy)
+    }
+
+    override func uncomplete(profileID: UUID, choreID: UUID, dueOn: CalendarDay) async throws {
+        uncompleteCallCount += 1
+        try await super.uncomplete(profileID: profileID, choreID: choreID, dueOn: dueOn)
+    }
+}
+
 /// Fails every call with the same error. The default, `.projectUnavailable`,
 /// stands in for a paused project or a device with no connectivity; pass another
 /// to exercise a backend that answers and refuses.
