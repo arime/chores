@@ -426,8 +426,16 @@ if [ "$do_submit" -eq 1 ]; then
 fi
 
 step 'Done'
+
+# Says what this run did rather than what a full run would have done: with
+# --metadata-only or --screenshots-only, claiming a build was attached is a lie
+# about the state of the version being submitted.
+if [ "$do_metadata" -eq 1 ]; then echo 'Metadata pushed.'; fi
+if [ "$do_screenshots" -eq 1 ]; then echo 'Screenshots uploaded.'; fi
+if [ "$do_build" -eq 1 ]; then echo "Build $build_number attached."; fi
+
 cat <<EOF
-The listing is pushed and the build attached. Nothing is with Apple yet.
+Nothing is with Apple yet.
 
 Still needed before a first submission, once each:
 
