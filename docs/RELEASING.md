@@ -269,7 +269,157 @@ Both are declared in the repository, so App Store Connect should stop asking:
 The privacy answers given in App Store Connect must agree with the manifest. It declares
 names and user content — display names, chore names, the schedule and completion history
 — as collected, linked to the user, for app functionality, and no tracking. If what the
-app stores ever changes, both sides change together.
+app stores ever changes, both sides change together. "The App Privacy answers" under
+[The App Store](#the-app-privacy-answers) below has them as a table, to be answered
+against.
+
+## The App Store
+
+### What a public release needs that TestFlight does not
+
+TestFlight distributes a binary. The App Store sells a *listing*, and most of what
+follows is about the listing rather than the app. Three things are new, and one is
+smaller than it looks:
+
+- **A privacy policy URL and a support URL that resolve.** Both are required
+  fields, and App Review opens them. They live in `docs/site/` and are published
+  to GitHub Pages by `.github/workflows/pages.yml`. The app links to the same two
+  pages from Manage, through `App/Chores/AppLinks.swift`.
+- **Screenshots**, at the exact pixel size Apple asks for. Generated:
+  `tools/screenshots.sh`.
+- **The listing text**, in both languages. In `docs/appstore/`, pushed by
+  `tools/appstore.sh`.
+- **The App Privacy answers and the age rating.** Two questionnaires, each
+  answered once, neither per-release.
+
+The app itself needed one change: **iPhone only**. `TARGETED_DEVICE_FAMILY` is
+`1`, not `1,2`. Declaring iPad support means a mandatory iPad screenshot set and
+a reviewer opening every screen on a 13-inch canvas — a class of rejection the app
+gains nothing by risking. It still runs on an iPad, in iPhone compatibility mode.
+
+### Publishing the site, once
+
+Settings → Pages → Build and deployment → Source: **GitHub Actions**. Then any
+push touching `docs/site/` publishes it, and the workflow prints the URL.
+
+The contact address on the pages is `arime-chores@proton.me`, and the workflow
+refuses to publish if a `SUPPORT_EMAIL_TODO` placeholder ever comes back — a
+support page whose only address is a placeholder is worse than no page, and App
+Review reads these.
+
+One placeholder is still outstanding: `REVIEW_PHONE_TODO` in
+`docs/appstore/listing.json`. App Review requires a phone number for the contact,
+and `tools/appstore.sh` refuses to send anything while any `_TODO` is left in
+`docs/appstore/`. To see what is left:
+
+    grep -rn '_TODO' docs/appstore docs/site
+
+### The screenshots
+
+    tools/screenshots.sh                 # both languages
+    tools/screenshots.sh --language fi   # one
+
+It boots a 6.9" simulator, pins the status bar to 9:41 with a full battery, runs
+`ChoresUITests/ScreenshotTests` once per listing language, and pulls the PNGs out
+of the result bundle into `build/screenshots/<locale>/`. Then it checks their
+size, because a wrong-sized screenshot is rejected minutes later by a message
+that names a display type rather than a simulator.
+
+The app is launched with `-screenshots-parent` or `-screenshots-kid`, which seed
+the lived-in family in `InMemoryChoresBackend.seedDemoFamily` — three children, a
+full week of chores, earlier days already done, today deliberately half done.
+Nothing about it touches Supabase.
+
+`ScreenshotTests` **skips unless `SCREENSHOTS=1` is in the test runner's
+environment**, which the script sets via `TEST_RUNNER_SCREENSHOTS=1`. So the
+ordinary `xcodebuild test` run reports them as skipped, and stays a test run.
+
+They are not in git. `docs/appstore/README.md` says why.
+
+### The listing
+
+    tools/appstore.sh --status      # what App Store Connect has now
+    tools/appstore.sh               # push metadata and screenshots, attach a build
+    tools/appstore.sh --submit      # the same, then submit for review
+
+The listing is `docs/appstore/`: one directory per locale, one file per field,
+with the field limits enforced before anything is sent. That file's own README
+covers what each one is.
+
+This needs an **App Store Connect API key** — the same one `--external` needs,
+with the App Manager or Admin role. The Apple ID in Xcode cannot mint a token.
+
+Two things it will not do, deliberately. It never writes the app's **name**: that
+was reserved by hand and is unique across the store, so a script overwriting it
+is a rename nobody asked for. And it does not **submit** unless asked, because
+that is the one step with a queue behind it.
+
+`releaseType` in `listing.json` is `MANUAL`, so an approved version waits for you
+to release it. Change it to `AFTER_APPROVAL` for a version that should go live the
+moment it passes.
+
+### A price, once
+
+App Store Connect → Pricing and Availability → **Free**. A submission with no
+price schedule is refused, and the message is about pricing rather than about
+this being a thing nobody set. The API can do it, through price points and a
+base territory, but it is one decision that will never change and not worth the
+plumbing.
+
+Availability defaults to every territory, which is what a free family app wants.
+
+### The App Privacy answers
+
+App Store Connect → App Privacy. Apple has no public API for this one, so it is a
+web task — and the answers must match `App/Chores/PrivacyInfo.xcprivacy` exactly,
+because the two are read side by side and a mismatch is a rejection that names
+neither file.
+
+What the manifest declares, and therefore what to answer:
+
+| Data | Collected | Linked to the user | Tracking | Purpose |
+|---|---|---|---|---|
+| Contact Info → Name | yes | yes | no | App Functionality |
+| User Content → Other User Content | yes | yes | no | App Functionality |
+
+Nothing else. No identifiers, no usage data, no diagnostics: there is no
+analytics or crash-reporting SDK in the project, and the reminder is a local
+notification with no push token. "Do you or your third-party partners use data
+for tracking?" is **no**.
+
+The names are the display names of parents and children. The other user content
+is the chore names, the weekly schedule and the completion history. If what the
+app stores ever changes, the manifest, these answers and
+`docs/site/privacy/` all change together.
+
+### The age rating
+
+    tools/appstore.sh --age-rating
+
+Applies `docs/appstore/age-rating.json`, which declares nothing at all and so
+rates the app 4+. Once per app.
+
+`kidsAgeBand` is deliberately null: that field is what puts an app in the **Kids
+Category**, which brings its own rules — no third-party analytics or advertising,
+a parental gate in front of every link out, and a stricter review. The app would
+pass most of them, but the category is a marketing choice rather than a
+consequence of having children use the app, and v1 does not make it.
+
+### The order of it all, for a first release
+
+1. Fill in `REVIEW_PHONE_TODO`, and enable GitHub Pages.
+2. `tools/testflight.sh` — the same binary serves TestFlight and the store, and
+   uploading it first means the build is processed by the time the listing is
+   ready.
+3. `tools/screenshots.sh`, then look at what it produced.
+4. `tools/appstore.sh` — creates the version, declares content rights, pushes the
+   listing, uploads the screenshots, attaches the build.
+5. Set the price to Free, answer App Privacy, and run
+   `tools/appstore.sh --age-rating`.
+6. `tools/appstore.sh --status`, and read it.
+7. `tools/appstore.sh --submit`.
+
+Steps 2 to 6 are safe to repeat. Only the last one queues anything.
 
 ## First-time setup of the hosted project
 

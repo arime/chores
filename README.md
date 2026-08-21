@@ -6,12 +6,14 @@ Children see their own chores for the day and tick them off; a parent maintains 
 of children and chores, defines a repeating weekly schedule, and sees at a glance who has
 done what.
 
-- **Client:** SwiftUI (iOS), English and Finnish, distributed via TestFlight
+- **Client:** SwiftUI (iPhone), English and Finnish
 - **Backend:** Supabase (Postgres, anonymous auth, row-level security)
 
 ## Status
 
-Feature-complete for v1 and ready to archive. Not yet released.
+Feature-complete for v1, and the App Store listing is in the repository ready to
+push. Not yet submitted: an App Review phone number has to be filled in and
+GitHub Pages switched on first. See [`docs/RELEASING.md`](docs/RELEASING.md#the-app-store).
 
 See [`docs/superpowers/specs/2026-08-10-household-chores-app-design.md`](docs/superpowers/specs/2026-08-10-household-chores-app-design.md)
 for the full design: data model, auth and claim flow, RLS policies, UX for both modes,
@@ -23,16 +25,21 @@ offline behaviour, and testing strategy.
   models. Everything testable from the command line lives here.
 - `App/` — the Xcode project: SwiftUI screens for both modes, plus the XCUITest suite.
 - `supabase/` — migrations and the pgTAP suite that guards row-level security.
+- `docs/appstore/` — the App Store listing, one file per field, per language.
+- `docs/site/` — the privacy policy and support pages the listing points at,
+  published to GitHub Pages.
 
 ## Running the tests
 
-    swift test                                    # 111 unit tests
+    swift test                                    # 141 unit tests
     supabase test db                              # 15 pgTAP assertions (needs Docker)
     xcodebuild -project App/Chores.xcodeproj -scheme Chores \
-      -destination 'platform=iOS Simulator,name=iPhone 17' test   # 13 UI tests
+      -destination 'platform=iOS Simulator,name=iPhone 17' test   # 23 UI tests
 
 The UI tests launch with `-ui-testing`, which swaps Supabase for an in-memory backend:
-no stack required, no state carried between runs.
+no stack required, no state carried between runs. Two more cases in that target report
+as skipped: they are the App Store screenshot captures, and they run only under
+`tools/screenshots.sh`.
 
 ## Building the app
 
@@ -52,6 +59,18 @@ picks its own build number, refuses to build if hosted Supabase has pending migr
 and never touches git. The test suites and the manual Sign in with Apple checks are not
 part of it; see [`docs/RELEASING.md`](docs/RELEASING.md) for the full pre-flight and for
 what the script verifies.
+
+## Releasing to the App Store
+
+    tools/screenshots.sh      # regenerate the screenshots from a fixture
+    tools/appstore.sh         # push the listing, attach the newest build
+    tools/appstore.sh --submit
+
+The listing lives in `docs/appstore/` and the privacy policy and support pages in
+`docs/site/`, so what the store shows is reviewable in a diff. Two questionnaires
+stay in the web interface, because Apple has no API for them; the full order of
+operations, and what to answer, is in
+[`docs/RELEASING.md`](docs/RELEASING.md#the-app-store).
 
 ## Database migrations
 
