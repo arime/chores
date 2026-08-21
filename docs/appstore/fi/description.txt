@@ -20,7 +20,7 @@ MITÄ LAPSI NÄKEE
 TEHTY PYSYMÄÄN TIELTÄ POIS
 
 • Toimii ilman verkkoyhteyttä. Kuitattu tehtävä lasketaan heti ja päätyy muille laitteille kun yhteys palaa.
-• Lapsille ei tarvita tilejä. Vanhempi lisää lapsen etunimellä ja antaa lapsen laitteeseen lyhyen koodin; siinä on koko käyttöönotto lapsen puolella.
+• Lapsille ei tarvita tilejä. Vanhempi lisää lapsen etunimellä ja antaa lapsen laitteeseen lyhyen koodin. Siinä on koko käyttöönotto lapsen puolella.
 • Ei mainoksia, ei analytiikkaa, ei seurantaa, ei sovelluksen sisäisiä ostoja eikä tilausmaksua.
 • Suomeksi ja englanniksi, puhelimen kielen mukaan.
 

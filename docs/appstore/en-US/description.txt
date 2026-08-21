@@ -20,7 +20,7 @@ WHAT A CHILD SEES
 BUILT TO STAY OUT OF THE WAY
 
 • Works with no signal. A chore ticked off counts immediately and reaches the other devices when the connection comes back.
-• No accounts for children. A parent adds a child by first name and hands their device a short code; that is the entire setup on the child's side.
+• No accounts for children. A parent adds a child by first name and hands their device a short code. That is the entire setup on the child's side.
 • No advertising, no analytics, no tracking, no in-app purchases and no subscription.
 • English and Finnish, and it follows the language of the phone.
 
