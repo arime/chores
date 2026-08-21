@@ -1,4 +1,4 @@
-Chores is a chore chart for one household. It has two sides: a parent, who keeps
+Snappy Chores is a chore chart for one household. It has two sides: a parent, who keeps
 the list, and a child, who ticks chores off. Both are in this one app, and which
 one a device shows is decided when the device is set up.
 

@@ -1,4 +1,4 @@
-Chores on yhden kotitalouden tehtävätaulu, joka toimii puhelimilla jotka teillä on jo.
+Snappy Chores on yhden kotitalouden tehtävätaulu, joka toimii puhelimilla jotka teillä on jo.
 
 Vanhempi ylläpitää listaa: keitä perheeseen kuuluu, mitkä tehtävät ovat olemassa ja kenen tehtävä mikä on minä päivänä. Kuvio toistuu joka viikko, joten käyttöönotto tehdään kertaalleen.
 

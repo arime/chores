@@ -1,4 +1,4 @@
-Chores is a chore chart for one household, running on the phones you already have.
+Snappy Chores is a chore chart for one household, running on the phones you already have.
 
 A parent keeps the list: who is in the family, what the chores are, and which chores belong to which child on which day. That pattern repeats every week, so the setting up happens once.
 
