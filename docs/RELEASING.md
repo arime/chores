@@ -396,8 +396,27 @@ app stores ever changes, the manifest, these answers and
 
     tools/appstore.sh --age-rating
 
-Applies `docs/appstore/age-rating.json`, which declares nothing at all and so
-rates the app 4+. Once per app.
+Applies `docs/appstore/age-rating.json`, which declares nothing at all. Apple
+computes the rating from it and returned **4+**, with Brazil self-rated L. Once
+per app, not per version: the declaration hangs off `appInfo` rather than
+`appStoreVersion`, and asking a version for it 404s with "the relationship
+`ageRatingDeclaration` does not exist" — which names the relationship but not the
+resource that actually has one.
+
+The file has to answer *every* question in the questionnaire. A PATCH carrying
+one attribute comes back 409 listing all the others, so there is no partial
+update. When Apple next revises the questionnaire, the same 409 is how you will
+find out, and the fields it names are the fields to add.
+
+Two answers in it are judgement calls rather than facts:
+
+- `userGeneratedContent` is **false**. A parent types names and chores that their
+  own children see, which is user-entered content but not user-generated content
+  in the sense the question is asking about — there are no strangers, no feed and
+  nothing to discover. Answering true would pull in Guideline 1.2's moderation,
+  reporting and blocking requirements and raise the age band.
+- `parentalControls` is **false**. A parent does control what a child's device
+  shows, but there is no PIN or gate of the kind the question means.
 
 `kidsAgeBand` is deliberately null: that field is what puts an app in the **Kids
 Category**, which brings its own rules — no third-party analytics or advertising,

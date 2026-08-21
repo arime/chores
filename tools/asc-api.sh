@@ -255,14 +255,20 @@ asc_find_app_info_localization() {
 		jq -r --arg locale "$2" '.data[] | select(.attributes.locale == $locale) | .id'
 }
 
+# `name` is required to *create* a localization — a listing in a new language has
+# to be called something — but is never sent when patching an existing one. The
+# two are different acts: naming a listing that has no name yet is not renaming
+# one that does. The caller passes the app's current name, so a new language
+# inherits it; give that language a name of its own in App Store Connect
+# afterwards if it wants one.
 asc_app_info_localization() {
-	local app_info_id="$1" locale="$2" id
+	local app_info_id="$1" locale="$2" name="$3" id
 	id="$(asc_find_app_info_localization "$app_info_id" "$locale")"
 	[ -z "$id" ] || { printf '%s' "$id"; return 0; }
 
 	asc_request POST '/appInfoLocalizations' "$(jq -nc \
-		--arg info "$app_info_id" --arg locale "$locale" \
-		'{data: {type: "appInfoLocalizations", attributes: {locale: $locale},
+		--arg info "$app_info_id" --arg locale "$locale" --arg name "$name" \
+		'{data: {type: "appInfoLocalizations", attributes: {locale: $locale, name: $name},
 		         relationships: {appInfo: {data: {type: "appInfos", id: $info}}}}}')" |
 		jq -r '.data.id'
 }
@@ -313,11 +319,19 @@ asc_set_review_detail() {
 	fi
 }
 
+# The declaration hangs off appInfo, not appStoreVersion: a rating describes the
+# app, not one release of it. It used to be the other way round, and asking a
+# version for its ageRatingDeclaration now 404s with "the relationship does not
+# exist" — which names the relationship but not the resource that has it.
+#
+# Apple wants the *entire* questionnaire in one request. Sending a single
+# attribute comes back 409 listing every other one it wants, so there is no
+# partial update and no point attempting one.
 asc_set_age_rating() {
-	local version_id="$1" attrs="$2" id
-	id="$(asc_request GET "/appStoreVersions/$version_id/ageRatingDeclaration" |
+	local app_info_id="$1" attrs="$2" id
+	id="$(asc_request GET "/appInfos/$app_info_id/ageRatingDeclaration" |
 		jq -r '.data.id // empty')"
-	[ -n "$id" ] || fail 'this version has no age rating declaration to patch.'
+	[ -n "$id" ] || fail 'this app has no age rating declaration to patch.'
 	asc_request PATCH "/ageRatingDeclarations/$id" "$(jq -nc --arg id "$id" --argjson attrs "$attrs" \
 		'{data: {type: "ageRatingDeclarations", id: $id, attributes: $attrs}}')" >/dev/null
 }

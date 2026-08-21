@@ -268,7 +268,7 @@ esac
 
 if [ "$do_age_rating" -eq 1 ]; then
 	step 'Age rating'
-	asc_set_age_rating "$version_id" "$(jq -c . "$METADATA/age-rating.json")"
+	asc_set_age_rating "$(asc_app_info_id "$app_id")" "$(jq -c . "$METADATA/age-rating.json")"
 	echo 'Applied docs/appstore/age-rating.json. Nothing in it declares any mature content, so this app rates 4+.'
 	exit 0
 fi
@@ -301,7 +301,7 @@ if [ "$do_metadata" -eq 1 ]; then
 	fi
 
 	for locale in "${LOCALES[@]}"; do
-		info_localization_id="$(asc_app_info_localization "$app_info_id" "$locale")"
+		info_localization_id="$(asc_app_info_localization "$app_info_id" "$locale" "$app_name")"
 		asc_patch_app_info_localization "$info_localization_id" "$(jq -nc \
 			--arg subtitle "$(field "$METADATA/$locale/subtitle.txt")" \
 			--arg privacy "$(field "$METADATA/$locale/privacy-url.txt")" \
