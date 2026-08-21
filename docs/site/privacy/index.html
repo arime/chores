@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chores — Privacy policy</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<h1>Privacy policy</h1>
+<p class="langs">Chores for iPhone · <a href="fi/">Suomeksi</a> · <a href="../">Home</a></p>
+
+<p class="updated">Last updated 21 August 2026.</p>
+
+<p>Chores is a household chore chart. This policy covers the iPhone app and the server
+it talks to. It is written to be read rather than skimmed past, so it says plainly what
+the app stores and what it does not.</p>
+
+<h2>Who is responsible</h2>
+
+<p>Ari Metsähalme is the controller of the data described here. Contact:
+<a href="mailto:arime-chores@proton.me">arime-chores@proton.me</a>.</p>
+
+<h2>What the app stores</h2>
+
+<p>Everything below is entered by the people using the app, and is stored so that a
+family sees the same chart on every one of their devices:</p>
+
+<ul>
+	<li>The family's name.</li>
+	<li>The display names of the parents and children in it. A first name or a nickname
+		is all the app asks for, and all it needs.</li>
+	<li>The chores, the repeating weekly schedule, and the record of which chore was
+		ticked off on which day.</li>
+	<li>For a parent who signs in with Apple: the anonymous identifier Apple issues for
+		this app. It lets the same parent return to the same family after reinstalling.
+		The app does not ask Apple for a name or an email address, so neither is
+		received or stored.</li>
+	<li>For a child's device, and for a parent who joined with a code rather than an
+		Apple ID: an anonymous session identifier created by the server. It is not tied
+		to an Apple ID, an email address or a phone number.</li>
+</ul>
+
+<h2>What it does not do</h2>
+
+<ul>
+	<li>No advertising, and no advertising identifiers.</li>
+	<li>No analytics or crash-reporting service. There is no analytics SDK in the app to
+		collect anything behind its back.</li>
+	<li>No tracking, in Apple's sense or any other: nothing about you is linked with data
+		from other apps or websites, and nothing is shared with a data broker.</li>
+	<li>No access to location, contacts, photos, the microphone or the camera. The app
+		never asks, because it never uses them.</li>
+	<li>Nothing is sold, and nothing is shared for anyone else's marketing.</li>
+</ul>
+
+<h2>Children</h2>
+
+<p>The app is used by families, and a parent sets it up. Children do not create accounts,
+give an email address, or enter anything about themselves: a parent adds a child by
+first name, and hands the child's device a short code that connects it to the family.
+Everything stored about a child is what the parent typed, plus which chores the child
+ticked off. The app has no messaging, no social features, no in-app purchases, no
+external links inside the child's side of the app, and nothing that could show a child
+content from anyone else.</p>
+
+<h2>Where it is stored</h2>
+
+<p>Family data is held in a managed PostgreSQL database run by Supabase in the European
+Union, and is reached over HTTPS. Row-level security in the database means a device can
+read and write only the rows belonging to its own family; this is enforced by the
+database itself rather than by the app asking nicely. Supabase acts as a processor. A
+copy of the current chart is also cached on the device, so the app works with no signal.</p>
+
+<h2>Notifications</h2>
+
+<p>The daily reminder is scheduled by the app on the device itself. There are no push
+servers and no push tokens: nothing about a reminder leaves the phone. Declining the
+notification permission simply means no reminder.</p>
+
+<h2>How long it is kept, and how to delete it</h2>
+
+<p>Family data is kept until someone deletes it. The app can do all of it, with no
+request to anyone:</p>
+
+<ul>
+	<li><strong>Manage → Delete account</strong> deletes the parent's sign-in for Chores
+		and removes them from the family.</li>
+	<li><strong>Manage → Leave this family</strong> gives up a place in the family.</li>
+	<li>When the last parent does either, the family, the children, the chores and the
+		whole history go with it.</li>
+	<li>Swiping a child in <strong>Manage → People</strong> and tapping
+		<strong>Delete</strong> deletes that child and their history.</li>
+</ul>
+
+<p>These deletions are immediate and cannot be undone. Deleting the app removes the
+cached copy on the device; it does not delete the family from the server, since the
+other devices in the family are still using it.</p>
+
+<h2>Your rights</h2>
+
+<p>Under the GDPR you may ask for access to your data, its correction or its erasure, and
+for a copy of it. The app itself is the fastest route to all of these, and for erasure it
+is complete. For anything the app cannot do, write to
+<a href="mailto:arime-chores@proton.me">arime-chores@proton.me</a>. If you believe the data has
+been handled wrongly, you may complain to your national supervisory authority — in
+Finland, the Office of the Data Protection Ombudsman.</p>
+
+<p>The lawful basis for storing the data above is the performance of the service you
+asked for: without the family's names, chores and schedule there is no chore chart.</p>
+
+<h2>Changes</h2>
+
+<p>If what the app stores ever changes, this page changes with it, and the date at the
+top moves. There is no mailing list to notify, because the app collects no address to
+notify one at.</p>
+
+<footer><a href="../">Chores</a> · <a href="../support/">Support</a></footer>
+
+</body>
+</html>

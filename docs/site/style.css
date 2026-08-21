@@ -1,0 +1,127 @@
+/*
+  One stylesheet for the whole site. There are five pages and no build step, so
+  a shared file beats repeating a <style> block in each of them.
+*/
+
+:root {
+	color-scheme: light dark;
+	--ink: #1a1a1c;
+	--ink-quiet: #5c5c63;
+	--paper: #ffffff;
+	--rule: #e2e2e7;
+	--accent: #1748c7;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--ink: #ececf1;
+		--ink-quiet: #a0a0aa;
+		--paper: #16161a;
+		--rule: #303038;
+		--accent: #7ea0f9;
+	}
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0 auto;
+	padding: 3rem 1.25rem 6rem;
+	max-width: 42rem;
+	background: var(--paper);
+	color: var(--ink);
+	font: 1rem/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+	-webkit-text-size-adjust: 100%;
+}
+
+h1 {
+	margin: 0 0 0.25rem;
+	font-size: 1.85rem;
+	line-height: 1.2;
+	letter-spacing: -0.01em;
+}
+
+h2 {
+	margin: 2.5rem 0 0.5rem;
+	font-size: 1.1rem;
+	letter-spacing: -0.005em;
+}
+
+p, ul, ol {
+	margin: 0.75rem 0;
+}
+
+ul, ol {
+	padding-left: 1.4rem;
+}
+
+li {
+	margin: 0.3rem 0;
+}
+
+a {
+	color: var(--accent);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+
+code {
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.9em;
+}
+
+/* The line under the title: which language this page is in, and where the
+   other one is. */
+.langs {
+	margin: 0 0 2rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid var(--rule);
+	color: var(--ink-quiet);
+	font-size: 0.9rem;
+}
+
+.updated {
+	color: var(--ink-quiet);
+	font-size: 0.9rem;
+}
+
+footer {
+	margin-top: 4rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid var(--rule);
+	color: var(--ink-quiet);
+	font-size: 0.9rem;
+}
+
+/* The landing page's two links, big enough to be the obvious thing to tap. */
+.cards {
+	display: grid;
+	gap: 0.75rem;
+	margin: 2rem 0;
+	padding: 0;
+	list-style: none;
+}
+
+.cards a {
+	display: block;
+	padding: 1rem 1.15rem;
+	border: 1px solid var(--rule);
+	border-radius: 0.75rem;
+	text-decoration: none;
+}
+
+.cards a:hover {
+	border-color: var(--accent);
+}
+
+.cards strong {
+	display: block;
+	color: var(--ink);
+}
+
+.cards span {
+	color: var(--ink-quiet);
+	font-size: 0.9rem;
+}

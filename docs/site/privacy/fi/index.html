@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chores — Tietosuojakäytäntö</title>
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+
+<h1>Tietosuojakäytäntö</h1>
+<p class="langs">Chores iPhonelle · <a href="../">In English</a> · <a href="../../">Etusivu</a></p>
+
+<p class="updated">Päivitetty 21.8.2026.</p>
+
+<p>Chores on kotitalouden tehtävätaulu. Tämä käytäntö koskee iPhone-sovellusta ja
+palvelinta, jonka kanssa se keskustelee. Se on kirjoitettu luettavaksi eikä ohitettavaksi,
+joten siinä sanotaan suoraan mitä sovellus tallentaa ja mitä se ei tallenna.</p>
+
+<h2>Kuka vastaa</h2>
+
+<p>Rekisterinpitäjä on Ari Metsähalme. Yhteydenotot:
+<a href="mailto:arime-chores@proton.me">arime-chores@proton.me</a>.</p>
+
+<h2>Mitä sovellus tallentaa</h2>
+
+<p>Kaikki alla oleva on käyttäjien itse syöttämää, ja se tallennetaan jotta perhe näkee
+saman taulun kaikilla laitteillaan:</p>
+
+<ul>
+	<li>Perheen nimi.</li>
+	<li>Perheen vanhempien ja lasten näyttönimet. Etunimi tai lempinimi riittää, eikä
+		sovellus kysy muuta.</li>
+	<li>Tehtävät, viikoittain toistuva aikataulu ja merkinnät siitä mikä tehtävä on
+		kuitattu tehdyksi minä päivänä.</li>
+	<li>Applella kirjautuvasta vanhemmasta: Applen tälle sovellukselle antama anonyymi
+		tunniste. Sen ansiosta sama vanhempi pääsee takaisin samaan perheeseen sovelluksen
+		uudelleenasennuksen jälkeen. Sovellus ei pyydä Applelta nimeä eikä
+		sähköpostiosoitetta, joten niitä ei vastaanoteta eikä tallenneta.</li>
+	<li>Lapsen laitteesta — ja vanhemmasta, joka liittyi koodilla eikä Apple ID:llä:
+		palvelimen luoma anonyymi istuntotunniste. Sitä ei ole kytketty Apple ID:hen,
+		sähköpostiosoitteeseen eikä puhelinnumeroon.</li>
+</ul>
+
+<h2>Mitä se ei tee</h2>
+
+<ul>
+	<li>Ei mainoksia eikä mainostunnisteita.</li>
+	<li>Ei analytiikkaa eikä kaatumisraportointipalvelua. Sovelluksessa ei ole
+		analytiikkakirjastoa, joka voisi kerätä mitään sen selän takana.</li>
+	<li>Ei seurantaa, ei Applen tarkoittamassa merkityksessä eikä missään muussa: mitään
+		sinua koskevaa ei yhdistetä muiden sovellusten tai verkkosivustojen tietoihin,
+		eikä mitään luovuteta tietojen välittäjille.</li>
+	<li>Ei pääsyä sijaintiin, yhteystietoihin, kuviin, mikrofoniin tai kameraan. Sovellus
+		ei kysy niitä, koska se ei käytä niitä.</li>
+	<li>Mitään ei myydä eikä luovuteta kenenkään markkinointiin.</li>
+</ul>
+
+<h2>Lapset</h2>
+
+<p>Sovellusta käyttää perhe, ja vanhempi ottaa sen käyttöön. Lapset eivät luo tilejä,
+anna sähköpostiosoitetta eivätkä syötä itsestään mitään: vanhempi lisää lapsen etunimellä
+ja antaa lapsen laitteeseen lyhyen koodin, joka liittää sen perheeseen. Kaikki lapsesta
+tallennettu on sitä mitä vanhempi kirjoitti, sekä tiedot siitä mitkä tehtävät lapsi on
+kuitannut. Sovelluksessa ei ole viestintää, ei sosiaalisia ominaisuuksia, ei sovelluksen
+sisäisiä ostoja, ei ulkoisia linkkejä lapsen puolella eikä mitään, mikä voisi näyttää
+lapselle muiden tuottamaa sisältöä.</p>
+
+<h2>Missä tiedot ovat</h2>
+
+<p>Perheen tiedot ovat Supabasen ylläpitämässä PostgreSQL-tietokannassa Euroopan
+unionissa, ja niitä käytetään HTTPS-yhteydellä. Tietokannan rivitason
+käyttöoikeusvalvonta (row-level security) tarkoittaa, että laite voi lukea ja kirjoittaa
+vain oman perheensä rivejä — tästä huolehtii tietokanta itse, ei sovelluksen kohteliaisuus.
+Supabase toimii käsittelijänä. Nykyinen taulu tallennetaan myös laitteelle, jotta sovellus
+toimii ilman verkkoyhteyttä.</p>
+
+<h2>Ilmoitukset</h2>
+
+<p>Päivittäisen muistutuksen ajastaa sovellus itse laitteella. Push-palvelimia ja
+push-tunnisteita ei ole: muistutuksesta ei lähde mitään puhelimesta ulos. Jos
+ilmoituslupaa ei anna, muistutusta ei vain tule.</p>
+
+<h2>Kuinka kauan tiedot säilyvät ja miten ne poistetaan</h2>
+
+<p>Perheen tiedot säilyvät kunnes joku poistaa ne. Sovellus tekee sen kaiken itse, ilman
+pyyntöä kenellekään:</p>
+
+<ul>
+	<li><strong>Hallinta → Poista tili</strong> poistaa vanhemman Chores-kirjautumisen ja
+		poistaa hänet perheestä.</li>
+	<li><strong>Hallinta → Poistu perheestä</strong> luovuttaa paikan perheessä.</li>
+	<li>Kun viimeinen vanhempi tekee jonkin näistä, perhe, lapset, tehtävät ja koko
+		historia menevät mukana.</li>
+	<li>Lapsen pyyhkäisy <strong>Hallinta → Ihmiset</strong> -listassa ja
+		<strong>Poista</strong> poistaa lapsen ja hänen historiansa.</li>
+</ul>
+
+<p>Poistot tapahtuvat heti, eikä niitä voi peruuttaa. Sovelluksen poistaminen puhelimesta
+poistaa laitteelle tallennetun kopion; se ei poista perhettä palvelimelta, koska perheen
+muut laitteet käyttävät sitä edelleen.</p>
+
+<h2>Oikeutesi</h2>
+
+<p>GDPR:n mukaan sinulla on oikeus saada tietosi nähtäväksi, oikaistaviksi tai
+poistettaviksi sekä saada niistä kopio. Sovellus itse on nopein tie näihin kaikkiin, ja
+poistamiseen se riittää kokonaan. Jos jotain ei voi tehdä sovelluksessa, kirjoita
+osoitteeseen <a href="mailto:arime-chores@proton.me">arime-chores@proton.me</a>. Jos katsot että
+tietoja on käsitelty väärin, voit tehdä valituksen valvontaviranomaiselle — Suomessa
+tietosuojavaltuutetun toimistolle.</p>
+
+<p>Käsittelyn oikeusperuste on pyytämäsi palvelun toteuttaminen: ilman perheen nimiä,
+tehtäviä ja aikataulua ei ole tehtävätaulua.</p>
+
+<h2>Muutokset</h2>
+
+<p>Jos se mitä sovellus tallentaa joskus muuttuu, tämä sivu muuttuu sen mukana ja
+yläreunan päiväys siirtyy. Postituslistaa ei ole, koska sovellus ei kerää osoitetta
+jolle ilmoittaa.</p>
+
+<footer><a href="../../">Chores</a> · <a href="../../support/fi/">Tuki</a></footer>
+
+</body>
+</html>
