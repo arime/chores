@@ -384,10 +384,25 @@ following `links.next` three times.
 ### The App Privacy answers
 
 App Store Connect → App Privacy. Apple has no public API for this one — not even
-to read it back, so `--status` cannot tell you whether it is answered and no
-script can check it. It is a web task, and the answers must match
+to read it back, so `--status` cannot tell you whether it is done and no script
+can check it. It is a web task, and the answers must match
 `App/Chores/PrivacyInfo.xcprivacy` exactly, because the two are read side by side
-and a mismatch is a rejection that names neither file. It is answered.
+and a mismatch is a rejection that names neither file.
+
+**Answering it is not finishing it.** The questionnaire saves as a draft, and a
+separate **Publish** button is what makes the answers count. Nothing on the page
+insists, and the app looks ready everywhere else — every other field is green and
+`--status` reports the version as `PREPARE_FOR_SUBMISSION` either way. The only
+thing that notices is the submission, which fails like this:
+
+    POST /reviewSubmissionItems → 409 STATE_ERROR.ENTITY_STATE_INVALID
+    "This resource cannot be reviewed, please check associated errors to see why."
+      - STATE_ERROR.APP_DATA_USAGES_REQUIRED
+        "You must have published answers to your app's data usages."
+
+The top-level message names nothing; the cause is in `meta.associatedErrors`,
+keyed by `/v1/appDataUsages/`. `asc_detail` prints that nested layer for exactly
+this reason — without it the refusal reads as an unexplained 409.
 
 What the manifest declares, and therefore what to answer:
 
@@ -450,16 +465,19 @@ consequence of having children use the app, and v1 does not make it.
    listing, uploads the screenshots, attaches the build. Re-run it after every
    upload: it attaches the *newest* build, so a version left alone keeps pointing
    at whatever was newest last time.
-5. Set the price to Free and the territories, answer App Privacy, and run
-   `tools/appstore.sh --age-rating`. **Done** — 4+, Brazil L.
+5. Set the price to Free and the territories, answer **and publish** App Privacy,
+   and run `tools/appstore.sh --age-rating`. Price and age rating are **done** —
+   4+, Brazil L — and the footer of a normal run checks both, so it now lists
+   only what is genuinely outstanding.
 6. `tools/appstore.sh --status`, and read it.
 7. `tools/appstore.sh --submit`.
 
 Steps 2 to 6 are safe to repeat. Only the last one queues anything.
 
-So for version 1.0 what is left is 2, 4, 6, 7: build the commit that should ship,
-attach it, read the state back, submit. Everything numbered here that is marked
-done is per-app rather than per-version, and survives into 1.1.
+For version 1.0, steps 2, 4 and 6 are done: build `20260901.1635` is attached and
+the listing is pushed. What is left is publishing App Privacy, then step 7.
+Everything marked done above is per-app rather than per-version, and survives
+into 1.1.
 
 ## First-time setup of the hosted project
 
