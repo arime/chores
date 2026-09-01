@@ -91,9 +91,52 @@ asc_request() {
 
 # Pulls the human-readable part out of an error document, falling back to the
 # raw payload when it is not shaped the way we expect.
+#
+# `meta.associatedErrors` is where the reason actually lives when Apple refuses a
+# submission: the top-level detail says only "check associated errors to see
+# why", and the errors it means are nested one level down, keyed by the endpoint
+# that owns them. Dropping them turns a refusal that names its own cause into a
+# sentence that names nothing.
 asc_detail() {
-	printf '%s' "$1" | jq -r '(.errors // [] | map(.detail // .title) | join("; ")) // empty' 2>/dev/null ||
+	printf '%s' "$1" | jq -r '
+		[ .errors // [] | .[]
+		| (.detail // .title // empty),
+		  ( (.meta.associatedErrors // {}) | to_entries | .[].value[]
+		  | "  - \(.title // .code // "?") \(.detail // "")" )
+		] | join("\n")' 2>/dev/null ||
 		printf '%s' "$1"
+}
+
+# A GET that reports rather than aborts: the body on 2xx, nothing otherwise.
+# asc_request calls fail() on any non-2xx, which is right for a request whose
+# failure means the run cannot continue. It is wrong for asking whether an
+# optional thing has been set up yet, where a 404 is the answer rather than a
+# breakdown.
+asc_probe() {
+	local response status
+	response="$(curl -sS -X GET -w $'\n%{http_code}' \
+		-H "Authorization: Bearer $(asc_token)" "$ASC_API$1")" || return 1
+
+	status="${response##*$'\n'}"
+	case "$status" in
+		2*) printf '%s' "${response%$'\n'*}" ;;
+		*) return 1 ;;
+	esac
+}
+
+# Whether a price schedule exists at all. Submitting without one is refused, and
+# the refusal talks about pricing rather than about this being a thing nobody
+# set.
+asc_has_price() {
+	asc_probe "/apps/$1/appPriceSchedule" | jq -e '.data.id // empty' >/dev/null 2>&1
+}
+
+# The computed age rating, empty until the questionnaire is answered. The
+# declaration resource itself exists from the moment the app does, so its
+# presence proves nothing and this reads the result instead.
+asc_age_rating() {
+	asc_probe "/apps/$1/appInfos?limit=10" |
+		jq -r '[.data[].attributes.appStoreAgeRating | select(. != null)][0] // empty' 2>/dev/null
 }
 
 # ---------------------------------------------------------------------------

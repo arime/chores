@@ -434,18 +434,40 @@ if [ "$do_metadata" -eq 1 ]; then echo 'Metadata pushed.'; fi
 if [ "$do_screenshots" -eq 1 ]; then echo 'Screenshots uploaded.'; fi
 if [ "$do_build" -eq 1 ]; then echo "Build $build_number attached."; fi
 
+echo 'Nothing is with Apple yet.'
+
+# The once-per-app setup, reported by asking rather than by reciting. Printing
+# the whole list unconditionally taught the reader to skim past it, which is the
+# opposite of what a blocker list is for — and two of these three can simply be
+# read back.
+outstanding=0
+note() { outstanding=$((outstanding + 1)); printf '\n  - %s\n' "$1"; }
+
+printf '\nStill needed before a first submission, once each:\n'
+
+if ! asc_has_price "$app_id"; then
+	note 'A price. App Store Connect → Pricing and Availability → Free.
+    Submitting without one is refused, and the refusal talks about pricing
+    rather than about this being a thing nobody set.'
+fi
+
+if [ -z "$(asc_age_rating "$app_id")" ]; then
+	note 'The age rating questionnaire: tools/appstore.sh --age-rating'
+fi
+
+# Never verifiable from here: Apple exposes no API for App Privacy, not even to
+# read it back, so this one is listed every time and says why.
+note "App Privacy (App Store Connect → App Privacy), which has no API at all —
+    this script cannot tell whether it is done, so check it yourself. Filling
+    the questionnaire in is not enough: there is a separate Publish button, and
+    until it is pressed a submission is refused with
+    STATE_ERROR.APP_DATA_USAGES_REQUIRED. docs/RELEASING.md lists what to answer
+    so it agrees with PrivacyInfo.xcprivacy."
+
+[ "$outstanding" -gt 1 ] ||
+	printf '\n    Everything else on this list is already done, checked just now.\n'
+
 cat <<EOF
-Nothing is with Apple yet.
-
-Still needed before a first submission, once each:
-
-  - A price. App Store Connect → Pricing and Availability → Free. Submitting
-    without one is refused, and the API for price schedules is not worth the
-    plumbing for a single decision that will never change.
-  - App Privacy answers (App Store Connect → App Privacy). No public API.
-    docs/RELEASING.md lists what to answer so it agrees with
-    PrivacyInfo.xcprivacy.
-  - The age rating questionnaire: tools/appstore.sh --age-rating
 
 Then:
 
