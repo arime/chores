@@ -307,10 +307,10 @@ refuses to publish if a `SUPPORT_EMAIL_TODO` placeholder ever comes back — a
 support page whose only address is a placeholder is worse than no page, and App
 Review reads these.
 
-One placeholder is still outstanding: `REVIEW_PHONE_TODO` in
-`docs/appstore/listing.json`. App Review requires a phone number for the contact,
-and `tools/appstore.sh` refuses to send anything while any `_TODO` is left in
-`docs/appstore/`. To see what is left:
+Pages is enabled and the five URLs resolve. Nothing is outstanding: the review
+contact in `docs/appstore/listing.json` carries a phone number, which App Review
+requires. `tools/appstore.sh` refuses to send anything while any `_TODO` is left
+in `docs/appstore/`, so if one ever comes back, this names it:
 
     grep -rn '_TODO' docs/appstore docs/site
 
@@ -358,22 +358,36 @@ that is the one step with a queue behind it.
 to release it. Change it to `AFTER_APPROVAL` for a version that should go live the
 moment it passes.
 
-### A price, once
+### A price and a territory, once
 
 App Store Connect → Pricing and Availability → **Free**. A submission with no
 price schedule is refused, and the message is about pricing rather than about
 this being a thing nobody set. The API can do it, through price points and a
 base territory, but it is one decision that will never change and not worth the
-plumbing.
+plumbing. Done: the schedule is Free, with Finland as the base territory.
 
-Availability defaults to every territory, which is what a free family app wants.
+**Availability is Finland only**, and that is deliberate rather than left over
+from setting the price. `availableInNewTerritories` is off with it, so a
+territory Apple adds later does not switch itself on. The default is every
+territory, and this app is not on the default: v1 goes where it will actually be
+used. Widening it is the same web page, needs no new build and no new review, so
+it costs nothing to defer. The en-US listing stays because the store shows it to
+anyone whose device is in English, Finnish store or not.
+
+The API has no v1 route for this, only v2, so `asc_request` cannot reach it:
+
+    GET https://api.appstoreconnect.apple.com/v2/appAvailabilities/<app-id>/territoryAvailabilities?limit=50
+
+`limit` caps at 50 against 175 territories, so reading the whole set means
+following `links.next` three times.
 
 ### The App Privacy answers
 
-App Store Connect → App Privacy. Apple has no public API for this one, so it is a
-web task — and the answers must match `App/Chores/PrivacyInfo.xcprivacy` exactly,
-because the two are read side by side and a mismatch is a rejection that names
-neither file.
+App Store Connect → App Privacy. Apple has no public API for this one — not even
+to read it back, so `--status` cannot tell you whether it is answered and no
+script can check it. It is a web task, and the answers must match
+`App/Chores/PrivacyInfo.xcprivacy` exactly, because the two are read side by side
+and a mismatch is a rejection that names neither file. It is answered.
 
 What the manifest declares, and therefore what to answer:
 
@@ -426,19 +440,26 @@ consequence of having children use the app, and v1 does not make it.
 
 ### The order of it all, for a first release
 
-1. Fill in `REVIEW_PHONE_TODO`, and enable GitHub Pages.
+1. Fill in any `_TODO` in `docs/appstore/`, and enable GitHub Pages. **Done.**
 2. `tools/testflight.sh` — the same binary serves TestFlight and the store, and
    uploading it first means the build is processed by the time the listing is
    ready.
-3. `tools/screenshots.sh`, then look at what it produced.
+3. `tools/screenshots.sh`, then look at what it produced. **Done**, and they only
+   need redoing when a screen they show changes.
 4. `tools/appstore.sh` — creates the version, declares content rights, pushes the
-   listing, uploads the screenshots, attaches the build.
-5. Set the price to Free, answer App Privacy, and run
-   `tools/appstore.sh --age-rating`.
+   listing, uploads the screenshots, attaches the build. Re-run it after every
+   upload: it attaches the *newest* build, so a version left alone keeps pointing
+   at whatever was newest last time.
+5. Set the price to Free and the territories, answer App Privacy, and run
+   `tools/appstore.sh --age-rating`. **Done** — 4+, Brazil L.
 6. `tools/appstore.sh --status`, and read it.
 7. `tools/appstore.sh --submit`.
 
 Steps 2 to 6 are safe to repeat. Only the last one queues anything.
+
+So for version 1.0 what is left is 2, 4, 6, 7: build the commit that should ship,
+attach it, read the state back, submit. Everything numbered here that is marked
+done is per-app rather than per-version, and survives into 1.1.
 
 ## First-time setup of the hosted project
 
