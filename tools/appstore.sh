@@ -436,27 +436,32 @@ if [ "$do_build" -eq 1 ]; then echo "Build $build_number attached."; fi
 
 echo 'Nothing is with Apple yet.'
 
-# The once-per-app setup, reported by asking rather than by reciting. Printing
-# the whole list unconditionally taught the reader to skim past it, which is the
-# opposite of what a blocker list is for — and two of these three can simply be
-# read back.
-outstanding=0
-note() { outstanding=$((outstanding + 1)); printf '\n  - %s\n' "$1"; }
+# The once-each setup, reported by asking rather than by reciting. Printing the
+# whole list unconditionally taught the reader to skim past it, which is the
+# opposite of what a blocker list is for.
+#
+# `unchecked` counts only the ones this script cannot verify, so the reassurance
+# at the end is about what was actually read back rather than about the length of
+# the list.
+unchecked=0
+note() { printf '\n  - %s\n' "$1"; }
 
 printf '\nStill needed before a first submission, once each:\n'
 
 if ! asc_has_price "$app_id"; then
+	unchecked=$((unchecked + 1))
 	note 'A price. App Store Connect → Pricing and Availability → Free.
     Submitting without one is refused, and the refusal talks about pricing
     rather than about this being a thing nobody set.'
 fi
 
 if [ -z "$(asc_age_rating "$app_id")" ]; then
+	unchecked=$((unchecked + 1))
 	note 'The age rating questionnaire: tools/appstore.sh --age-rating'
 fi
 
-# Never verifiable from here: Apple exposes no API for App Privacy, not even to
-# read it back, so this one is listed every time and says why.
+# Never verifiable from here: Apple exposes no API for either of these, not even
+# to read them back, so they are listed every time and say why.
 note "App Privacy (App Store Connect → App Privacy), which has no API at all —
     this script cannot tell whether it is done, so check it yourself. Filling
     the questionnaire in is not enough: there is a separate Publish button, and
@@ -464,8 +469,15 @@ note "App Privacy (App Store Connect → App Privacy), which has no API at all �
     STATE_ERROR.APP_DATA_USAGES_REQUIRED. docs/RELEASING.md lists what to answer
     so it agrees with PrivacyInfo.xcprivacy."
 
-[ "$outstanding" -gt 1 ] ||
-	printf '\n    Everything else on this list is already done, checked just now.\n'
+note 'Trader status (App Store Connect → Business), per account rather than per
+    app, and Account Holder only. The EU Digital Services Act requires it, and
+    without it a submission is refused and the app is eventually removed from EU
+    storefronts — which, with availability set to Finland only, is removed
+    everywhere.'
+
+[ "$unchecked" -gt 0 ] ||
+	printf '\n    The two above are the only ones with no API. Price and age rating
+    were read back just now and are set.\n'
 
 cat <<EOF
 
