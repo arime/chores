@@ -421,6 +421,32 @@ is the chore names, the weekly schedule and the completion history. If what the
 app stores ever changes, the manifest, these answers and
 `docs/site/privacy/` all change together.
 
+### Trader status, once per account
+
+The EU Digital Services Act makes a marketplace identify who sells through it, so
+Apple collects a trader declaration from every developer distributing in the EU.
+It is per *account*, not per app, and there is no API for it: App Store Connect →
+**Business**, Account Holder only.
+
+**Declared: not a trader.** The app is free, earns nothing, has no in-app
+purchases and no business behind it. The declaration is about the developer
+rather than the app, so it is worth restating the reasoning if that ever changes
+— registering a business, or monetising, makes it a trader, and a trader's name,
+address, phone number and email are published on the App Store listing for
+everyone in the EU to read. For an individual with no business address that means
+publishing a home address, which is the part worth knowing before choosing.
+
+Leaving it unset blocks new submissions and eventually removes the app from EU
+storefronts. **Availability here is Finland only, so "removed from the EU" and
+"removed" are the same sentence** — see "A price and a territory" above.
+
+Like App Privacy, the failure says *"contact an Admin or Account Holder"* even
+when you are both. There is one user on this team, holding `ACCOUNT_HOLDER` and
+`ADMIN`; the message names the role allowed to act, not a person you are missing.
+To check the roles on the account:
+
+    GET /v1/users
+
 ### The age rating
 
     tools/appstore.sh --age-rating
@@ -466,9 +492,12 @@ consequence of having children use the app, and v1 does not make it.
    upload: it attaches the *newest* build, so a version left alone keeps pointing
    at whatever was newest last time.
 5. Set the price to Free and the territories, answer **and publish** App Privacy,
-   and run `tools/appstore.sh --age-rating`. Price and age rating are **done** —
-   4+, Brazil L — and the footer of a normal run checks both, so it now lists
-   only what is genuinely outstanding.
+   declare trader status, and run `tools/appstore.sh --age-rating`. Price and age
+   rating are **done** — 4+, Brazil L — and the footer of a normal run checks
+   both, so it now lists only what is genuinely outstanding. The two web tasks
+   have no API and no footer can check them: App Privacy is per app, trader
+   status per account, and each blocks submission while saying nothing that names
+   itself.
 6. `tools/appstore.sh --status`, and read it.
 7. `tools/appstore.sh --submit`.
 
