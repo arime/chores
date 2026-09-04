@@ -11,22 +11,22 @@
         }
       }
     },
+    "%@ done": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ tehty"
+          }
+        }
+      }
+    },
     "%@ · %@": {
       "localizations": {
         "fi": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "%@ – %@": {
-      "localizations": {
-        "fi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ – %2$@"
           }
         }
       }
@@ -107,6 +107,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kaikki tehty"
+          }
+        }
+      }
+    },
+    "Back to today": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Takaisin tähän päivään"
           }
         }
       }
@@ -831,6 +841,16 @@
         }
       }
     },
+    "Nothing scheduled, enjoy your day off!": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ei tehtäviä, nauti vapaapäivästä!"
+          }
+        }
+      }
+    },
     "Nothing today": {
       "localizations": {
         "fi": {
@@ -1247,6 +1267,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tänään"
+          }
+        }
+      }
+    },
+    "Today · %@": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tänään · %@"
           }
         }
       }
