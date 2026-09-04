@@ -2,13 +2,21 @@ import SwiftUI
 import ChoresCore
 
 /// The seven days of the current ISO week as a row of tappable cells: weekday,
-/// day number, and a status dot. The selected cell is filled in the child's own
-/// darker steps.
-struct KidWeekStrip: View {
+/// day number, and a line of status dots. The kid screen shows one dot in the
+/// child's own hue and selects in that hue; the family screen shows one dot per
+/// child and selects in the app accent.
+struct WeekStrip: View {
     let store: FamilyStore
-    let profile: Profile
-    let hue: ChildHue
     let selectedDay: CalendarDay
+    /// The selected cell's fill and 1pt stroke, and today's label colour.
+    let selectionFill: Color
+    let selectionStroke: Color
+    let todayColor: Color
+    /// Prefix of each cell's accessibility identifier — `"kidWeek.day"` yields
+    /// `kidWeek.day.1` … `kidWeek.day.7` by ISO weekday.
+    let identifierPrefix: String
+    let dots: (CalendarDay) -> [DayDot]
+    let accessibilityLabel: (CalendarDay) -> Text
     let onSelect: (CalendarDay) -> Void
 
     var body: some View {
@@ -20,10 +28,10 @@ struct KidWeekStrip: View {
     }
 
     private func cell(for day: CalendarDay) -> some View {
-        let progress = store.progress(for: profile.id, on: day)
         let isToday = day == store.today
         let isSelected = day == selectedDay
         let isFuture = store.eligibility(for: day) == .future
+        let dayDots = dots(day)
 
         return Button {
             onSelect(day)
@@ -32,7 +40,7 @@ struct KidWeekStrip: View {
                 Text(WeekdayNames.short(day.isoWeekday))
                     .font(.system(size: 11))
                     .tracking(11 * 0.04)
-                    .foregroundStyle(isToday ? hue.base : Theme.neutral500)
+                    .foregroundStyle(isToday ? todayColor : Theme.neutral500)
 
                 Text(verbatim: "\(day.day)")
                     .font(.system(size: 15))
@@ -40,7 +48,12 @@ struct KidWeekStrip: View {
                     .foregroundStyle(isSelected ? Theme.text
                                      : isFuture ? Theme.neutral500 : Theme.neutral300)
 
-                KidDayDot(progress: progress, isFuture: isFuture, isToday: isToday, hue: hue)
+                HStack(spacing: 3) {
+                    ForEach(Array(dayDots.enumerated()), id: \.offset) { _, dot in
+                        dot
+                    }
+                }
+                .frame(minHeight: 7)
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 9)
@@ -48,45 +61,37 @@ struct KidWeekStrip: View {
             .frame(minHeight: 44)
             .background {
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                    .fill(isSelected ? hue.step900 : .clear)
+                    .fill(isSelected ? selectionFill : .clear)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                    .strokeBorder(isSelected ? hue.step700 : .clear, lineWidth: 1)
+                    .strokeBorder(isSelected ? selectionStroke : .clear, lineWidth: 1)
             }
             .animation(.easeInOut(duration: 0.2), value: isSelected)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("kidWeek.day.\(day.isoWeekday)")
-        .accessibilityLabel(accessibilityLabel(for: day, progress: progress))
+        .accessibilityIdentifier("\(identifierPrefix).\(day.isoWeekday)")
+        .accessibilityLabel(accessibilityLabel(day))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private func accessibilityLabel(for day: CalendarDay,
-                                    progress: (done: Int, total: Int)) -> Text {
-        let weekday = WeekdayNames.full(day.isoWeekday)
-        if progress.total == 0 {
-            return Text("\(weekday), nothing scheduled")
-        }
-        return Text("\(weekday), \(progress.done) of \(progress.total) done")
     }
 }
 
-/// The 7pt status dot with its 1.5pt ring. One rule, evaluated per day:
+/// A status dot with a 1.5pt ring. One rule, evaluated per day and child:
 ///
-/// | Condition             | Fill  | Ring        |
-/// |-----------------------|-------|-------------|
-/// | nothing scheduled     | clear | neutral800  |
-/// | future day            | clear | neutral600  |
-/// | everything done       | done  | done        |
-/// | today, unfinished     | clear | child colour|
-/// | past day, unfinished  | clear | warn        |
-struct KidDayDot: View {
+/// | Condition             | Fill  | Ring          |
+/// |-----------------------|-------|---------------|
+/// | nothing scheduled     | clear | neutral800    |
+/// | future day            | clear | neutral600    |
+/// | everything done       | done  | done          |
+/// | today, unfinished     | clear | child colour  |
+/// | past day, unfinished  | clear | warn          |
+struct DayDot: View {
     let progress: (done: Int, total: Int)
     let isFuture: Bool
     let isToday: Bool
-    let hue: ChildHue
+    let color: Color
+    var size: CGFloat = 7
 
     private var isFull: Bool { progress.total > 0 && progress.done == progress.total }
 
@@ -94,41 +99,24 @@ struct KidDayDot: View {
         if progress.total == 0 { return Theme.neutral800 }
         if isFuture { return Theme.neutral600 }
         if isFull { return Theme.done }
-        return isToday ? hue.base : Theme.warn
+        return isToday ? color : Theme.warn
     }
 
     var body: some View {
         Circle()
             .fill(isFull ? Theme.done : .clear)
             .overlay { Circle().strokeBorder(ring, lineWidth: 1.5) }
-            .frame(width: 7, height: 7)
+            .frame(width: size, height: size)
             .animation(.easeInOut(duration: 0.2), value: isFull)
     }
 }
 
-/// The small uppercase line above a headline.
-struct KidKicker: View {
-    let text: Text
-
-    var body: some View {
-        text
-            .font(.system(size: 11))
-            .tracking(11 * 0.1)
-            .textCase(.uppercase)
-            .foregroundStyle(Theme.neutral500)
+/// "{Weekday}, 2 of 4 done" or "{Weekday}, nothing scheduled" — what a strip
+/// cell says to VoiceOver.
+func dayAccessibilityLabel(_ day: CalendarDay, progress: (done: Int, total: Int)) -> Text {
+    let weekday = WeekdayNames.full(day.isoWeekday)
+    if progress.total == 0 {
+        return Text("\(weekday), nothing scheduled")
     }
-}
-
-/// 34pt medium, the largest thing on the kid screen.
-struct KidHeadline: View {
-    let text: Text
-
-    var body: some View {
-        text
-            .font(.system(size: 34, weight: .medium))
-            .tracking(-34 * 0.02)
-            .monospacedDigit()
-            .foregroundStyle(Theme.text)
-            .fixedSize(horizontal: false, vertical: true)
-    }
+    return Text("\(weekday), \(progress.done) of \(progress.total) done")
 }

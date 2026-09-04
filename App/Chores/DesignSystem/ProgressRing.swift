@@ -1,29 +1,29 @@
 import SwiftUI
 
+/// A 22pt ring with a 2pt stroke: track in neutral900, fill in the child's colour,
+/// switching to done-mint once everything is done. Purely visual — the count it
+/// sits next to carries the words for VoiceOver.
 struct ProgressRing: View {
     let done: Int
     let total: Int
     let color: Color
+    var size: CGFloat = 22
 
     private var fraction: Double { total == 0 ? 0 : Double(done) / Double(total) }
+    private var isFull: Bool { total > 0 && done == total }
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(color.opacity(0.2), lineWidth: 6)
+                .stroke(Theme.neutral900, lineWidth: 2)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(isFull ? Theme.done : color,
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(.snappy, value: fraction)
-            Text("\(done)/\(total)")
-                .font(.caption2.bold())
-                .monospacedDigit()
+                .animation(.snappy(duration: 0.35), value: fraction)
         }
-        .frame(width: 44, height: 44)
-        // The "3/5" inside is shorthand for sighted readers; spell it out instead
-        // of letting VoiceOver read the fraction.
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(done) of \(total) done")
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }

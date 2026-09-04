@@ -7,8 +7,8 @@ final class PeopleUITests: ParentUITestCase {
     func testDeletingAChildNamesWhatWillBeLost() {
         let app = launchIntoParentMode()
         addChild(app, named: "Kid")
-        app.tabBars.buttons["Manage"].tap()
-        app.buttons["People"].tap()
+        app.buttons["tab.manage"].tap()
+        app.buttons["manage.people"].tap()
 
         let row = app.buttons["people.child.Kid"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))

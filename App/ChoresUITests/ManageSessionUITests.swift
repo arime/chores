@@ -4,7 +4,7 @@ final class ManageSessionUITests: ParentUITestCase {
 
     func testSigningOutReturnsToTheFirstScreen() {
         let app = launchIntoParentMode()
-        app.tabBars.buttons["Manage"].tap()
+        app.buttons["tab.manage"].tap()
 
         let signOut = app.buttons["manage.signOut"]
         XCTAssertTrue(signOut.waitForExistence(timeout: 5))
@@ -16,7 +16,7 @@ final class ManageSessionUITests: ParentUITestCase {
 
     func testLeavingWarnsThatTheFamilyGoesWithYou() {
         let app = launchIntoParentMode()
-        app.tabBars.buttons["Manage"].tap()
+        app.buttons["tab.manage"].tap()
 
         let leave = app.buttons["manage.leave"]
         XCTAssertTrue(leave.waitForExistence(timeout: 5))

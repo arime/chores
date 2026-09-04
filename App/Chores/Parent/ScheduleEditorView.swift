@@ -3,6 +3,8 @@ import ChoresCore
 
 /// Day-first, mirroring how the requirement was described: "on Monday child A
 /// does X and Y". A 7-day by 3-child grid does not fit a phone.
+///
+/// A `List` rather than a scroll view, because removing an entry is a swipe.
 struct ScheduleEditorView: View {
     let store: FamilyStore
     let backend: any ChoresBackend
@@ -10,11 +12,11 @@ struct ScheduleEditorView: View {
     @State private var selectedWeekday = 1
     @State private var assigningTo: Profile?
     @State private var isCopying = false
-    @State private var copyTargets: Set<Int> = []
     @State private var errorMessage: String?
 
     private var children: [Profile] { store.snapshot?.children ?? [] }
     private var chores: [Chore] { store.snapshot?.activeChores ?? [] }
+    private var dayName: String { WeekdayNames.full(selectedWeekday) }
 
     private func entries(for child: Profile) -> [(entry: ScheduleEntry, chore: Chore)] {
         guard let snapshot = store.snapshot else { return [] }
@@ -31,66 +33,90 @@ struct ScheduleEditorView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("Day", selection: $selectedWeekday) {
-                ForEach(1...7, id: \.self) { weekday in
-                    Text(WeekdayNames.short(weekday)).tag(weekday)
-                }
+        List {
+            BackButton(label: Text("Manage"))
+                .padding(.leading, -6)
+                .nocturneRow()
+
+            ScreenHeader(kicker: Text("Manage"), title: Text("Schedule"))
+                .padding(.top, 4)
+                .padding(.bottom, Theme.blockGap)
+                .nocturneRow()
+
+            dayPicker
+                .padding(.bottom, Theme.blockGap)
+                .nocturneRow()
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.danger)
+                    .padding(.bottom, 12)
+                    .nocturneRow()
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.bottom, 8)
-            .accessibilityIdentifier("schedule.dayPicker")
 
-            List {
-                if let errorMessage {
-                    Section { Text(errorMessage).foregroundStyle(.red) }
+            ForEach(children) { child in
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(ChildHue(hex: child.color).base)
+                        .frame(width: 8, height: 8)
+                    Text(child.displayName)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Theme.text)
                 }
+                .frame(minHeight: 32)
+                .nocturneRow()
 
-                ForEach(children) { child in
-                    Section {
-                        ForEach(entries(for: child), id: \.entry.id) { pair in
-                            Text(pair.chore.name)
-                                .swipeActions {
-                                    Button("Remove", role: .destructive) {
-                                        Task { await remove(pair.entry) }
-                                    }
-                                }
+                let assigned = entries(for: child)
+                ForEach(assigned, id: \.entry.id) { pair in
+                    Text(pair.chore.name)
+                        .font(.system(size: 17))
+                        .foregroundStyle(Theme.text)
+                        .ruledRow(minHeight: 50)
+                        .swipeActions {
+                            Button("Remove", role: .destructive) {
+                                Task { await remove(pair.entry) }
+                            }
                         }
-                        Button("Add chore") { assigningTo = child }
-                            .font(.callout)
-                            .accessibilityIdentifier("schedule.add.\(child.displayName)")
-                    } header: {
-                        HStack {
-                            Circle()
-                                .fill(Color(hexString: child.color))
-                                .frame(width: 10, height: 10)
-                            Text(child.displayName)
-                        }
-                    }
+                        .nocturneRow()
                 }
 
-                if children.isEmpty {
-                    Section {
-                        Text("Add a child under Manage → People first.")
-                            .foregroundStyle(.secondary)
-                    }
+                if assigned.isEmpty {
+                    Text("Nothing on \(dayName).")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.neutral500)
+                        .padding(.top, 10)
+                        .padding(.bottom, 4)
+                        .padding(.horizontal, 2)
+                        .nocturneRow()
                 }
 
-                Section {
-                    Button("Copy \(WeekdayNames.full(selectedWeekday)) to…") {
-                        copyTargets = []
-                        isCopying = true
-                    }
+                AddRow(label: Text("Add chore"), minHeight: 44) { assigningTo = child }
+                    .padding(.bottom, Theme.blockGap)
+                    .accessibilityIdentifier("schedule.add.\(child.displayName)")
+                    .nocturneRow()
+            }
+
+            if children.isEmpty {
+                Text("Add a child under Manage → People first.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.neutral500)
+                    .padding(.bottom, Theme.blockGap)
+                    .nocturneRow()
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Copy \(dayName) to…") { isCopying = true }
+                    .buttonStyle(.primary)
                     .disabled(children.isEmpty)
                     .accessibilityIdentifier("schedule.copyDay")
-                } footer: {
-                    Text("Copying replaces everything already assigned on the target days.")
-                }
+                Footnote(text: Text("Copying replaces everything already assigned on the target days."))
             }
+            .padding(.bottom, 40)
+            .nocturneRow()
         }
-        .navigationTitle("Schedule")
-        .navigationBarTitleDisplayMode(.inline)
+        .nocturneList()
+        .nocturneNavigation()
         .sheet(item: $assigningTo) { child in
             AssignChoreSheet(
                 child: child,
@@ -100,47 +126,45 @@ struct ScheduleEditorView: View {
                 await assign(chore, to: child)
             }
         }
-        .sheet(isPresented: $isCopying) { copySheet }
-    }
-
-    private var copySheet: some View {
-        NavigationStack {
-            List {
-                Section("Copy to") {
-                    ForEach(1...7, id: \.self) { weekday in
-                        if weekday != selectedWeekday {
-                            Button {
-                                if copyTargets.contains(weekday) {
-                                    copyTargets.remove(weekday)
-                                } else {
-                                    copyTargets.insert(weekday)
-                                }
-                            } label: {
-                                HStack {
-                                    Text(WeekdayNames.full(weekday))
-                                    Spacer()
-                                    if copyTargets.contains(weekday) {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            .tint(.primary)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Copy \(WeekdayNames.full(selectedWeekday))")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { isCopying = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Copy") { Task { await copy() } }
-                        .disabled(copyTargets.isEmpty)
-                }
+        .sheet(isPresented: $isCopying) {
+            CopyDaySheet(sourceWeekday: selectedWeekday) { targets in
+                await copy(to: targets)
             }
         }
+    }
+
+    /// Seven equal cells in a surface track. Replaces the system segmented
+    /// control, whose chrome has no place on this ground.
+    private var dayPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(1...7, id: \.self) { weekday in
+                let isSelected = weekday == selectedWeekday
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedWeekday = weekday }
+                } label: {
+                    Text(WeekdayNames.short(weekday))
+                        .font(.system(size: 12))
+                        .tracking(12 * 0.02)
+                        .foregroundStyle(isSelected ? Theme.text : Theme.neutral500)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 34)
+                        .background {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(isSelected ? Theme.neutral800 : .clear)
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("schedule.day.\(weekday)")
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background {
+            RoundedRectangle(cornerRadius: Theme.cornerRadius).fill(Theme.surface)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("schedule.dayPicker")
     }
 
     private func assign(_ chore: Chore, to child: Profile) async {
@@ -166,11 +190,11 @@ struct ScheduleEditorView: View {
         }
     }
 
-    private func copy() async {
+    private func copy(to targets: Set<Int>) async {
         guard let familyID = store.snapshot?.family.id else { return }
         do {
             try await backend.copyDay(familyID: familyID, from: selectedWeekday,
-                                      to: Array(copyTargets))
+                                      to: Array(targets))
             errorMessage = nil
             isCopying = false
             await store.reloadAfterEdit()
@@ -178,5 +202,67 @@ struct ScheduleEditorView: View {
             isCopying = false
             errorMessage = String(localized: "Couldn't copy the day. Check your connection and try again.")
         }
+    }
+}
+
+/// Pick the days a day's assignments should be copied onto.
+struct CopyDaySheet: View {
+    let sourceWeekday: Int
+    let onCopy: (Set<Int>) async -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var targets: Set<Int> = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(onCancel: { dismiss() },
+                        title: Text("Copy \(WeekdayNames.full(sourceWeekday))")) {
+                SheetPrimaryButton(title: Text("Copy"), isEnabled: !targets.isEmpty) {
+                    Task { await onCopy(targets) }
+                }
+            }
+            .padding(.bottom, Theme.blockGap)
+
+            Kicker(text: Text("Copy to"))
+                .padding(.bottom, 4)
+
+            ForEach(1...7, id: \.self) { weekday in
+                if weekday != sourceWeekday {
+                    dayRow(weekday)
+                }
+            }
+        }
+        .nocturneSheet()
+    }
+
+    private func dayRow(_ weekday: Int) -> some View {
+        let isChecked = targets.contains(weekday)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if isChecked { targets.remove(weekday) } else { targets.insert(weekday) }
+            }
+        } label: {
+            HStack {
+                Text(WeekdayNames.full(weekday))
+                    .font(.system(size: 17))
+                    .foregroundStyle(Theme.text)
+                Spacer(minLength: 0)
+                ZStack {
+                    Circle().fill(isChecked ? Theme.accent : .clear)
+                    Circle().strokeBorder(isChecked ? Theme.accent : Theme.neutral600, lineWidth: 1.5)
+                    if isChecked {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Theme.bg)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .frame(width: 22, height: 22)
+            }
+            .ruledRow(minHeight: 50, verticalPadding: 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isChecked ? .isSelected : [])
     }
 }

@@ -20,9 +20,9 @@ final class ScheduleUITests: ParentUITestCase {
         app.buttons["Copy"].tap()
 
         // Wednesday should now look like Monday.
-        let dayPicker = app.segmentedControls["schedule.dayPicker"]
-        XCTAssertTrue(dayPicker.waitForExistence(timeout: 5))
-        dayPicker.buttons.element(boundBy: 2).tap()
+        let wednesday = app.buttons["schedule.day.3"]
+        XCTAssertTrue(wednesday.waitForExistence(timeout: 5))
+        wednesday.tap()
 
         XCTAssertTrue(app.staticTexts["Dishes"].waitForExistence(timeout: 5),
                       "copying a day should carry its assignments across")
@@ -58,8 +58,8 @@ final class ScheduleUITests: ParentUITestCase {
 
         addChore(app, named: "Vacuum")
 
-        app.tabBars.buttons["Manage"].tap()
-        app.buttons["Chores"].tap()
+        app.buttons["tab.manage"].tap()
+        app.buttons["manage.chores"].tap()
         XCTAssertTrue(app.buttons["Vacuum"].waitForExistence(timeout: 5))
         app.buttons["Vacuum"].swipeLeft()
         app.buttons["Archive"].tap()

@@ -10,17 +10,20 @@ struct BackendFailureView: View {
     @State private var isRetrying = false
 
     var body: some View {
-        ContentUnavailableView {
-            Label("The server refused the request", systemImage: "exclamationmark.triangle")
-        } description: {
-            VStack(spacing: 12) {
+        OnboardingScaffold(kicker: Text("Something's wrong"),
+                           title: Text("The server refused the request")) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text("This is a fault in the app or its database, not in this device's connection.")
+                    .font(.system(size: 15))
+                    .lineSpacing(15 * 0.5)
+                    .foregroundStyle(Theme.neutral300)
                 Text(detail)
-                    .font(.footnote.monospaced())
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundStyle(Theme.neutral500)
                     .textSelection(.enabled)
             }
-        } actions: {
+            .frame(maxWidth: 320, alignment: .leading)
+        } footer: {
             Button("Try again") {
                 Task {
                     isRetrying = true
@@ -28,6 +31,7 @@ struct BackendFailureView: View {
                     isRetrying = false
                 }
             }
+            .buttonStyle(.primary)
             .disabled(isRetrying)
         }
     }

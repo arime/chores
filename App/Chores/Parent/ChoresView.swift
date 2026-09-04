@@ -1,6 +1,7 @@
 import SwiftUI
 import ChoresCore
 
+/// A `List` rather than a scroll view, because archiving is a swipe.
 struct ChoresView: View {
     let store: FamilyStore
     let backend: any ChoresBackend
@@ -22,58 +23,100 @@ struct ChoresView: View {
 
     var body: some View {
         List {
+            BackButton(label: Text("Manage"))
+                .padding(.leading, -6)
+                .nocturneRow()
+
+            ScreenHeader(kicker: Text("Manage"), title: Text("Chores"))
+                .padding(.top, 4)
+                .padding(.bottom, Theme.blockGap)
+                .nocturneRow()
+
             if let errorMessage {
-                Section { Text(errorMessage).foregroundStyle(.red) }
+                Text(errorMessage)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.danger)
+                    .padding(.bottom, 12)
+                    .nocturneRow()
             }
 
-            Section {
-                ForEach(active) { chore in
-                    Button(chore.name) {
-                        renameText = chore.name
-                        renaming = chore
-                    }
-                    .tint(.primary)
-                    .swipeActions {
-                        Button("Archive") {
-                            Task { await setArchived(true, chore) }
-                        }
-                        .tint(.orange)
-                    }
+            SectionHeading(title: Text("Active"))
+                .nocturneRow()
+
+            ForEach(active) { chore in
+                Button {
+                    renameText = chore.name
+                    renaming = chore
+                } label: {
+                    Text(chore.name)
+                        .font(.system(size: 17))
+                        .foregroundStyle(Theme.text)
+                        .ruledRow(minHeight: 52)
+                        .contentShape(Rectangle())
                 }
-                if active.isEmpty {
-                    Text("No chores yet.").foregroundStyle(.secondary)
+                .buttonStyle(.plain)
+                .swipeActions {
+                    Button("Archive") {
+                        Task { await setArchived(true, chore) }
+                    }
+                    .tint(Theme.neutral600)
                 }
-            } header: {
-                Text("Active")
-            } footer: {
-                Text("Tap to rename. Swipe to archive.")
+                .nocturneRow()
             }
+
+            if active.isEmpty {
+                Text("No chores yet.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.neutral500)
+                    .padding(.vertical, 8)
+                    .nocturneRow()
+            }
+
+            AddRow(label: Text("Add chore")) { isAdding = true }
+                .accessibilityIdentifier("chores.add")
+                .nocturneRow()
+
+            Footnote(text: Text("Tap to rename. Swipe to archive."))
+                .padding(.top, 8)
+                .padding(.bottom, Theme.blockGap)
+                .nocturneRow()
 
             if !archived.isEmpty {
-                Section {
-                    DisclosureGroup("Archived (\(archived.count))", isExpanded: $showArchived) {
-                        ForEach(archived) { chore in
+                archivedDisclosure
+                    .nocturneRow()
+
+                if showArchived {
+                    ForEach(archived) { chore in
+                        HStack(spacing: 14) {
                             Text(chore.name)
-                                .foregroundStyle(.secondary)
-                                .swipeActions {
-                                    Button("Restore") {
-                                        Task { await setArchived(false, chore) }
-                                    }
-                                    .tint(.blue)
-                                }
+                                .font(.system(size: 17))
+                                .foregroundStyle(Theme.neutral500)
+                            Spacer(minLength: 0)
+                            Button("Restore") {
+                                Task { await setArchived(false, chore) }
+                            }
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.accent300)
+                            .buttonStyle(.plain)
+                            .frame(minHeight: 44)
+                            .padding(.horizontal, 4)
                         }
+                        .ruledRow(minHeight: 52)
+                        .nocturneRow()
                     }
-                } footer: {
-                    Text("Archived chores keep their history and their place in the schedule, but don't appear on anyone's list.")
+
+                    Footnote(text: Text("Archived chores keep their history and their place in the schedule, but don't appear on anyone's list."))
+                        .padding(.top, 8)
+                        .nocturneRow()
                 }
             }
 
-            Section {
-                Button("Add chore") { isAdding = true }
-                    .accessibilityIdentifier("chores.add")
-            }
+            Color.clear
+                .frame(height: 24)
+                .nocturneRow()
         }
-        .navigationTitle("Chores")
+        .nocturneList()
+        .nocturneNavigation()
         .alert("Add chore", isPresented: $isAdding) {
             TextField("Name", text: $newName)
                 .accessibilityIdentifier("chores.newName")
@@ -93,6 +136,26 @@ struct ChoresView: View {
             }
             Button("Cancel", role: .cancel) { renaming = nil }
         }
+    }
+
+    /// "Archived (n)" with a chevron that turns to point down while open.
+    private var archivedDisclosure: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { showArchived.toggle() }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .medium))
+                    .rotationEffect(.degrees(showArchived ? 90 : 0))
+                Text("Archived (\(archived.count))")
+                    .font(.system(size: 15))
+            }
+            .foregroundStyle(Theme.neutral300)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func add() async {

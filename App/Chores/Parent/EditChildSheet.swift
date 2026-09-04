@@ -20,6 +20,8 @@ struct EditChildSheet: View {
             : "Only needed if they get a new device or reinstall the app."
     }
 
+    private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+
     init(child: Profile, store: FamilyStore, backend: any ChoresBackend) {
         self.child = child
         self.store = store
@@ -29,59 +31,65 @@ struct EditChildSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Name") {
-                    TextField("Name", text: $name)
-                        .textInputAutocapitalization(.words)
+        VStack(alignment: .leading, spacing: Theme.blockGap) {
+            SheetHeader(onCancel: { dismiss() }, title: Text(child.displayName)) {
+                SheetPrimaryButton(title: Text("Save"), isEnabled: canSave) {
+                    Task { await save() }
                 }
+            }
 
-                Section("Colour") {
-                    HStack(spacing: 12) {
-                        ForEach(ProfilePalette.options, id: \.self) { option in
-                            Button {
-                                color = option
-                            } label: {
-                                Circle()
-                                    .fill(Color(hexString: option))
-                                    .frame(width: 30, height: 30)
-                                    .overlay {
-                                        if option == color {
-                                            Circle().strokeBorder(.primary, lineWidth: 3)
-                                        }
-                                    }
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(option)
-                        }
+            NocturneField(kicker: Text("Name"), placeholder: "Name", text: $name,
+                          identifier: "editChild.name")
+
+            VStack(alignment: .leading, spacing: 10) {
+                Kicker(text: Text("Colour"))
+                HStack(spacing: 12) {
+                    ForEach(ProfilePalette.options, id: \.self) { option in
+                        swatch(option)
                     }
                 }
-
-                Section {
-                    Button("Show setup code") { showingCode = true }
-                } footer: {
-                    Text(codeFooter)
-                }
-
-                if let errorMessage {
-                    Section { Text(errorMessage).foregroundStyle(.red) }
-                }
             }
-            .navigationTitle(child.displayName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await save() } }
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Show setup code") { showingCode = true }
+                    .buttonStyle(.primary)
+                Footnote(text: Text(codeFooter))
             }
-            .sheet(isPresented: $showingCode) {
-                ClaimCodeSheet(profile: child, backend: backend)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.danger)
             }
         }
+        .nocturneSheet()
+        .sheet(isPresented: $showingCode) {
+            ClaimCodeSheet(profile: child, backend: backend)
+        }
+    }
+
+    /// 36pt of colour; the chosen one gets a 2pt gap of surface and then a
+    /// 1.5pt ring in its own colour.
+    private func swatch(_ option: String) -> some View {
+        let isSelected = option == color
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) { color = option }
+        } label: {
+            Circle()
+                .fill(Color(hexString: option))
+                .frame(width: 36, height: 36)
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color(hexString: option), lineWidth: 1.5)
+                        .frame(width: 43, height: 43)
+                        .opacity(isSelected ? 1 : 0)
+                }
+                .padding(4)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(option)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private func save() async {
