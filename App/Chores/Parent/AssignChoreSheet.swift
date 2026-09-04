@@ -21,29 +21,41 @@ struct AssignChoreSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(available) { chore in
-                    Button(chore.name) {
-                        Task {
-                            await onSelect(chore)
-                            dismiss()
-                        }
-                    }
-                    .tint(.primary)
-                }
-                if available.isEmpty {
-                    Text(emptyMessage)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(onCancel: { dismiss() }, title: Text("Assign to \(child.displayName)")) {
+                EmptyView()
             }
-            .navigationTitle("Assign to \(child.displayName)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+            .padding(.bottom, Theme.blockGap)
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(available) { chore in
+                        Button {
+                            Task {
+                                await onSelect(chore)
+                                dismiss()
+                            }
+                        } label: {
+                            Text(chore.name)
+                                .font(.system(size: 17))
+                                .foregroundStyle(Theme.text)
+                                .ruledRow(minHeight: 52)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if available.isEmpty {
+                        Text(emptyMessage)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Theme.neutral500)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 2)
+                    }
                 }
             }
         }
+        .nocturneSheet()
     }
 }

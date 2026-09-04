@@ -50,12 +50,11 @@ final class OnboardingUITests: XCTestCase {
 
         app.buttons["createFamily.submit"].tap()
 
-        // Reaching the three-tab shell proves the family was created, the session
+        // Reaching the two-tab shell proves the family was created, the session
         // re-read itself, and the root routed on role.
-        XCTAssertTrue(app.tabBars.buttons["Manage"].waitForExistence(timeout: 10),
+        XCTAssertTrue(app.buttons["tab.manage"].waitForExistence(timeout: 10),
                       "creating a family should land the device in parent mode")
-        XCTAssertTrue(app.tabBars.buttons["Today"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Week"].exists)
+        XCTAssertTrue(app.buttons["tab.family"].exists)
     }
 
     func testCreateIsRejectedWhenNamesAreBlank() {
@@ -77,7 +76,7 @@ final class OnboardingUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Please fill in both names."].waitForExistence(timeout: 5),
                       "blank names should be refused before any backend call")
-        XCTAssertFalse(app.tabBars.buttons["Manage"].exists,
+        XCTAssertFalse(app.buttons["tab.manage"].exists,
                        "a rejected form must not navigate anywhere")
     }
 

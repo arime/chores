@@ -12,42 +12,38 @@ struct CreateFamilyView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Household") {
-                TextField("Family name", text: $model.familyName)
-                    .textInputAutocapitalization(.words)
-                    .accessibilityIdentifier("createFamily.familyName")
-            }
-            Section("You") {
-                TextField("Your name", text: $model.parentName)
-                    .textInputAutocapitalization(.words)
-                    .accessibilityIdentifier("createFamily.parentName")
-            }
+        OnboardingScaffold(navigation: .back, kicker: Text("Parent"), title: Text("New family")) {
+            NocturneField(kicker: Text("Household"), placeholder: "Family name",
+                          text: $model.familyName, identifier: "createFamily.familyName")
+
+            NocturneField(kicker: Text("You"), placeholder: "Your name",
+                          text: $model.parentName, identifier: "createFamily.parentName")
 
             if let failure = model.failure {
-                Section {
-                    Text(failure.text).foregroundStyle(.red)
-                }
+                Text(failure.text)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.danger)
             }
 
-            Section {
-                Button {
-                    Task {
-                        if await model.createFamily() { await onFinished() }
-                    }
-                } label: {
-                    if model.isBusy {
-                        ProgressView()
-                    } else {
-                        Text("Create")
-                    }
+            // Right under the fields rather than at the foot: with the keyboard
+            // up, this is where the thumb already is.
+            Button {
+                Task {
+                    if await model.createFamily() { await onFinished() }
                 }
-                .disabled(model.isBusy)
-                .accessibilityIdentifier("createFamily.submit")
+            } label: {
+                if model.isBusy {
+                    ProgressView().tint(Theme.accent)
+                } else {
+                    Text("Create")
+                }
             }
+            .buttonStyle(.primary)
+            .disabled(model.isBusy)
+            .accessibilityIdentifier("createFamily.submit")
+        } footer: {
+            EmptyView()
         }
-        .navigationTitle("New family")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

@@ -3,6 +3,10 @@ import XCTest
 /// Shared setup for the parent-mode UI tests. Launching with `-ui-testing` swaps
 /// the Supabase backend for the in-memory fake, so each test starts from an empty
 /// family and builds only what it needs.
+///
+/// Parent mode draws its own tab bar and back buttons, so both are addressed by
+/// identifier — `tab.family`, `tab.manage`, `nav.back` — rather than through
+/// `tabBars` and `navigationBars`.
 class ParentUITestCase: XCTestCase {
 
     override func setUp() {
@@ -39,7 +43,7 @@ class ParentUITestCase: XCTestCase {
         parentName.typeText("Parent")
         app.buttons["createFamily.submit"].tap()
 
-        XCTAssertTrue(app.tabBars.buttons["Manage"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["tab.manage"].waitForExistence(timeout: 10))
         return app
     }
 
@@ -55,19 +59,19 @@ class ParentUITestCase: XCTestCase {
     }
 
     func addChild(_ app: XCUIApplication, named name: String) {
-        app.tabBars.buttons["Manage"].tap()
-        app.buttons["People"].tap()
+        app.buttons["tab.manage"].tap()
+        app.buttons["manage.people"].tap()
         XCTAssertTrue(app.buttons["people.addChild"].waitForExistence(timeout: 5))
         app.buttons["people.addChild"].tap()
         fillAlert(app, text: name, confirm: "Add")
         XCTAssertTrue(app.staticTexts[name].waitForExistence(timeout: 5),
                       "the new child should appear in the list")
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["nav.back"].tap()
     }
 
     func addParent(_ app: XCUIApplication, named name: String) {
-        app.tabBars.buttons["Manage"].tap()
-        app.buttons["People"].tap()
+        app.buttons["tab.manage"].tap()
+        app.buttons["manage.people"].tap()
         XCTAssertTrue(app.buttons["people.addParent"].waitForExistence(timeout: 5))
         app.buttons["people.addParent"].tap()
         fillAlert(app, text: name, confirm: "Add")
@@ -76,25 +80,25 @@ class ParentUITestCase: XCTestCase {
     }
 
     func addChore(_ app: XCUIApplication, named name: String) {
-        app.tabBars.buttons["Manage"].tap()
-        app.buttons["Chores"].tap()
+        app.buttons["tab.manage"].tap()
+        app.buttons["manage.chores"].tap()
         XCTAssertTrue(app.buttons["chores.add"].waitForExistence(timeout: 5))
         app.buttons["chores.add"].tap()
         fillAlert(app, text: name, confirm: "Add")
         XCTAssertTrue(app.buttons[name].waitForExistence(timeout: 5),
                       "the new chore should appear under Active")
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons["nav.back"].tap()
     }
 
     /// Assigns a chore on the given ISO weekday (1 = Monday). Assumes the Manage
     /// tab is reachable; leaves the app on the schedule editor.
     func assign(_ app: XCUIApplication, chore: String, to child: String, onISOWeekday weekday: Int) {
-        app.tabBars.buttons["Manage"].tap()
-        app.buttons["Schedule"].tap()
+        app.buttons["tab.manage"].tap()
+        app.buttons["manage.schedule"].tap()
 
-        let dayPicker = app.segmentedControls["schedule.dayPicker"]
-        XCTAssertTrue(dayPicker.waitForExistence(timeout: 5))
-        dayPicker.buttons.element(boundBy: weekday - 1).tap()
+        let day = app.buttons["schedule.day.\(weekday)"]
+        XCTAssertTrue(day.waitForExistence(timeout: 5))
+        day.tap()
 
         let add = app.buttons["schedule.add.\(child)"]
         XCTAssertTrue(add.waitForExistence(timeout: 5))

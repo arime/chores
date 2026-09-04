@@ -71,6 +71,13 @@ struct RootView: View {
                 BackendFailureView(detail: detail) { await session.start() }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.bg.ignoresSafeArea())
+        // The whole app is drawn in Nocturne, whose every colour is a
+        // dark-appearance value; the accent tints what the system still draws
+        // — alerts, dialogs, text cursors.
+        .preferredColorScheme(.dark)
+        .tint(Theme.accent)
         .task { await session.start() }
         .onChange(of: session.state) { _, newState in
             switch newState {

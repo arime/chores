@@ -9,20 +9,7 @@ struct ChoreRow: View {
     let isEnabled: Bool
     let onToggle: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
-
     private var isDone: Bool { item.isCompleted }
-
-    /// Exact Nocturne tokens on the (always dark) kid screens; system colours on a
-    /// parent's light screen, where `Theme.text` would vanish into the background.
-    private var nameColor: Color {
-        switch (colorScheme, isDone) {
-        case (.dark, false): return Theme.text
-        case (.dark, true):  return Theme.neutral500
-        case (_, false):     return .primary
-        case (_, true):      return .secondary
-        }
-    }
 
     private var rowOpacity: Double {
         if isDone { return 0.55 }
@@ -38,7 +25,7 @@ struct ChoreRow: View {
                     .font(.system(size: 17))
                     .lineSpacing(17 * 0.3)
                     .strikethrough(isDone)
-                    .foregroundStyle(nameColor)
+                    .foregroundStyle(isDone ? Theme.neutral500 : Theme.text)
                     .animation(.easeInOut(duration: 0.2), value: isDone)
 
                 Spacer(minLength: 0)
@@ -53,10 +40,6 @@ struct ChoreRow: View {
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
-        // The row draws its own fading rule and sets its own height; a parent's
-        // List must not add a second line under it or pad it taller still.
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
         .sensoryFeedback(.success, trigger: item.isCompleted) { _, new in new }
     }
 
@@ -83,5 +66,34 @@ struct ChoreRow: View {
         }
         .frame(width: 28, height: 28)
         .animation(.easeInOut(duration: 0.2), value: isDone)
+    }
+}
+
+extension Array where Element == ChoreForDay {
+    /// Completed chores sink to the bottom so what's left is always on top;
+    /// within each half, alphabetical.
+    var doneSinking: [ChoreForDay] {
+        sorted { lhs, rhs in
+            if lhs.isCompleted != rhs.isCompleted { return !lhs.isCompleted }
+            return lhs.chore.name.localizedStandardCompare(rhs.chore.name) == .orderedAscending
+        }
+    }
+}
+
+/// A list of chore rows whose reorder animates. The store applies a tick
+/// asynchronously, so the reorder cannot be wrapped in `withAnimation` at the
+/// tap; animating on the order does the same job.
+struct ChoreList: View {
+    let items: [ChoreForDay]
+    let isEnabled: Bool
+    let onToggle: (ChoreForDay) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(items) { item in
+                ChoreRow(item: item, isEnabled: isEnabled) { onToggle(item) }
+            }
+        }
+        .animation(.snappy, value: items.map(\.id))
     }
 }

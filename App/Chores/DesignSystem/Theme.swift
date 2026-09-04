@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// The "Nocturne" palette the kid screens are drawn in: a near-neutral blue-grey
-/// ground, medium-weight type, and three evenly weighted hues — the child's own
-/// colour, a mint for done, an amber for a past day left unfinished.
+/// The "Nocturne" palette the whole app is drawn in: a near-neutral blue-grey
+/// ground, medium-weight type, and a few evenly weighted hues — a child's own
+/// colour for identity, the app accent for the parent's chrome, a mint for done,
+/// an amber for a past day left unfinished, and coral for anything destructive.
 ///
-/// Every value here is a dark-appearance colour. The kid screens force dark, so
-/// nothing in this file has to adapt; the two exceptions (`divider`, and the
-/// text colours `ChoreRow` picks) go through system colours so the shared row
-/// still reads on a parent's light screen.
+/// Every value here is a dark-appearance colour. `RootView` forces dark for the
+/// entire app, so nothing in this file has to adapt.
 enum Theme {
     // MARK: Ground & neutrals
     static let bg = Color(hexString: "#161826")
@@ -18,18 +17,28 @@ enum Theme {
     static let neutral600 = Color(hexString: "#75798c")
     static let neutral800 = Color(hexString: "#3f424d")
     static let neutral900 = Color(hexString: "#292b31")
-    /// The text colour at 16%. `.primary` rather than `text` so the same hairline
-    /// also shows on a light parent screen; in dark they are indistinguishable.
-    static let divider = Color.primary.opacity(0.16)
+    /// The text colour at 16%: the hairline every fading rule is drawn in.
+    static let divider = text.opacity(0.16)
+
+    // MARK: App accent — the parent's colour, since the parent is nobody's colour
+    static let accent = Color(hexString: "#9184d9")
+    /// Inline "Add …" actions, hub icons, the digits of a setup code.
+    static let accent300 = Color(hexString: "#d2cefd")
+    /// The selected strip cell on a parent screen: stroke and fill.
+    static let accent700 = Color(hexString: "#544c84")
+    static let accent900 = Color(hexString: "#2d2945")
 
     // MARK: Status hues (fixed, not per child)
     static let done = Color(hexString: "#3ca977")
     static let doneSoft = Color(hexString: "#a3e2bf")
     static let doneTint = done.opacity(0.18)
     static let warn = Color(hexString: "#cd9130")
+    /// Destructive text and confirm buttons. The same value as the Coral child
+    /// hue, which is deliberate: one coral, whatever it marks.
+    static let danger = Color(hexString: "#d4716b")
 
     // MARK: Spacing & shape
-    /// Horizontal padding of a kid screen.
+    /// Horizontal padding of every screen.
     static let screenInset: CGFloat = 22
     /// Vertical gap between the header, strip and list blocks.
     static let blockGap: CGFloat = 17
@@ -63,7 +72,7 @@ struct ChildHue {
 }
 
 /// A 1pt hairline that is transparent at both ends — the Nocturne signature.
-/// Under each chore row (40pt ramps) and along the top of the kid tab bar (48pt).
+/// Under each row (40pt ramps) and along the top of a tab bar (48pt).
 struct FadingRule: View {
     var ramp: CGFloat = 40
 

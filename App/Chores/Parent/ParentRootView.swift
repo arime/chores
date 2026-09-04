@@ -1,6 +1,13 @@
 import SwiftUI
 import ChoresCore
 
+enum ParentTab {
+    case family
+    case manage
+}
+
+/// The parent's app: the family's week on one tab, everything editable on the
+/// other.
 struct ParentRootView: View {
     let environment: AppEnvironment
     let profile: Profile
@@ -10,6 +17,11 @@ struct ParentRootView: View {
     let onSessionChanged: () async -> Void
 
     @State private var store: FamilyStore
+    @State private var tab: ParentTab = .family
+    @State private var selectedDay: CalendarDay
+    /// Manage's navigation, held here so that tapping its tab a second time can
+    /// pop back to the hub — what the system tab bar did on its own.
+    @State private var managePath: [ManageDestination] = []
 
     init(environment: AppEnvironment, profile: Profile, identity: DeviceIdentity,
          onSessionChanged: @escaping () async -> Void) {
@@ -17,34 +29,64 @@ struct ParentRootView: View {
         self.profile = profile
         self.identity = identity
         self.onSessionChanged = onSessionChanged
-        _store = State(initialValue: FamilyStore(
+        let store = FamilyStore(
             backend: environment.backend,
             cache: environment.snapshotCache,
             outbox: environment.outbox,
-            familyID: profile.familyID))
+            familyID: profile.familyID)
+        _store = State(initialValue: store)
+        _selectedDay = State(initialValue: store.today)
     }
 
     var body: some View {
-        TabView {
-            ParentTodayView(store: store, parent: profile)
-                .tabItem { Label("Today", systemImage: "checklist") }
+        VStack(spacing: 0) {
+            Group {
+                switch tab {
+                case .family:
+                    FamilyView(store: store, parent: profile, selectedDay: $selectedDay)
+                case .manage:
+                    ManageView(store: store, environment: environment, parent: profile,
+                               identity: identity, path: $managePath,
+                               onSessionChanged: onSessionChanged)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            ParentWeekView(store: store, parent: profile)
-                .tabItem { Label("Week", systemImage: "calendar") }
-
-            ManageView(store: store, environment: environment, parent: profile,
-                       identity: identity, onSessionChanged: onSessionChanged)
-                .tabItem { Label("Manage", systemImage: "gearshape") }
+            NocturneTabBar(
+                items: [
+                    TabBarItem(tab: .family, systemImage: "checklist",
+                               title: Text("Family"), identifier: "tab.family"),
+                    TabBarItem(tab: .manage, systemImage: "slider.horizontal.3",
+                               title: Text("Manage"), identifier: "tab.manage"),
+                ],
+                selection: tab, activeColor: Theme.accent) { picked in
+                    // Tapping the tab you are already on goes back to its start.
+                    if picked == tab && picked == .manage { managePath.removeAll() }
+                    tab = picked
+                    // Coming back to Family always lands on today.
+                    if picked == .family { selectedDay = store.today }
+                }
         }
+        .background(Theme.bg.ignoresSafeArea())
         .task { await store.start() }
     }
 }
 
+/// The three screens behind the hub.
+enum ManageDestination: Hashable {
+    case people
+    case chores
+    case schedule
+}
+
+/// The hub: People, Chores and Schedule behind three rows, then the pages the
+/// App Store listing points at, then the ways out.
 struct ManageView: View {
     let store: FamilyStore
     let environment: AppEnvironment
     let parent: Profile
     let identity: DeviceIdentity
+    @Binding var path: [ManageDestination]
     let onSessionChanged: () async -> Void
 
     @State private var isConfirmingLeave = false
@@ -52,6 +94,8 @@ struct ManageView: View {
     @State private var errorMessage: String?
 
     private var isLastParent: Bool { (store.snapshot?.parents.count ?? 1) <= 1 }
+    private var childCount: Int { store.snapshot?.children.count ?? 0 }
+    private var activeChoreCount: Int { store.snapshot?.activeChores.count ?? 0 }
 
     /// A parent who joined with a code rather than an Apple ID. Their session is
     /// the only thing tying them to the family, which is what the way out below
@@ -94,80 +138,40 @@ struct ManageView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    NavigationLink {
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.blockGap) {
+                    ScreenHeader(kicker: Text("Parent"), title: Text("Manage"))
+
+                    hub
+
+                    about
+
+                    account
+                }
+                .padding(.horizontal, Theme.screenInset)
+                .padding(.top, 12)
+                .padding(.bottom, 40)
+            }
+            .background(Theme.bg)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: ManageDestination.self) { destination in
+                Group {
+                    switch destination {
+                    case .people:
                         PeopleView(store: store, backend: environment.backend, me: parent)
-                    } label: {
-                        Label("People", systemImage: "person.2")
-                    }
-                    .accessibilityIdentifier("manage.people")
-                    NavigationLink {
+                    case .chores:
                         ChoresView(store: store, backend: environment.backend)
-                    } label: {
-                        Label("Chores", systemImage: "list.bullet")
-                    }
-                    .accessibilityIdentifier("manage.chores")
-                    NavigationLink {
+                    case .schedule:
                         ScheduleEditorView(store: store, backend: environment.backend)
-                    } label: {
-                        Label("Schedule", systemImage: "calendar.badge.clock")
                     }
-                    .accessibilityIdentifier("manage.schedule")
                 }
-
-                // Both pages are also what the App Store listing points at. They
-                // are here because this is where someone looks for them, and
-                // only in parent mode — the child's side has no way out to the
-                // web, which is a thing worth keeping true.
-                Section {
-                    Link(destination: AppLinks.privacyPolicy) {
-                        Label("Privacy policy", systemImage: "hand.raised")
-                    }
-                    .accessibilityIdentifier("manage.privacyPolicy")
-
-                    Link(destination: AppLinks.support) {
-                        Label("Help", systemImage: "questionmark.circle")
-                    }
-                    .accessibilityIdentifier("manage.help")
-                } footer: {
-                    // The build number earns its place here: it is the one thing
-                    // someone can quote in a support email that identifies the
-                    // exact binary, and build/uploads.log maps it to a commit.
-                    Text(verbatim: AppIdentity.summary)
-                }
-
-                // A parent with no account gets one way out rather than three.
-                // Signing out would strand them — there is no credential to sign
-                // back in with — and "Delete account" names something they never
-                // created. What is left is leaving, and for them that deletes the
-                // throwaway anonymous auth user too, so nothing orphaned stays on
-                // the server. Hence the destructive RPC behind the gentler label.
-                Section {
-                    if !hasNoAccount {
-                        Button("Sign out") {
-                            Task { await perform { try await environment.backend.signOut() } }
-                        }
-                        .accessibilityIdentifier("manage.signOut")
-                    }
-
-                    Button("Leave this family", role: .destructive) {
-                        isConfirmingLeave = true
-                    }
-                    .accessibilityIdentifier("manage.leave")
-
-                    if !hasNoAccount {
-                        Button("Delete account", role: .destructive) {
-                            isConfirmingDelete = true
-                        }
-                        .accessibilityIdentifier("manage.deleteAccount")
-                    }
-                } footer: {
-                    Text(leaveFooter)
+                // Their back buttons sit in List rows, where `dismiss()` does
+                // not pop; popping the path does.
+                .environment(\.popAction) {
+                    if !path.isEmpty { path.removeLast() }
                 }
             }
-            .navigationTitle("Manage")
             .confirmationDialog("Leave this family?",
                                 isPresented: $isConfirmingLeave, titleVisibility: .visible) {
                 Button("Leave", role: .destructive) {
@@ -203,6 +207,108 @@ struct ManageView: View {
                 Text(errorMessage ?? "")
             }
         }
+    }
+
+    private var hub: some View {
+        VStack(spacing: 0) {
+            NavigationLink(value: ManageDestination.people) {
+                HubRow(systemImage: "person.2", label: Text("People"),
+                       meta: Text("\(childCount) children"))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("manage.people")
+
+            NavigationLink(value: ManageDestination.chores) {
+                HubRow(systemImage: "list.bullet", label: Text("Chores"),
+                       meta: Text("\(activeChoreCount) active"))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("manage.chores")
+
+            NavigationLink(value: ManageDestination.schedule) {
+                HubRow(systemImage: "calendar.badge.clock", label: Text("Schedule"))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("manage.schedule")
+        }
+    }
+
+    // Both pages are also what the App Store listing points at. They are here
+    // because this is where someone looks for them, and only in parent mode —
+    // the child's side has no way out to the web, which is a thing worth
+    // keeping true.
+    private var about: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            linkRow(Text("Privacy policy"), to: AppLinks.privacyPolicy)
+                .accessibilityIdentifier("manage.privacyPolicy")
+            linkRow(Text("Help"), to: AppLinks.support)
+                .accessibilityIdentifier("manage.help")
+            // The build number earns its place here: it is the one thing
+            // someone can quote in a support email that identifies the exact
+            // binary, and build/uploads.log maps it to a commit.
+            Footnote(text: Text(verbatim: AppIdentity.summary))
+                .monospacedDigit()
+                .padding(.top, 8)
+        }
+    }
+
+    private func linkRow(_ label: Text, to destination: URL) -> some View {
+        Link(destination: destination) {
+            HStack(spacing: 14) {
+                label
+                    .font(.system(size: 17))
+                    .foregroundStyle(Theme.text)
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.neutral600)
+            }
+            .ruledRow(minHeight: 52, verticalPadding: 4)
+            .contentShape(Rectangle())
+        }
+    }
+
+    // A parent with no account gets one way out rather than three. Signing out
+    // would strand them — there is no credential to sign back in with — and
+    // "Delete account" names something they never created. What is left is
+    // leaving, and for them that deletes the throwaway anonymous auth user too,
+    // so nothing orphaned stays on the server. Hence the destructive RPC behind
+    // the gentler label.
+    private var account: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if !hasNoAccount {
+                accountRow(Text("Sign out"), color: Theme.text) {
+                    Task { await perform { try await environment.backend.signOut() } }
+                }
+                .accessibilityIdentifier("manage.signOut")
+            }
+
+            accountRow(Text("Leave this family"), color: Theme.danger) {
+                isConfirmingLeave = true
+            }
+            .accessibilityIdentifier("manage.leave")
+
+            if !hasNoAccount {
+                accountRow(Text("Delete account"), color: Theme.danger) {
+                    isConfirmingDelete = true
+                }
+                .accessibilityIdentifier("manage.deleteAccount")
+            }
+
+            Footnote(text: Text(leaveFooter))
+                .padding(.top, 8)
+        }
+    }
+
+    private func accountRow(_ label: Text, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            label
+                .font(.system(size: 17))
+                .foregroundStyle(color)
+                .ruledRow(minHeight: 52, verticalPadding: 4)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// Every one of these ends the session, so the root has to re-read it —

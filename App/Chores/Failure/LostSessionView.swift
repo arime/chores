@@ -12,18 +12,24 @@ struct LostSessionView: View {
     let onSignIn: () -> Void
 
     var body: some View {
-        ContentUnavailableView {
-            Label("This device isn't set up", systemImage: "person.crop.circle.badge.questionmark")
-        } description: {
+        OnboardingScaffold(kicker: Text("Something's wrong"), title: Text("This device isn't set up")) {
             Text("Ask a parent to open Manage → People and show you a new code.")
-        } actions: {
-            VStack(spacing: 16) {
+                .font(.system(size: 15))
+                .lineSpacing(15 * 0.5)
+                .foregroundStyle(Theme.neutral300)
+                .frame(maxWidth: 300, alignment: .leading)
+        } footer: {
+            VStack(spacing: 10) {
                 Button("Enter a code") { onReclaim() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.primary)
                     .accessibilityIdentifier("lostSession.reclaim")
 
                 Button("I'm a parent — sign in") { onSignIn() }
-                    .font(.footnote)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.neutral500)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: 44)
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("lostSession.signIn")
             }
         }

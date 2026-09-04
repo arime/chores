@@ -9,35 +9,31 @@ struct ParentSetupView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Spacer()
-                Image(systemName: "house")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.tint)
-                Text("You're signed in")
-                    .font(.title2.bold())
+            OnboardingScaffold(kicker: Text("Parent"), title: Text("You're signed in")) {
                 Text("Start a new family, or join one you've been given a code for.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                    .font(.system(size: 15))
+                    .lineSpacing(15 * 0.5)
+                    .foregroundStyle(Theme.neutral500)
+                    .frame(maxWidth: 300, alignment: .leading)
+            } footer: {
+                VStack(spacing: 10) {
+                    NavigationLink {
+                        CreateFamilyView(environment: environment, onFinished: onFinished)
+                    } label: {
+                        Text("Start a family")
+                    }
+                    .buttonStyle(.primary)
+                    .accessibilityIdentifier("parentSetup.createFamily")
 
-                Spacer()
-
-                NavigationLink("Start a family") {
-                    CreateFamilyView(environment: environment, onFinished: onFinished)
+                    NavigationLink {
+                        ClaimCodeView(environment: environment, onFinished: onFinished)
+                    } label: {
+                        Text("I have a code")
+                    }
+                    .buttonStyle(.secondary)
+                    .accessibilityIdentifier("parentSetup.claimCode")
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .accessibilityIdentifier("parentSetup.createFamily")
-
-                NavigationLink("I have a code") {
-                    ClaimCodeView(environment: environment, onFinished: onFinished)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .accessibilityIdentifier("parentSetup.claimCode")
             }
-            .padding(32)
         }
     }
 }

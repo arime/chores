@@ -9,35 +9,30 @@ struct ParentSignInView: View {
     let onFinished: () async -> Void
     /// Non-nil only when this view is presented as the root of its own
     /// navigation stack, where nothing else offers a way back. Pushed
-    /// presentations rely on the system back button and leave this nil.
+    /// presentations show a back button and leave this nil.
     var onCancel: (() -> Void)? = nil
 
     @State private var isBusy = false
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            Image(systemName: "person.badge.key")
-                .font(.system(size: 56))
-                .foregroundStyle(.tint)
-            Text("Sign in to keep your family")
-                .font(.title2.bold())
-                .multilineTextAlignment(.center)
+        OnboardingScaffold(navigation: .forScreen(onCancel: onCancel),
+                           kicker: Text("Parent"), title: Text("Sign in to keep your family")) {
             Text("""
                 Signing in with Apple is what lets your family come back if this \
                 phone is replaced, wiped, or the app is reinstalled.
                 """)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                .font(.system(size: 15))
+                .lineSpacing(15 * 0.5)
+                .foregroundStyle(Theme.neutral500)
+                .frame(maxWidth: 300, alignment: .leading)
 
             if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red).font(.footnote)
+                Text(errorMessage)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.danger)
             }
-
-            Spacer()
-
+        } footer: {
             if environment.appleTokens.presentsSystemUI {
                 SignInWithAppleButton(.signIn) { request in
                     request.requestedScopes = []
@@ -45,7 +40,7 @@ struct ParentSignInView: View {
                     // The provider drives its own controller; this button only
                     // supplies Apple's required appearance and hit target.
                 }
-                .signInWithAppleButtonStyle(.black)
+                .signInWithAppleButtonStyle(.white)
                 .frame(height: 50)
                 .allowsHitTesting(false)
                 .overlay {
@@ -57,22 +52,11 @@ struct ParentSignInView: View {
                 }
             } else {
                 Button("Sign in with Apple") { Task { await signIn() } }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                    .buttonStyle(.primary)
                     .accessibilityIdentifier("parentSignIn.button")
             }
         }
         .disabled(isBusy)
-        .padding(32)
-        .navigationTitle("Parent")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if let onCancel {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { onCancel() }
-                }
-            }
-        }
     }
 
     private func signIn() async {

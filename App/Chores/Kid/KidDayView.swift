@@ -18,12 +18,7 @@ struct KidDayView: View {
     private var isFuture: Bool { eligibility == .future }
 
     private var items: [ChoreForDay] {
-        // Completed chores sink to the bottom so what's left is always on top.
-        store.chores(for: profile.id, on: selectedDay)
-            .sorted { lhs, rhs in
-                if lhs.isCompleted != rhs.isCompleted { return !lhs.isCompleted }
-                return lhs.chore.name.localizedStandardCompare(rhs.chore.name) == .orderedAscending
-            }
+        store.chores(for: profile.id, on: selectedDay).doneSinking
     }
 
     private var progress: (done: Int, total: Int) {
@@ -39,14 +34,27 @@ struct KidDayView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: Theme.blockGap) {
-                    header
+                    ScreenHeader(kicker: kicker, title: headline,
+                                 // A future day has nothing to report yet, whatever
+                                 // the store says.
+                                 progress: (isFuture ? 0 : progress.done, progress.total))
 
                     if store.isStale {
-                        KidStaleBanner(fetchedAt: store.snapshot?.fetchedAt, tint: hue.base)
+                        StaleCard(fetchedAt: store.snapshot?.fetchedAt, tint: hue.base)
                     }
 
-                    KidWeekStrip(store: store, profile: profile, hue: hue,
-                                 selectedDay: selectedDay) { day in
+                    WeekStrip(store: store, selectedDay: selectedDay,
+                              selectionFill: hue.step900, selectionStroke: hue.step700,
+                              todayColor: hue.base, identifierPrefix: "kidWeek.day",
+                              dots: { day in
+                                  [DayDot(progress: store.progress(for: profile.id, on: day),
+                                          isFuture: store.eligibility(for: day) == .future,
+                                          isToday: day == store.today,
+                                          color: hue.base)]
+                              },
+                              accessibilityLabel: { day in
+                                  dayAccessibilityLabel(day, progress: store.progress(for: profile.id, on: day))
+                              }) { day in
                         selectedDay = day
                     }
 
@@ -65,12 +73,19 @@ struct KidDayView: View {
                     if items.isEmpty {
                         if isToday { emptyToday } else { emptyOtherDay }
                     } else {
-                        list
+                        ChoreList(items: items, isEnabled: isEditable) { item in
+                            Task {
+                                await store.setCompleted(
+                                    !item.isCompleted, chore: item.chore,
+                                    profileID: profile.id, on: selectedDay,
+                                    actor: profile.id)
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, Theme.screenInset)
                 .padding(.top, 12)
-                // Nothing sits below the list any more.
+                // Nothing sits below the list.
                 .padding(.bottom, 40)
             }
             .refreshable { await store.refresh() }
@@ -78,17 +93,6 @@ struct KidDayView: View {
     }
 
     // MARK: Header
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            KidKicker(text: kicker)
-            KidHeadline(text: headline)
-                .padding(.top, 6)
-            // A future day has nothing to report yet, whatever the store says.
-            KidProgressBar(done: isFuture ? 0 : progress.done, total: progress.total)
-                .padding(.top, 14)
-        }
-    }
 
     /// "Today · Friday 4 September", or "Thursday · 3 September" for any other day.
     private var kicker: Text {
@@ -153,88 +157,12 @@ struct KidDayView: View {
             .padding(.vertical, 8)
     }
 
-    private var list: some View {
-        VStack(spacing: 0) {
-            ForEach(items) { item in
-                ChoreRow(item: item, isEnabled: isEditable) {
-                    Task {
-                        await store.setCompleted(
-                            !item.isCompleted, chore: item.chore,
-                            profileID: profile.id, on: selectedDay,
-                            actor: profile.id)
-                    }
-                }
-            }
-        }
-        // The store applies a tick asynchronously, so the reorder cannot be
-        // wrapped in `withAnimation` at the tap; animate on the order instead.
-        .animation(.snappy, value: items.map(\.id))
-    }
-
     private var hintText: String {
         switch eligibility {
         case .future:             return String(localized: "You can tick these off on the day.")
         case .outsideCurrentWeek: return String(localized: "This week only.")
         // Unreachable — the label is only shown behind `if !isEditable`.
         case .allowed:            return ""
-        }
-    }
-}
-
-/// A 2pt capsule under the headline: track in neutral900, done-mint fill.
-struct KidProgressBar: View {
-    let done: Int
-    let total: Int
-
-    private var fraction: Double { total == 0 ? 0 : Double(done) / Double(total) }
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Theme.neutral900)
-                Capsule().fill(Theme.done)
-                    .frame(width: geometry.size.width * fraction)
-            }
-        }
-        .frame(height: 2)
-        .animation(.snappy(duration: 0.35), value: fraction)
-        // The headline above already says "2 of 4 done".
-        .accessibilityHidden(true)
-    }
-}
-
-/// Shown when the screen is rendering the cached snapshot because the last fetch
-/// failed. The kid-screen counterpart of `StaleBanner`: a quiet surface card
-/// rather than an orange list row.
-struct KidStaleBanner: View {
-    let fetchedAt: Date?
-    let tint: Color
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 16))
-                .foregroundStyle(tint)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Showing saved data")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.text)
-                if let fetchedAt {
-                    Text("Last updated \(fetchedAt.formatted(.relative(presentation: .named)))")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Theme.neutral500)
-                }
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background {
-            RoundedRectangle(cornerRadius: Theme.cornerRadius).fill(Theme.surface)
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: Theme.cornerRadius)
-                .strokeBorder(Theme.neutral800, lineWidth: 1)
         }
     }
 }

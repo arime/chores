@@ -4,6 +4,8 @@ import ChoresCore
 /// Everyone in the family. Children get colours, ordering and chores; parents
 /// get none of those and all of the powers, so the two lists differ in what they
 /// offer rather than merely in their heading.
+///
+/// A `List` rather than a scroll view, because deleting a child is a swipe.
 struct PeopleView: View {
     let store: FamilyStore
     let backend: any ChoresBackend
@@ -23,92 +25,96 @@ struct PeopleView: View {
 
     var body: some View {
         List {
+            BackButton(label: Text("Manage"))
+                .padding(.leading, -6)
+                .nocturneRow()
+
+            ScreenHeader(kicker: Text("Manage"), title: Text("People"))
+                .padding(.top, 4)
+                .padding(.bottom, Theme.blockGap)
+                .nocturneRow()
+
             if let errorMessage {
-                Section { Text(errorMessage).foregroundStyle(.red) }
+                Text(errorMessage)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.danger)
+                    .padding(.bottom, 12)
+                    .nocturneRow()
             }
 
-            Section {
-                ForEach(children) { child in
-                    Button {
-                        editing = child
-                    } label: {
-                        HStack {
-                            Circle()
-                                .fill(Color(hexString: child.color))
-                                .frame(width: 14, height: 14)
-                            Text(child.displayName)
-                            Spacer()
-                            if child.authUserID == nil {
-                                Text("Not set up")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+            SectionHeading(title: Text("Children"))
+                .nocturneRow()
+
+            ForEach(children) { child in
+                Button {
+                    editing = child
+                } label: {
+                    HStack(spacing: 14) {
+                        Circle()
+                            .fill(ChildHue(hex: child.color).base)
+                            .frame(width: 14, height: 14)
+                        Text(child.displayName)
+                            .font(.system(size: 17))
+                            .foregroundStyle(Theme.text)
+                        Spacer(minLength: 0)
+                        if child.authUserID == nil {
+                            Text("Not set up")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.neutral500)
                         }
                     }
-                    .tint(.primary)
-                    .accessibilityIdentifier("people.child.\(child.displayName)")
-                    .swipeActions(edge: .trailing) {
-                        Button("Delete", role: .destructive) { deleting = child }
-                            .accessibilityIdentifier("people.deleteChild.\(child.displayName)")
-                    }
+                    .ruledRow(minHeight: 56)
+                    .contentShape(Rectangle())
                 }
-                if children.isEmpty {
-                    Text("No children yet.").foregroundStyle(.secondary)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("people.child.\(child.displayName)")
+                .swipeActions(edge: .trailing) {
+                    Button("Delete", role: .destructive) { deleting = child }
+                        .accessibilityIdentifier("people.deleteChild.\(child.displayName)")
                 }
-                Button("Add child") { isAddingChild = true }
-                    .accessibilityIdentifier("people.addChild")
-            } header: {
-                Text("Children")
-            } footer: {
-                Text("Tap a child to rename them, change their colour, or show a setup code.")
+                .nocturneRow()
             }
 
-            Section {
-                ForEach(parents) { parent in
-                    // Your own row is inert. A code for your own profile only ever
-                    // hands it to a different Apple ID and leaves you bound to
-                    // nothing, which is not something to offer by accident —
-                    // signing in with Apple is how you reach your own family.
-                    if parent.id == me.id {
-                        HStack {
-                            Text(parent.displayName)
-                            Spacer()
-                            Text("This device")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .accessibilityIdentifier("people.parent.\(parent.displayName)")
-                    } else {
-                        Button {
-                            showingCodeFor = parent
-                        } label: {
-                            HStack {
-                                Text(parent.displayName)
-                                Spacer()
-                                if parent.authUserID == nil {
-                                    Text("Not set up")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .tint(.primary)
-                        .accessibilityIdentifier("people.parent.\(parent.displayName)")
-                    }
-                }
-                Button("Add parent") { isAddingParent = true }
-                    .accessibilityIdentifier("people.addParent")
-            } header: {
-                Text("Parents")
-            } footer: {
-                Text("""
-                    Parents share everything: each can edit chores and the schedule, and \
-                    tick anything off. Tap another parent to show a setup code for their \
-                    device.
-                    """)
+            if children.isEmpty {
+                Text("No children yet.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.neutral500)
+                    .padding(.vertical, 8)
+                    .nocturneRow()
             }
+
+            AddRow(label: Text("Add child")) { isAddingChild = true }
+                .accessibilityIdentifier("people.addChild")
+                .nocturneRow()
+
+            Footnote(text: Text("Tap a child to rename them, change their colour, or show a setup code."))
+                .padding(.top, 8)
+                .padding(.bottom, Theme.blockGap)
+                .nocturneRow()
+
+            SectionHeading(title: Text("Parents"))
+                .nocturneRow()
+
+            ForEach(parents) { parent in
+                parentRow(parent)
+                    .nocturneRow()
+            }
+
+            AddRow(label: Text("Add parent")) { isAddingParent = true }
+                .accessibilityIdentifier("people.addParent")
+                .nocturneRow()
+
+            Footnote(text: Text("""
+                Parents share everything: each can edit chores and the schedule, and \
+                tick anything off. Tap another parent to show a setup code for their \
+                device.
+                """))
+                .padding(.top, 8)
+                .padding(.bottom, 40)
+                .nocturneRow()
         }
-        .navigationTitle("People")
+        .nocturneList()
+        .nocturneNavigation()
         .alert("Add child", isPresented: $isAddingChild) {
             TextField("Name", text: $newName)
             Button("Add") { Task { await addChild() } }
@@ -143,6 +149,44 @@ struct PeopleView: View {
                 the schedule, and deletes everything they've ever ticked off. This cannot be \
                 undone.
                 """)
+        }
+    }
+
+    /// Your own row is inert. A code for your own profile only ever hands it to
+    /// a different Apple ID and leaves you bound to nothing, which is not
+    /// something to offer by accident — signing in with Apple is how you reach
+    /// your own family.
+    @ViewBuilder private func parentRow(_ parent: Profile) -> some View {
+        let isMe = parent.id == me.id
+        let content = HStack(spacing: 14) {
+            Text(parent.displayName)
+                .font(.system(size: 17))
+                .foregroundStyle(Theme.text)
+            Spacer(minLength: 0)
+            if isMe {
+                Text("This device")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.neutral500)
+            } else if parent.authUserID == nil {
+                Text("Not set up")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.neutral500)
+            }
+        }
+        .ruledRow(minHeight: 56)
+
+        if isMe {
+            content
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("people.parent.\(parent.displayName)")
+        } else {
+            Button {
+                showingCodeFor = parent
+            } label: {
+                content.contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("people.parent.\(parent.displayName)")
         }
     }
 

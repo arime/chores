@@ -55,23 +55,25 @@ final class ScreenshotTests: XCTestCase {
     func testParentScreens() throws {
         let app = launch(AppEnvironmentFlag.screenshotParent)
 
-        // Parent mode has three: Today, Week, Manage.
-        XCTAssertTrue(app.tabBars.buttons.element(boundBy: 2).waitForExistence(timeout: 30),
+        // Parent mode has two tabs: Family, then Manage. Family lands on today;
+        // the second shot is the same screen with Monday selected.
+        XCTAssertTrue(app.buttons["tab.manage"].waitForExistence(timeout: 30),
                       "the parent fixture should land in parent mode")
+        XCTAssertTrue(app.buttons["family.day.1"].waitForExistence(timeout: 10))
         capture(app, as: .parentToday)
 
-        app.tabBars.buttons.element(boundBy: 1).tap()
+        app.buttons["family.day.1"].tap()
         capture(app, as: .parentWeek)
 
-        app.tabBars.buttons.element(boundBy: 2).tap()
+        app.buttons["tab.manage"].tap()
         let schedule = app.buttons["manage.schedule"]
         XCTAssertTrue(schedule.waitForExistence(timeout: 10))
         schedule.tap()
 
-        let dayPicker = app.segmentedControls["schedule.dayPicker"]
-        XCTAssertTrue(dayPicker.waitForExistence(timeout: 10))
         // Monday, so the shot is the same on every day of the week it is taken.
-        dayPicker.buttons.element(boundBy: 0).tap()
+        let monday = app.buttons["schedule.day.1"]
+        XCTAssertTrue(monday.waitForExistence(timeout: 10))
+        monday.tap()
         capture(app, as: .parentSchedule)
     }
 
