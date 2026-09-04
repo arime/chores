@@ -40,14 +40,13 @@ final class ScreenshotTests: XCTestCase {
     func testKidScreens() throws {
         let app = launch(AppEnvironmentFlag.screenshotKid)
 
-        // Kid mode has two tabs, Today and Week, in a tab bar of its own.
-        XCTAssertTrue(app.buttons["kidTab.today"].waitForExistence(timeout: 30),
+        // Kid mode is one screen, landing on today. The second shot is the same
+        // screen with another day of the week selected.
+        XCTAssertTrue(app.buttons["kidWeek.day.1"].waitForExistence(timeout: 30),
                       "the kid fixture should land straight in kid mode")
         capture(app, as: .kidToday)
 
-        app.buttons["kidTab.week"].tap()
-        XCTAssertTrue(app.buttons["kidWeek.day.1"].waitForExistence(timeout: 10),
-                      "the Week tab should show the current week")
+        app.buttons["kidWeek.day.1"].tap()
         capture(app, as: .kidWeek)
     }
 

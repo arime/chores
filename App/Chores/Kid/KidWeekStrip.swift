@@ -1,19 +1,14 @@
 import SwiftUI
 import ChoresCore
 
-/// The seven days of the current ISO week as a row of tappable cells, each with
-/// a status dot. Today shows it without day numbers as a way into Week; Week
-/// shows it with numbers and a selected cell.
+/// The seven days of the current ISO week as a row of tappable cells: weekday,
+/// day number, and a status dot. The selected cell is filled in the child's own
+/// darker steps.
 struct KidWeekStrip: View {
     let store: FamilyStore
     let profile: Profile
     let hue: ChildHue
-    let showsDayNumbers: Bool
-    /// `nil` on Today, where no day is selected.
-    let selectedDay: CalendarDay?
-    /// Prefix of each cell's accessibility identifier — `"kidWeek.day"` yields
-    /// `kidWeek.day.1` … `kidWeek.day.7` by ISO weekday.
-    let identifierPrefix: String
+    let selectedDay: CalendarDay
     let onSelect: (CalendarDay) -> Void
 
     var body: some View {
@@ -26,33 +21,30 @@ struct KidWeekStrip: View {
 
     private func cell(for day: CalendarDay) -> some View {
         let progress = store.progress(for: profile.id, on: day)
-        let eligibility = store.eligibility(for: day)
         let isToday = day == store.today
         let isSelected = day == selectedDay
-        let isFuture = eligibility == .future
+        let isFuture = store.eligibility(for: day) == .future
 
         return Button {
             onSelect(day)
         } label: {
-            VStack(spacing: showsDayNumbers ? 6 : 7) {
+            VStack(spacing: 6) {
                 Text(WeekdayNames.short(day.isoWeekday))
                     .font(.system(size: 11))
                     .tracking(11 * 0.04)
                     .foregroundStyle(isToday ? hue.base : Theme.neutral500)
 
-                if showsDayNumbers {
-                    Text(verbatim: "\(day.day)")
-                        .font(.system(size: 15))
-                        .monospacedDigit()
-                        .foregroundStyle(isSelected ? Theme.text
-                                         : isFuture ? Theme.neutral500 : Theme.neutral300)
-                }
+                Text(verbatim: "\(day.day)")
+                    .font(.system(size: 15))
+                    .monospacedDigit()
+                    .foregroundStyle(isSelected ? Theme.text
+                                     : isFuture ? Theme.neutral500 : Theme.neutral300)
 
                 KidDayDot(progress: progress, isFuture: isFuture, isToday: isToday, hue: hue)
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, showsDayNumbers ? 9 : 8)
-            .padding(.bottom, showsDayNumbers ? 10 : 9)
+            .padding(.top, 9)
+            .padding(.bottom, 10)
             .frame(minHeight: 44)
             .background {
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)
@@ -66,7 +58,7 @@ struct KidWeekStrip: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("\(identifierPrefix).\(day.isoWeekday)")
+        .accessibilityIdentifier("kidWeek.day.\(day.isoWeekday)")
         .accessibilityLabel(accessibilityLabel(for: day, progress: progress))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -114,7 +106,7 @@ struct KidDayDot: View {
     }
 }
 
-/// The small uppercase line above a headline: a date, a week range.
+/// The small uppercase line above a headline.
 struct KidKicker: View {
     let text: Text
 
@@ -127,7 +119,7 @@ struct KidKicker: View {
     }
 }
 
-/// 34pt medium, the largest thing on a kid screen.
+/// 34pt medium, the largest thing on the kid screen.
 struct KidHeadline: View {
     let text: Text
 
