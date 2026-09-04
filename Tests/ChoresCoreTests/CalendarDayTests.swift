@@ -56,4 +56,10 @@ private let utc = TimeZone(identifier: "UTC")!
     @Test func comparableOrdersChronologically() {
         #expect(CalendarDay(year: 2026, month: 1, day: 2) < CalendarDay(year: 2026, month: 2, day: 1))
     }
+
+    @Test func dayAndMonthLeavesOutTheWeekday() {
+        let formatted = CalendarDay(year: 2026, month: 9, day: 4)
+            .formattedDayAndMonth(in: helsinki, locale: Locale(identifier: "en_GB"))
+        #expect(formatted == "4 September")
+    }
 }

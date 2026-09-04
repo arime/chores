@@ -12,7 +12,9 @@ final class KidUITests: XCTestCase {
     private func launchAsKid() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchInEnglish("-ui-testing-kid")
-        XCTAssertTrue(app.tabBars.buttons["Today"].waitForExistence(timeout: 10),
+        // Kid mode draws its own tab bar, so the tabs are addressed by identifier
+        // rather than through `tabBars`.
+        XCTAssertTrue(app.buttons["kidTab.today"].waitForExistence(timeout: 10),
                       "a claimed child should land straight in kid mode")
         return app
     }
@@ -25,7 +27,7 @@ final class KidUITests: XCTestCase {
 
     func testKidSeesNoParentControls() {
         let app = launchAsKid()
-        XCTAssertFalse(app.tabBars.buttons["Manage"].exists,
+        XCTAssertFalse(app.buttons["Manage"].exists,
                        "kid mode must not expose parent functionality")
     }
 
@@ -55,7 +57,7 @@ final class KidUITests: XCTestCase {
     /// the reachable rule beats skipping and leaving Sunday uncovered.
     func testDayEditabilityFollowsPositionInTheWeek() {
         let app = launchAsKid()
-        app.tabBars.buttons["Week"].tap()
+        app.buttons["kidTab.week"].tap()
 
         // Sunday is the last day of the ISO week; every other day has a tomorrow
         // inside it.

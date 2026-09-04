@@ -90,6 +90,16 @@ extension CalendarDay {
         return formatter.string(from: date(in: timeZone))
     }
 
+    /// e.g. "10 August" — the day without its weekday, for a header that names
+    /// the weekday separately.
+    public func formattedDayAndMonth(in timeZone: TimeZone, locale: Locale = .current) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("dMMMM")
+        return formatter.string(from: date(in: timeZone))
+    }
+
     /// e.g. "10 Aug".
     public func formattedShort(in timeZone: TimeZone) -> String {
         let formatter = DateFormatter()

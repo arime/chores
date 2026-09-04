@@ -21,6 +21,36 @@
         }
       }
     },
+    "%@ – %@": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ – %2$@"
+          }
+        }
+      }
+    },
+    "%@, %lld of %lld done": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@, %2$lld tehty, %3$lld yhteensä"
+          }
+        }
+      }
+    },
+    "%@, nothing scheduled": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, ei tehtäviä"
+          }
+        }
+      }
+    },
     "%lld of %lld done": {
       "localizations": {
         "fi": {
@@ -67,6 +97,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lisää"
+          }
+        }
+      }
+    },
+    "All done": {
+      "localizations": {
+        "fi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaikki tehty"
           }
         }
       }
