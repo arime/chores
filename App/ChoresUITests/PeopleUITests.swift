@@ -7,7 +7,7 @@ final class PeopleUITests: ParentUITestCase {
     func testDeletingAChildNamesWhatWillBeLost() {
         let app = launchIntoParentMode()
         addChild(app, named: "Kid")
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         app.buttons["manage.people"].tap()
 
         let row = app.buttons["people.child.Kid"]

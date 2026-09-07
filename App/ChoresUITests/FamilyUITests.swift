@@ -15,7 +15,7 @@ final class FamilyUITests: ParentUITestCase {
         // Only "Dishes" is assigned to today, so only it should appear.
         assign(app, chore: "Dishes", to: "Kid", onISOWeekday: todayISOWeekday)
 
-        app.buttons["tab.family"].tap()
+        app.familyTab.tap()
 
         XCTAssertTrue(app.staticTexts["Kid"].waitForExistence(timeout: 5),
                       "each child gets a section")
@@ -34,7 +34,7 @@ final class FamilyUITests: ParentUITestCase {
         addChore(app, named: "Dishes")
         assign(app, chore: "Dishes", to: "Kid", onISOWeekday: todayISOWeekday)
 
-        app.buttons["tab.family"].tap()
+        app.familyTab.tap()
         XCTAssertTrue(app.staticTexts["0 of 1 done"].firstMatch.waitForExistence(timeout: 5))
 
         let row = app.buttons["Dishes"]
@@ -59,7 +59,7 @@ final class FamilyUITests: ParentUITestCase {
         // Assign to tomorrow, so today is deliberately empty.
         assign(app, chore: "Dishes", to: "Kid", onISOWeekday: todayISOWeekday % 7 + 1)
 
-        app.buttons["tab.family"].tap()
+        app.familyTab.tap()
 
         XCTAssertTrue(app.staticTexts["Nothing today"].firstMatch.waitForExistence(timeout: 5),
                       "an empty day should say so rather than showing a blank section")
@@ -74,7 +74,7 @@ final class FamilyUITests: ParentUITestCase {
         addChore(app, named: "Dishes")
         assign(app, chore: "Dishes", to: "Kid", onISOWeekday: todayISOWeekday)
 
-        app.buttons["tab.family"].tap()
+        app.familyTab.tap()
 
         let today = app.buttons["family.day.\(todayISOWeekday)"]
         XCTAssertTrue(today.waitForExistence(timeout: 5),

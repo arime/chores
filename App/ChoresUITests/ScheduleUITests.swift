@@ -58,7 +58,7 @@ final class ScheduleUITests: ParentUITestCase {
 
         addChore(app, named: "Vacuum")
 
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         app.buttons["manage.chores"].tap()
         XCTAssertTrue(app.buttons["Vacuum"].waitForExistence(timeout: 5))
         app.buttons["Vacuum"].swipeLeft()
