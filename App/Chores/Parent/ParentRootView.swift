@@ -39,36 +39,40 @@ struct ParentRootView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Group {
-                switch tab {
-                case .family:
-                    FamilyView(store: store, parent: profile, selectedDay: $selectedDay)
-                case .manage:
-                    ManageView(store: store, environment: environment, parent: profile,
-                               identity: identity, path: $managePath,
-                               onSessionChanged: onSessionChanged)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The system tab bar: on iOS 26 that is Liquid Glass floating over the
+        // content, shrinking to the active icon once a long enough list scrolls
+        // under it.
+        TabView(selection: selection) {
+            FamilyView(store: store, parent: profile, selectedDay: $selectedDay)
+                .background(Theme.bg.ignoresSafeArea())
+                .tabItem { Label("Family", systemImage: "checklist") }
+                .tag(ParentTab.family)
 
-            NocturneTabBar(
-                items: [
-                    TabBarItem(tab: .family, systemImage: "checklist",
-                               title: Text("Family"), identifier: "tab.family"),
-                    TabBarItem(tab: .manage, systemImage: "slider.horizontal.3",
-                               title: Text("Manage"), identifier: "tab.manage"),
-                ],
-                selection: tab, activeColor: Theme.accent) { picked in
-                    // Tapping the tab you are already on goes back to its start.
-                    if picked == tab && picked == .manage { managePath.removeAll() }
-                    tab = picked
-                    // Coming back to Family always lands on today.
-                    if picked == .family { selectedDay = store.today }
-                }
+            ManageView(store: store, environment: environment, parent: profile,
+                       identity: identity, path: $managePath,
+                       onSessionChanged: onSessionChanged)
+                .background(Theme.bg.ignoresSafeArea())
+                .tabItem { Label("Manage", systemImage: "slider.horizontal.3") }
+                .tag(ParentTab.manage)
         }
-        .background(Theme.bg.ignoresSafeArea())
+        .tint(Theme.accent)
+        .minimizingTabBar()
         .task { await store.start() }
+    }
+
+    /// `TabView` runs the setter on every tap, including one on the tab already
+    /// showing, so this is where both tabs go back to their start.
+    private var selection: Binding<ParentTab> {
+        Binding {
+            tab
+        } set: { picked in
+            // The system pops a stack it can see; this keeps it true if it ever
+            // cannot, and costs nothing when it already has.
+            if picked == tab && picked == .manage { managePath.removeAll() }
+            tab = picked
+            // Coming back to Family always lands on today.
+            if picked == .family { selectedDay = store.today }
+        }
     }
 }
 

@@ -57,7 +57,7 @@ final class ScreenshotTests: XCTestCase {
 
         // Parent mode has two tabs: Family, then Manage. Family lands on today;
         // the second shot is the same screen with Monday selected.
-        XCTAssertTrue(app.buttons["tab.manage"].waitForExistence(timeout: 30),
+        XCTAssertTrue(app.manageTab.waitForExistence(timeout: 30),
                       "the parent fixture should land in parent mode")
         XCTAssertTrue(app.buttons["family.day.1"].waitForExistence(timeout: 10))
         capture(app, as: .parentToday)
@@ -65,7 +65,7 @@ final class ScreenshotTests: XCTestCase {
         app.buttons["family.day.1"].tap()
         capture(app, as: .parentWeek)
 
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         let schedule = app.buttons["manage.schedule"]
         XCTAssertTrue(schedule.waitForExistence(timeout: 10))
         schedule.tap()

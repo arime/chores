@@ -20,7 +20,7 @@ final class CodeAddedParentUITests: ParentUITestCase {
         let code = codeLabel.label
         app.buttons["Done"].tap()
 
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         let signOut = app.buttons["manage.signOut"]
         XCTAssertTrue(signOut.waitForExistence(timeout: 5))
         signOut.tap()
@@ -37,9 +37,9 @@ final class CodeAddedParentUITests: ParentUITestCase {
         field.typeText(code)
         app.buttons["claimCode.submit"].tap()
 
-        XCTAssertTrue(app.buttons["tab.manage"].waitForExistence(timeout: 10),
+        XCTAssertTrue(app.manageTab.waitForExistence(timeout: 10),
                       "a parent code should open parent mode on an anonymous device")
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
 
         let leave = app.buttons["manage.leave"]
         XCTAssertTrue(leave.waitForExistence(timeout: 5))

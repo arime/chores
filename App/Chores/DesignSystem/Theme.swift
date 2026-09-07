@@ -71,8 +71,8 @@ struct ChildHue {
     }
 }
 
-/// A 1pt hairline that is transparent at both ends — the Nocturne signature.
-/// Under each row (40pt ramps) and along the top of a tab bar (48pt).
+/// A 1pt hairline that is transparent at both ends — the Nocturne signature,
+/// drawn under each row.
 struct FadingRule: View {
     var ramp: CGFloat = 40
 

@@ -163,63 +163,17 @@ extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
     }
 }
 
-/// One cell of `NocturneTabBar`.
-struct TabBarItem<Tab: Hashable> {
-    let tab: Tab
-    let systemImage: String
-    let title: Text
-    let identifier: String
-}
-
-/// Icon over label, a fading rule along the top. Replaces the system tab bar so
-/// the active colour can be the app's own — or a child's.
-struct NocturneTabBar<Tab: Hashable>: View {
-    let items: [TabBarItem<Tab>]
-    let selection: Tab
-    let activeColor: Color
-    let onSelect: (Tab) -> Void
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(items, id: \.tab) { item in
-                cell(item)
-            }
+extension View {
+    /// The tab bar is the system's: Liquid Glass on iOS 26, where it also
+    /// shrinks to the active icon while the content scrolls down and comes
+    /// back on the way up. Earlier systems draw their usual bar and ignore this.
+    @ViewBuilder
+    func minimizingTabBar() -> some View {
+        if #available(iOS 26, *) {
+            self.tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            self
         }
-        .padding(.top, 8)
-        .padding(.bottom, 30)
-        .padding(.horizontal, 24)
-        .overlay(alignment: .top) { FadingRule(ramp: 48) }
-        .background(Theme.bg)
-        // The 30pt below the cells is the space above the home indicator; the
-        // bar owns it rather than stacking on top of the safe area.
-        .ignoresSafeArea(.container, edges: .bottom)
-        .accessibilityElement(children: .contain)
-        .accessibilityAddTraits(.isTabBar)
-    }
-
-    private func cell(_ item: TabBarItem<Tab>) -> some View {
-        let isActive = selection == item.tab
-        return Button {
-            onSelect(item.tab)
-        } label: {
-            VStack(spacing: 4) {
-                Image(systemName: item.systemImage)
-                    .font(.system(size: 24))
-                    .frame(height: 24)
-                item.title
-                    .font(.system(size: 11))
-                    .tracking(11 * 0.02)
-            }
-            .foregroundStyle(isActive ? activeColor : Theme.neutral500)
-            .animation(.easeInOut(duration: 0.2), value: isActive)
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 44)
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(item.identifier)
-        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }
 

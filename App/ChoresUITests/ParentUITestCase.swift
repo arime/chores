@@ -4,9 +4,9 @@ import XCTest
 /// the Supabase backend for the in-memory fake, so each test starts from an empty
 /// family and builds only what it needs.
 ///
-/// Parent mode draws its own tab bar and back buttons, so both are addressed by
-/// identifier — `tab.family`, `tab.manage`, `nav.back` — rather than through
-/// `tabBars` and `navigationBars`.
+/// Parent mode draws its own back buttons, so they are addressed by identifier
+/// — `nav.back` — rather than through `navigationBars`. The tabs are the
+/// system's, reached as `app.familyTab` and `app.manageTab`.
 class ParentUITestCase: XCTestCase {
 
     override func setUp() {
@@ -43,7 +43,7 @@ class ParentUITestCase: XCTestCase {
         parentName.typeText("Parent")
         app.buttons["createFamily.submit"].tap()
 
-        XCTAssertTrue(app.buttons["tab.manage"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.manageTab.waitForExistence(timeout: 10))
         return app
     }
 
@@ -59,7 +59,7 @@ class ParentUITestCase: XCTestCase {
     }
 
     func addChild(_ app: XCUIApplication, named name: String) {
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         app.buttons["manage.people"].tap()
         XCTAssertTrue(app.buttons["people.addChild"].waitForExistence(timeout: 5))
         app.buttons["people.addChild"].tap()
@@ -70,7 +70,7 @@ class ParentUITestCase: XCTestCase {
     }
 
     func addParent(_ app: XCUIApplication, named name: String) {
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         app.buttons["manage.people"].tap()
         XCTAssertTrue(app.buttons["people.addParent"].waitForExistence(timeout: 5))
         app.buttons["people.addParent"].tap()
@@ -80,7 +80,7 @@ class ParentUITestCase: XCTestCase {
     }
 
     func addChore(_ app: XCUIApplication, named name: String) {
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         app.buttons["manage.chores"].tap()
         XCTAssertTrue(app.buttons["chores.add"].waitForExistence(timeout: 5))
         app.buttons["chores.add"].tap()
@@ -93,7 +93,7 @@ class ParentUITestCase: XCTestCase {
     /// Assigns a chore on the given ISO weekday (1 = Monday). Assumes the Manage
     /// tab is reachable; leaves the app on the schedule editor.
     func assign(_ app: XCUIApplication, chore: String, to child: String, onISOWeekday weekday: Int) {
-        app.buttons["tab.manage"].tap()
+        app.manageTab.tap()
         app.buttons["manage.schedule"].tap()
 
         let day = app.buttons["schedule.day.\(weekday)"]
