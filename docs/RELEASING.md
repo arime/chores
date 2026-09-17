@@ -479,33 +479,41 @@ a parental gate in front of every link out, and a stricter review. The app would
 pass most of them, but the category is a marketing choice rather than a
 consequence of having children use the app, and v1 does not make it.
 
-### The order of it all, for a first release
+### The order of it all
 
-1. Fill in any `_TODO` in `docs/appstore/`, and enable GitHub Pages. **Done.**
+Steps 1 and 5 are once per app, step 3 whenever a screen it captures changes, and
+the rest belong to every release. A release after the first starts by raising
+`MARKETING_VERSION` in the project: `tools/appstore.sh` acts on the version that
+setting names, and a version already on the store takes no edits — which is what
+its refusal means when it tells you to bump the version.
+
+1. Fill in any `_TODO` in `docs/appstore/`, and enable GitHub Pages.
 2. `tools/testflight.sh` — the same binary serves TestFlight and the store, and
    uploading it first means the build is processed by the time the listing is
    ready.
-3. `tools/screenshots.sh`, then look at what it produced. **Done**, and they only
-   need redoing when a screen they show changes.
+3. `tools/screenshots.sh`, then look at what it produced.
 4. `tools/appstore.sh` — creates the version, declares content rights, pushes the
    listing, uploads the screenshots, attaches the build. Re-run it after every
    upload: it attaches the *newest* build, so a version left alone keeps pointing
    at whatever was newest last time.
 5. Set the price to Free and the territories, answer **and publish** App Privacy,
    declare trader status, and run `tools/appstore.sh --age-rating`. Price and age
-   rating are **done** — 4+, Brazil L — and the footer of a normal run checks
-   both, so it now lists only what is genuinely outstanding. The two web tasks
-   have no API and no footer can check them: App Privacy is per app, trader
-   status per account, and each blocks submission while saying nothing that names
-   itself.
+   rating are settled for this app — Free, 4+, Brazil L — and the footer of a
+   normal run checks both, so it lists only what is genuinely outstanding. The
+   two web tasks have no API and no footer can check them: App Privacy is per
+   app, trader status per account, and each blocks submission while saying
+   nothing that names itself.
 6. `tools/appstore.sh --status`, and read it.
 7. `tools/appstore.sh --submit`.
 
 Steps 2 to 6 are safe to repeat. Only the last one queues anything.
 
-Version 1.0 is with App Review: build `20260907.0701` is attached, with the
-listing and screenshots pushed the same day. Everything marked done above is
-per-app rather than per-version, and survives into 1.1.
+Where a version stands is a question for `tools/appstore.sh --status`, which
+prints Apple's state name along with what it means — whether the listing still
+takes edits, whether it waits on Apple, waits on you, or is already on the store.
+This file says nothing about it on purpose. A document that records which release
+is out is a document that is wrong from the next one onwards, and the state is
+one command away from whoever is asking.
 
 ### Swapping the build while a version waits for review
 
@@ -519,7 +527,7 @@ do this itself, because it throws away the place in the queue:
 The submission goes to `CANCELING` and the version to `DEVELOPER_REJECTED`, which
 is one of the editable states. Then `tools/testflight.sh`, wait for the build to
 process, and `tools/appstore.sh --submit --build <number>` does the rest in one
-run. Done once, for 1.0, to replace build `20260901.1635` with `20260907.0701`.
+run.
 
 ## First-time setup of the hosted project
 
