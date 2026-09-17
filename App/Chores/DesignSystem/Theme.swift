@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The "Nocturne" palette the whole app is drawn in: a near-neutral blue-grey
-/// ground, medium-weight type, and a few evenly weighted hues — a child's own
+/// The "Nocturne" palette the whole app is drawn in: a pure-black ground,
+/// medium-weight type, and a few evenly weighted hues — a child's own
 /// colour for identity, the app accent for the parent's chrome, a mint for done,
 /// an amber for a past day left unfinished, and coral for anything destructive.
 ///
@@ -9,7 +9,7 @@ import SwiftUI
 /// entire app, so nothing in this file has to adapt.
 enum Theme {
     // MARK: Ground & neutrals
-    static let bg = Color(hexString: "#161826")
+    static let bg = Color(hexString: "#000000")
     static let surface = Color(hexString: "#232532")
     static let text = Color(hexString: "#e9e9ed")
     static let neutral300 = Color(hexString: "#cfd3e5")
