@@ -1,1 +1,1 @@
-Tehtävätaulu jonka perhe näkee. Tee viikko kertaalleen. Kukin lapsi kuittaa oman päivänsä omalla puhelimella. Ei mainoksia, ei tilejä lapsille, toimii ilman verkkoa.
+Kotityölista koko perheelle. Aseta kotitöiden viikkoaikataulu. Lapsi kuittaa oman päivänsä omalla puhelimellaan. Ei mainoksia, ei tilejä lapsille, toimii ilman verkkoa.
