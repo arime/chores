@@ -503,10 +503,23 @@ consequence of having children use the app, and v1 does not make it.
 
 Steps 2 to 6 are safe to repeat. Only the last one queues anything.
 
-For version 1.0, steps 2, 4 and 6 are done: build `20260901.1635` is attached and
-the listing is pushed. What is left is publishing App Privacy, then step 7.
-Everything marked done above is per-app rather than per-version, and survives
-into 1.1.
+Version 1.0 is with App Review: build `20260907.0701` is attached, with the
+listing and screenshots pushed the same day. Everything marked done above is
+per-app rather than per-version, and survives into 1.1.
+
+### Swapping the build while a version waits for review
+
+A version in `WAITING_FOR_REVIEW` cannot be edited, so a new build cannot be
+attached to it. Cancel the open submission first — `tools/appstore.sh` refuses to
+do this itself, because it throws away the place in the queue:
+
+    PATCH /v1/reviewSubmissions/<id>   {"data": {"type": "reviewSubmissions",
+                                        "id": "<id>", "attributes": {"canceled": true}}}
+
+The submission goes to `CANCELING` and the version to `DEVELOPER_REJECTED`, which
+is one of the editable states. Then `tools/testflight.sh`, wait for the build to
+process, and `tools/appstore.sh --submit --build <number>` does the rest in one
+run. Done once, for 1.0, to replace build `20260901.1635` with `20260907.0701`.
 
 ## First-time setup of the hosted project
 
