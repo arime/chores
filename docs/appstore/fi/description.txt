@@ -4,20 +4,20 @@ Vanhempi ylläpitää listaa: keitä perheeseen kuuluu, mitä kotitöitä on teh
 
 Jokainen lapsi näkee laitteellaan päivän omat tehtävät ja voi kuitata ne tehdyiksi. Ruudulla ei ole muuta: ei pisteitä, ei viestejä, ei tapaa muokata listaa, ei mitään ostettavaa.
 
-Vanhemmalle
+MITÄ VANHEMPI NÄKEE
 
 • Jokaisen lapsen päivän tehtävät ja kuinka suuri osa niistä on tehty.
 • Kuluvan viikon aikataulun sekä jo tehdyt ja tulevat tehtävät.
 • Tehtävän voi kuitata lapsen puolesta — sitä iltaa varten, jolloin se todella tehtiin, mutta ei muistettu merkitä.
 • Hallinnassa Ihmiset, Tehtävät ja Aikataulu, eli koko käyttöönotto.
 
-Lapselle
+MITÄ LAPSI NÄKEE
 
 • Päivän tehtävät.
 • Viikon, joten huominen ei tule yllätyksenä.
 • Halutessaan muistutuksen iltapäivällä niinä päivinä, joilla on tehtäviä.
 
-Pysyy poissa tieltä
+PYSYY POISSA TIELTÄ
 
 • Toimii ilman verkkoyhteyttä. Kuitattu tehtävä päätyy muille laitteille, kun yhteys palaa.
 • Lapsille ei tarvita tilejä. Vanhempi lisää lapsen etu- tai lempinimellä ja antaa lapsen laitteeseen lyhyen koodin. Siinä on koko käyttöönotto lapsen puolella.
