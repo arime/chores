@@ -126,6 +126,33 @@ marketing_version() {
 	printf '%s' "$version"
 }
 
+# Apple's state names are not self-explaining, and two of them read alike while
+# meaning opposite things to whoever is deciding what to do next:
+# PENDING_DEVELOPER_RELEASE is waiting for you, READY_FOR_DISTRIBUTION is
+# already out. The enum stays on the line because it is what Apple's own errors
+# and documentation say; this adds what it means for the listing in here.
+version_state_meaning() {
+	case "$1" in
+		PREPARE_FOR_SUBMISSION) echo 'a draft, and takes edits' ;;
+		DEVELOPER_REJECTED) echo 'pulled back by you, and takes edits' ;;
+		REJECTED) echo 'sent back by App Review, and takes edits' ;;
+		METADATA_REJECTED) echo 'sent back over the listing, and takes edits' ;;
+		INVALID_BINARY) echo 'the build was refused, and the listing takes edits' ;;
+		WAITING_FOR_REVIEW) echo 'queued for App Review, and takes no edits' ;;
+		IN_REVIEW) echo 'with App Review, and takes no edits' ;;
+		WAITING_FOR_EXPORT_COMPLIANCE) echo 'waiting on an export compliance answer' ;;
+		PENDING_CONTRACT) echo 'approved, blocked on an agreement in App Store Connect' ;;
+		PENDING_DEVELOPER_RELEASE) echo 'approved, waiting for you to release it' ;;
+		PENDING_APPLE_RELEASE) echo 'approved, waiting on Apple to release it' ;;
+		PROCESSING_FOR_APP_STORE) echo 'approved, on its way to the store now' ;;
+		READY_FOR_DISTRIBUTION|READY_FOR_SALE) echo 'live on the App Store' ;;
+		REPLACED_WITH_NEW_VERSION) echo 'superseded by a later version' ;;
+		REMOVED_FROM_SALE|DEVELOPER_REMOVED_FROM_SALE) echo 'taken off the store' ;;
+		ACCEPTED) echo 'approved' ;;
+		*) echo '' ;;
+	esac
+}
+
 # ---------------------------------------------------------------------------
 # Pre-flight
 # ---------------------------------------------------------------------------
@@ -201,7 +228,12 @@ version_id="$(printf '%s' "$version_row" | cut -f1)"
 version_state="$(printf '%s' "$version_row" | cut -f2)"
 
 echo "App:      $app_name ($BUNDLE_ID)"
-echo "Version:  $version_string — ${version_state:-not created in App Store Connect yet}"
+if [ -n "$version_state" ]; then
+	state_meaning="$(version_state_meaning "$version_state")"
+	echo "Version:  $version_string — $version_state${state_meaning:+, $state_meaning}"
+else
+	echo "Version:  $version_string — not created in App Store Connect yet"
+fi
 
 # ---------------------------------------------------------------------------
 # --status
