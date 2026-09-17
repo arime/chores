@@ -6,10 +6,10 @@ Each child gets their own device and sees one thing — their chores for today, 
 
 WHAT A PARENT SEES
 
-• Today: every child, and how much of their day is done.
-• Week: the whole week as a grid, so a run of missed days is obvious at a glance.
+• Every child, and how much of the chosen day is done.
+• The current week as a strip, so a run of missed days is obvious at a glance.
 • One tap to tick something off on a child's behalf, for the evening it genuinely was done and nobody said so.
-• People, Chores and Schedule, which is the whole of the setup.
+• People, Chores and Schedule under Manage, which is the whole of the setup.
 
 WHAT A CHILD SEES
 
