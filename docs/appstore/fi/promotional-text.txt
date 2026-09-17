@@ -1,1 +1,1 @@
-Kotityölista koko perheelle. Aseta kotitöiden viikkoaikataulu. Lapsi kuittaa oman päivänsä omalla puhelimellaan. Ei mainoksia, ei tilejä lapsille, toimii ilman verkkoa.
+Kotityölista koko perheelle. Aseta viikkoaikataulu, lapsi kuittaa tehtävänsä omalla puhelimellaan. Ei mainoksia, ei tilejä lapsille, toimii ilman verkkoa.
