@@ -8,7 +8,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(6);
+select plan(12);
 
 -- ---------------------------------------------------------------------------
 -- Helpers (same shape as 01_rls_and_rpcs.sql; each file is its own transaction)
@@ -135,6 +135,56 @@ select lives_ok(
 select tests.as_admin();
 update public.profiles set evening_reminder_at = time '21:00'
  where id = 'aaaa0000-0000-0000-0000-000000000001';
+
+-- ---------------------------------------------------------------------------
+-- Device tokens: a token belongs to whoever holds the phone
+-- ---------------------------------------------------------------------------
+
+select tests.auth_as('a0000000-0000-0000-0000-000000000001');   -- P1
+select lives_ok(
+  $$select public.device_token_register('tok-p1-a', 'production')$$,
+  'a parent may register their phone');
+select public.device_token_register('tok-p1-b', 'development');
+
+select tests.auth_as('b0000000-0000-0000-0000-000000000001');   -- PB
+select public.device_token_register('tok-pb', 'production');
+
+select tests.auth_as('a0000000-0000-0000-0000-000000000001');   -- P1 again
+select is((select count(*)::int from public.device_tokens), 2,
+          'a parent sees their own tokens and nobody else''s');
+
+select tests.auth_as('a0000000-0000-0000-0000-000000000003');   -- C1
+select throws_ok(
+  $$select public.device_token_register('tok-kid', 'development')$$,
+  'P0005', null, 'a child cannot register a token');
+select is((select count(*)::int from public.device_tokens), 0,
+          'and sees none');
+
+-- P2 signs in on the phone that used to be P1's: the row moves.
+select tests.auth_as('a0000000-0000-0000-0000-000000000002');   -- P2
+select public.device_token_register('tok-p1-a', 'production');
+select tests.as_admin();
+select is(
+  (select profile_id from public.device_tokens where token = 'tok-p1-a'),
+  'aaaa0000-0000-0000-0000-000000000002'::uuid,
+  'registering a token another parent held takes it over');
+
+-- P1's late forget of the phone they no longer hold must not undo that.
+select tests.auth_as('a0000000-0000-0000-0000-000000000001');   -- P1
+select public.device_token_forget('tok-p1-a');
+select tests.as_admin();
+select is(
+  (select profile_id from public.device_tokens where token = 'tok-p1-a'),
+  'aaaa0000-0000-0000-0000-000000000002'::uuid,
+  'forget removes only the caller''s own row');
+
+-- Leave the fixtures as the later sections expect: P1 holds tok-p1-a and
+-- tok-p1-b, P2 holds nothing, PB holds tok-pb.
+select tests.auth_as('a0000000-0000-0000-0000-000000000002');   -- P2
+select public.device_token_forget('tok-p1-a');
+select tests.auth_as('a0000000-0000-0000-0000-000000000001');   -- P1
+select public.device_token_register('tok-p1-a', 'production');
+select tests.as_admin();
 
 select tests.as_admin();
 select * from finish();
