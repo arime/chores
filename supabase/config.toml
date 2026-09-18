@@ -399,3 +399,8 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./declarative"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# The evening reminder is called by the pg_cron job with its own bearer secret,
+# not by a signed-in user, so the platform JWT check would only refuse it.
+[functions.evening-reminder]
+verify_jwt = false
