@@ -196,7 +196,9 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
         try await run {
             let payload = ProfileUpdate(displayName: profile.displayName,
                                         color: profile.color,
-                                        sortOrder: profile.sortOrder)
+                                        sortOrder: profile.sortOrder,
+                                        afternoonReminderAt: profile.afternoonReminderAt,
+                                        eveningReminderAt: profile.eveningReminderAt)
             _ = try await client
                 .from("profiles").update(payload).eq("id", value: profile.id).execute()
         }
@@ -362,15 +364,33 @@ private struct NewProfile: Encodable {
     }
 }
 
-private struct ProfileUpdate: Encodable {
+// Not private: the encoding rule below is the whole reason switching a reminder
+// off works, and a test target that cannot build one cannot check it.
+struct ProfileUpdate: Encodable {
     let displayName: String
     let color: String
     let sortOrder: Int
+    let afternoonReminderAt: TimeOfDay?
+    let eveningReminderAt: TimeOfDay?
 
     enum CodingKeys: String, CodingKey {
         case color
         case displayName = "display_name"
         case sortOrder = "sort_order"
+        case afternoonReminderAt = "afternoon_reminder_at"
+        case eveningReminderAt = "evening_reminder_at"
+    }
+
+    /// Hand-written so that nil becomes an explicit JSON null. The synthesised
+    /// encoder omits a nil key, and PostgREST reads an omitted column as
+    /// "leave it alone" — which would make switching a reminder off a no-op.
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(displayName, forKey: .displayName)
+        try container.encode(color, forKey: .color)
+        try container.encode(sortOrder, forKey: .sortOrder)
+        try container.encode(afternoonReminderAt, forKey: .afternoonReminderAt)
+        try container.encode(eveningReminderAt, forKey: .eveningReminderAt)
     }
 }
 

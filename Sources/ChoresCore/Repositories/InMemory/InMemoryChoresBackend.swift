@@ -94,6 +94,10 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
 
     // MARK: Bootstrap
 
+    // The database fills reminder defaults by role in a BEFORE INSERT trigger
+    // (20260918100000_reminder_times.sql). The three insert paths below fill the
+    // same values, so a test here proves the same thing a pgTAP test proves.
+
     public func createFamily(familyName: String, parentName: String,
                              timezone: String) async throws -> UUID {
         guard let userID = sessionUserID else { throw ChoresBackendError.notAuthenticated }
@@ -101,7 +105,8 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
 
         let family = Family(id: UUID(), name: familyName, timezone: timezone)
         let parent = Profile(id: UUID(), familyID: family.id, authUserID: userID,
-                             displayName: parentName, role: .parent)
+                             displayName: parentName, role: .parent,
+                             eveningReminderAt: TimeOfDay(hour: 21, minute: 0))
         withStore { store in
             store.families[family.id] = family
             store.profiles[parent.id] = parent
@@ -153,14 +158,17 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
     public func addChild(familyID: UUID, name: String, color: String,
                          sortOrder: Int) async throws -> Profile {
         let profile = Profile(id: UUID(), familyID: familyID, displayName: name,
-                              role: .child, color: color, sortOrder: sortOrder)
+                              role: .child, color: color, sortOrder: sortOrder,
+                              afternoonReminderAt: TimeOfDay(hour: 15, minute: 0),
+                              eveningReminderAt: TimeOfDay(hour: 20, minute: 0))
         withStore { $0.profiles[profile.id] = profile }
         return profile
     }
 
     public func addParent(familyID: UUID, name: String) async throws -> Profile {
         let profile = Profile(id: UUID(), familyID: familyID, displayName: name,
-                              role: .parent, color: "#8E8E93", sortOrder: 0)
+                              role: .parent, color: "#8E8E93", sortOrder: 0,
+                              eveningReminderAt: TimeOfDay(hour: 21, minute: 0))
         withStore { $0.profiles[profile.id] = profile }
         return profile
     }
