@@ -57,7 +57,16 @@ struct ParentRootView: View {
         }
         .tint(Theme.accent)
         .minimizingTabBar()
-        .task { await store.start() }
+        .task {
+            await store.start()
+            // The system permission alert would block UI tests, and the fake
+            // backend has nowhere to send a token anyway.
+            if !AppEnvironment.isUITesting {
+                await Notifications.requestAuthorization()
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+            await environment.pushRegistrar.parentDidAppear(profile)
+        }
     }
 
     /// `TabView` runs the setter on every tap, including one on the tab already
@@ -326,6 +335,10 @@ struct ManageView: View {
     /// writes for a family the device is leaving must not fire into whatever
     /// family it joins next either.
     private func perform(_ action: @escaping () async throws -> Void) async {
+        // The token row goes first: after sign-out there is no identity left to
+        // delete it with, and the phone would keep receiving a family it no
+        // longer shows.
+        await environment.pushRegistrar.sessionWillEnd()
         do {
             try await action()
             await environment.snapshotCache.clear()
@@ -333,6 +346,8 @@ struct ManageView: View {
             await onSessionChanged()
         } catch {
             errorMessage = String(localized: "Couldn't do that. Check your connection and try again.")
+            // Still here, still this parent: put the registration back.
+            await environment.pushRegistrar.parentDidAppear(parent)
         }
     }
 }

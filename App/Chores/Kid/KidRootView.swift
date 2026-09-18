@@ -32,7 +32,7 @@ struct KidRootView: View {
                 // The system permission alert would block UI tests, and they have
                 // nothing to say about notifications anyway.
                 if !AppEnvironment.isUITesting {
-                    await ReminderScheduler.requestAuthorization()
+                    await Notifications.requestAuthorization()
                 }
             }
             // Rescheduled whenever the template changes, which is exactly when the

@@ -8,12 +8,26 @@ final class AppEnvironment {
     let snapshotCache: SnapshotCache
     let outbox: Outbox
     let appleTokens: any AppleTokenProviding
+    let pushRegistrar: PushRegistrar
 
     init(backend: any ChoresBackend, directory: URL, appleTokens: any AppleTokenProviding) {
         self.backend = backend
         self.snapshotCache = SnapshotCache(directory: directory)
         self.outbox = Outbox(directory: directory, backend: backend)
         self.appleTokens = appleTokens
+        self.pushRegistrar = PushRegistrar(backend: backend, environment: Self.pushEnvironment)
+    }
+
+    /// Debug builds hold sandbox tokens; anything archived — TestFlight or the
+    /// store — holds production ones. The same discriminator as `credentials`,
+    /// for the same reason: Release is the only configuration an archive can be
+    /// built from.
+    private static var pushEnvironment: PushEnvironment {
+        #if DEBUG
+        return .development
+        #else
+        return .production
+        #endif
     }
 
     /// UI tests launch with this flag so they run against in-memory fakes: no
