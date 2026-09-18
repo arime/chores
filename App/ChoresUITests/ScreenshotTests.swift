@@ -46,7 +46,9 @@ final class ScreenshotTests: XCTestCase {
                       "the kid fixture should land straight in kid mode")
         capture(app, as: .kidToday)
 
-        app.buttons["kidWeek.day.1"].tap()
+        app.buttons["kidWeek.day.\(otherDayOfWeek)"].tap()
+        XCTAssertTrue(app.buttons["kidDay.backToToday"].waitForExistence(timeout: 5),
+                      duplicateShotMessage)
         capture(app, as: .kidWeek)
     }
 
@@ -56,13 +58,15 @@ final class ScreenshotTests: XCTestCase {
         let app = launch(AppEnvironmentFlag.screenshotParent)
 
         // Parent mode has two tabs: Family, then Manage. Family lands on today;
-        // the second shot is the same screen with Monday selected.
+        // the second shot is the same screen with another day selected.
         XCTAssertTrue(app.manageTab.waitForExistence(timeout: 30),
                       "the parent fixture should land in parent mode")
         XCTAssertTrue(app.buttons["family.day.1"].waitForExistence(timeout: 10))
         capture(app, as: .parentToday)
 
-        app.buttons["family.day.1"].tap()
+        app.buttons["family.day.\(otherDayOfWeek)"].tap()
+        XCTAssertTrue(app.buttons["family.backToToday"].waitForExistence(timeout: 5),
+                      duplicateShotMessage)
         capture(app, as: .parentWeek)
 
         app.manageTab.tap()
@@ -76,6 +80,36 @@ final class ScreenshotTests: XCTestCase {
         monday.tap()
         capture(app, as: .parentSchedule)
     }
+
+    // MARK: Another day than today
+
+    /// The `day.N` to select for the second shot of each pair: Monday, except on
+    /// a Monday.
+    ///
+    /// It has to be computed. The fixture seeds from the real date — see
+    /// `AppEnvironment` — so a hardcoded Monday selects the day already on
+    /// screen whenever the capture runs on a Monday, and the second shot comes
+    /// out a byte-for-byte copy of the first. That shipped: the 1.0 listing
+    /// carries `02-kid-week` identical to `01-kid-today` and `04-parent-week`
+    /// identical to `03-parent-today`, in both languages, because the run that
+    /// produced them happened on a Monday.
+    ///
+    /// Nothing caught it, and nothing could have. The app was on the screen it
+    /// was asked for, the assertions passed, and a duplicate is a valid PNG of
+    /// exactly the right size — so `tools/screenshots.sh` verified it and
+    /// uploaded it.
+    private var otherDayOfWeek: Int {
+        // The identifiers are ISO weekdays, Monday 1 ... Sunday 7. `Calendar`
+        // counts Sunday 1 ... Saturday 7, which is the shift.
+        let today = ((Calendar.current.component(.weekday, from: Date()) + 5) % 7) + 1
+        return today == 1 ? 2 : 1
+    }
+
+    /// Paired with `backToToday`, which the app shows only while the selected day
+    /// is not today. That makes it the one element whose presence proves the
+    /// second shot differs from the first.
+    private let duplicateShotMessage =
+        "the second shot must be a day other than today, or it is a copy of the first"
 
     // MARK: Plumbing
 
