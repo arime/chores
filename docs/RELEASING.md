@@ -389,6 +389,18 @@ can check it. It is a web task, and the answers must match
 `App/Chores/PrivacyInfo.xcprivacy` exactly, because the two are read side by side
 and a mismatch is a rejection that names neither file.
 
+**Answered and published**, with the table below as the answers. It is recorded
+here because here is the only place it can be recorded: Apple will not say, so a
+release that checks it again is a release spent proving something already true.
+
+Re-open it only when what the app stores changes — and then the manifest, these
+answers and `docs/site/privacy/` change together, as the end of this section says.
+One change already known to be coming: the parent evening push needs an APNs
+token, which is an Identifiers → Device ID row here and a new
+`NSPrivacyCollectedDataTypeDeviceID` in the manifest. §8 of
+`docs/superpowers/specs/2026-09-17-parent-evening-push-design.md` lists that as
+part of shipping it, **Publish** included.
+
 **Answering it is not finishing it.** The questionnaire saves as a draft, and a
 separate **Publish** button is what makes the answers count. Nothing on the page
 insists, and the app looks ready everywhere else — every other field is green and
@@ -496,13 +508,15 @@ its refusal means when it tells you to bump the version.
    listing, uploads the screenshots, attaches the build. Re-run it after every
    upload: it attaches the *newest* build, so a version left alone keeps pointing
    at whatever was newest last time.
-5. Set the price to Free and the territories, answer **and publish** App Privacy,
-   declare trader status, and run `tools/appstore.sh --age-rating`. Price and age
-   rating are settled for this app — Free, 4+, Brazil L — and the footer of a
-   normal run checks both, so it lists only what is genuinely outstanding. The
-   two web tasks have no API and no footer can check them: App Privacy is per
-   app, trader status per account, and each blocks submission while saying
-   nothing that names itself.
+5. **Nothing — all four are settled**, and this step stays only as the record of
+   what they were: the price Free with Finland as the base territory, the age
+   rating 4+ with Brazil self-rated L, App Privacy answered *and published*, and
+   trader status declared as not a trader. Price and age rating are read back by
+   the footer of a normal run. The two web tasks have no API, not even to read
+   them back, so nothing can confirm them and the footer no longer asks —
+   a footer that names settled things is one nobody reads. What would reopen
+   them: App Privacy if what the app stores changes, trader status if the
+   developer registers a business or starts earning from the app.
 6. `tools/appstore.sh --status`, and read it.
 7. `tools/appstore.sh --submit`.
 

@@ -63,8 +63,9 @@ reproducible from the fixture; a PNG in a repository is a thing nobody can
 diff and nobody dares regenerate.
 
 **The App Privacy answers.** Apple has no public API for the data-collection
-questionnaire, so it stays a web task. `docs/RELEASING.md` lists exactly what to
-answer, and why each answer has to agree with `App/Chores/PrivacyInfo.xcprivacy`.
+questionnaire, so it stays a web task. Answered and published for this app;
+`docs/RELEASING.md` records what was answered, why each answer has to agree with
+`App/Chores/PrivacyInfo.xcprivacy`, and what would reopen it.
 
 **The price.** Free, set once in Pricing and Availability. A submission with no
 price schedule is refused, and the API for one is price points and territories —
