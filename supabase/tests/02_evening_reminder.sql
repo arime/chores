@@ -8,7 +8,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(12);
+select plan(44);
 
 -- ---------------------------------------------------------------------------
 -- Helpers (same shape as 01_rls_and_rpcs.sql; each file is its own transaction)
@@ -184,6 +184,159 @@ select tests.auth_as('a0000000-0000-0000-0000-000000000002');   -- P2
 select public.device_token_forget('tok-p1-a');
 select tests.auth_as('a0000000-0000-0000-0000-000000000001');   -- P1
 select public.device_token_register('tok-p1-a', 'production');
+select tests.as_admin();
+
+-- ---------------------------------------------------------------------------
+-- What counts as undone
+-- ---------------------------------------------------------------------------
+
+select tests.as_admin();
+
+select is(public.family_undone_count('11111111-1111-1111-1111-111111111111', date '2026-09-21'), 2,
+          'undone counts each child''s open chores: the same chore on two children is two, an archived chore is not counted, a parent''s own entry is not counted');
+
+insert into public.completions (family_id, profile_id, chore_id, due_on, completed_by) values
+  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
+   'cccc0000-0000-0000-0000-000000000001', date '2026-09-21', 'aaaa0000-0000-0000-0000-000000000003');
+select is(public.family_undone_count('11111111-1111-1111-1111-111111111111', date '2026-09-21'), 1,
+          'a completion takes one off');
+
+insert into public.completions (family_id, profile_id, chore_id, due_on, completed_by) values
+  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000004',
+   'cccc0000-0000-0000-0000-000000000001', date '2026-09-21', 'aaaa0000-0000-0000-0000-000000000001');
+select is(public.family_undone_count('11111111-1111-1111-1111-111111111111', date '2026-09-21'), 0,
+          'a parent ticking on the child''s behalf counts the same');
+
+select is(public.family_undone_count('11111111-1111-1111-1111-111111111111', date '2026-09-23'), 0,
+          'a weekday with no entries has nothing undone');
+
+-- Back to an unfinished Monday for the work() tests.
+delete from public.completions where due_on = date '2026-09-21';
+
+-- ---------------------------------------------------------------------------
+-- The work: who is due, and the claim that stops a double-send
+-- 18:05Z is 21:05 in Helsinki: P1 (21:00) is due, P2 (23:30) is not.
+-- Family B is on UTC, so PB (21:00) is not due at 18:05Z.
+-- ---------------------------------------------------------------------------
+
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 17:55:00+00')), 0,
+          'nobody is due at 20:55');
+select is((select count(*)::int from public.evening_reminder_sends), 0,
+          'and nothing was claimed');
+
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 18:05:00+00')), 2,
+          'at 21:05 P1 is due, once per device');
+select is((select count(*)::int from public.evening_reminder_sends), 1,
+          'one claim row per parent, not per device');
+select is(
+  (select (undone_count, device_count, sent_at is null)::text
+     from public.evening_reminder_sends
+    where profile_id = 'aaaa0000-0000-0000-0000-000000000001'
+      and local_date = date '2026-09-21'),
+  '(2,2,t)', 'the claim records the counts and is not yet sent');
+select is((select count(*)::int from public.evening_reminder_sends
+            where profile_id = 'bbbb0000-0000-0000-0000-000000000001'), 0,
+          'a parent whose local clock says 18:05 is not due');
+select is((select count(*)::int from public.evening_reminder_sends
+            where profile_id = 'aaaa0000-0000-0000-0000-000000000002'), 0,
+          'a parent set to 23:30 is not due at 21:05');
+
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 18:10:00+00')), 0,
+          'the next tick finds P1 already claimed and returns nothing');
+
+-- PB, on UTC: after the hour is too late; inside it is fine.
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 22:05:00+00')), 0,
+          'an hour after their time a parent is no longer due');
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 21:10:00+00')), 1,
+          'PB is due at 21:10 UTC');
+select is((select token from public.evening_reminder_work(timestamptz '2026-09-21 21:10:00+00')), null::text,
+          'and only once');
+
+-- P2 at 23:30, no phone registered: claimed, recorded with no devices, nothing returned.
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 20:45:00+00')), 0,
+          'a due parent with no phone returns no work');
+select is(
+  (select device_count from public.evening_reminder_sends
+    where profile_id = 'aaaa0000-0000-0000-0000-000000000002'
+      and local_date = date '2026-09-21'),
+  0, 'but is recorded with zero devices, so the absence can be explained');
+
+-- The window is clipped at midnight: 21:10Z is 00:10 on the 22nd in Helsinki.
+-- Tuesday has an unfinished chore too, so only the window can say no.
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 21:10:00+00')), 0,
+          'a 23:30 window does not spill into the next day');
+select is((select count(*)::int from public.evening_reminder_sends
+            where profile_id = 'aaaa0000-0000-0000-0000-000000000002'), 1,
+          'and no claim was made for the 22nd');
+
+-- Switched off means never due. Clear P1's claim so the window is open again.
+update public.profiles set evening_reminder_at = null
+ where id = 'aaaa0000-0000-0000-0000-000000000001';
+delete from public.evening_reminder_sends
+ where profile_id = 'aaaa0000-0000-0000-0000-000000000001';
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 18:05:00+00')), 0,
+          'a parent with the reminder off is never due');
+update public.profiles set evening_reminder_at = time '21:00'
+ where id = 'aaaa0000-0000-0000-0000-000000000001';
+
+-- A finished day is nothing to say. Complete everything, then P1 is due but not claimed.
+insert into public.completions (family_id, profile_id, chore_id, due_on, completed_by) values
+  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
+   'cccc0000-0000-0000-0000-000000000001', date '2026-09-21', 'aaaa0000-0000-0000-0000-000000000003'),
+  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000004',
+   'cccc0000-0000-0000-0000-000000000001', date '2026-09-21', 'aaaa0000-0000-0000-0000-000000000004');
+select is((select count(*)::int from public.evening_reminder_work(timestamptz '2026-09-21 18:05:00+00')), 0,
+          'a family whose day is done gets no reminder');
+select is((select count(*)::int from public.evening_reminder_sends
+            where profile_id = 'aaaa0000-0000-0000-0000-000000000001'), 0,
+          'and no claim row either');
+delete from public.completions where due_on = date '2026-09-21';
+
+-- ---------------------------------------------------------------------------
+-- Reporting back
+-- ---------------------------------------------------------------------------
+
+select public.evening_reminder_record(
+  'bbbb0000-0000-0000-0000-000000000001', date '2026-09-21',
+  timestamptz '2026-09-21 21:10:04+00', null);
+select is(
+  (select sent_at from public.evening_reminder_sends
+    where profile_id = 'bbbb0000-0000-0000-0000-000000000001'),
+  timestamptz '2026-09-21 21:10:04+00', 'record() marks the claim sent');
+select is(
+  (select failure from public.evening_reminder_sends
+    where profile_id = 'bbbb0000-0000-0000-0000-000000000001'),
+  null::text, 'and leaves no failure on a success');
+
+select public.evening_reminder_record(
+  'aaaa0000-0000-0000-0000-000000000002', date '2026-09-21', null, 'apns 403');
+select is(
+  (select failure from public.evening_reminder_sends
+    where profile_id = 'aaaa0000-0000-0000-0000-000000000002'),
+  'apns 403', 'record() keeps a failure where it can be read');
+
+select public.device_tokens_forget(array['tok-pb', 'never-existed']);
+select is((select count(*)::int from public.device_tokens where token = 'tok-pb'), 0,
+          'forget() removes the tokens Apple called dead');
+select is((select count(*)::int from public.device_tokens), 2,
+          'and leaves the others');
+
+-- ---------------------------------------------------------------------------
+-- None of this is reachable from a phone
+-- ---------------------------------------------------------------------------
+
+select tests.auth_as('a0000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.evening_reminder_work()$$, '42501', null,
+                 'a signed-in user cannot run the work');
+select throws_ok($$select public.family_undone_count('11111111-1111-1111-1111-111111111111', current_date)$$,
+                 '42501', null, 'nor count another family''s undone chores');
+select throws_ok($$select public.evening_reminder_record('aaaa0000-0000-0000-0000-000000000001', current_date, now(), null)$$,
+                 '42501', null, 'nor mark a send');
+select throws_ok($$select public.device_tokens_forget(array['tok-p1-a'])$$, '42501', null,
+                 'nor forget tokens wholesale');
+-- No grant on the table at all, so this is a refusal rather than an empty result.
+select throws_ok($$select count(*) from public.evening_reminder_sends$$, '42501', null,
+                 'and cannot read the log');
 select tests.as_admin();
 
 select tests.as_admin();
