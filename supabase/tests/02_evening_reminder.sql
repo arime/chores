@@ -8,7 +8,7 @@
 begin;
 set local search_path to public, extensions;
 
-select plan(44);
+select plan(45);
 
 -- ---------------------------------------------------------------------------
 -- Helpers (same shape as 01_rls_and_rpcs.sql; each file is its own transaction)
@@ -338,6 +338,15 @@ select throws_ok($$select public.device_tokens_forget(array['tok-p1-a'])$$, '425
 select throws_ok($$select count(*) from public.evening_reminder_sends$$, '42501', null,
                  'and cannot read the log');
 select tests.as_admin();
+
+-- ---------------------------------------------------------------------------
+-- The job exists
+-- ---------------------------------------------------------------------------
+
+select tests.as_admin();
+select is(
+  (select schedule from cron.job where jobname = 'evening-reminder'),
+  '*/5 * * * *', 'the evening reminder runs every five minutes');
 
 select tests.as_admin();
 select * from finish();
