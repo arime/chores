@@ -68,6 +68,33 @@ import Foundation
         #expect(!json.contains("\"profileID\""))
     }
 
+    @Test func decodesProfileReminderTimes() throws {
+        let json = """
+        {"id":"22222222-2222-2222-2222-222222222222",
+         "family_id":"11111111-1111-1111-1111-111111111111",
+         "auth_user_id":null,"display_name":"Kid","role":"child",
+         "color":"#FF8800","sort_order":2,"created_at":"2026-08-10T09:00:00Z",
+         "afternoon_reminder_at":"15:00:00","evening_reminder_at":null}
+        """
+        let profile = try ChoresJSON.decoder.decode(Profile.self, from: Data(json.utf8))
+        #expect(profile.afternoonReminderAt == TimeOfDay(hour: 15, minute: 0))
+        #expect(profile.eveningReminderAt == nil)
+    }
+
+    /// A snapshot cached before the columns existed has no such keys. It must
+    /// still open — it is what the app draws before the first refresh lands.
+    @Test func decodesProfileWithoutReminderKeys() throws {
+        let json = """
+        {"id":"22222222-2222-2222-2222-222222222222",
+         "family_id":"11111111-1111-1111-1111-111111111111",
+         "auth_user_id":null,"display_name":"Kid","role":"child",
+         "color":"#FF8800","sort_order":2,"created_at":"2026-08-10T09:00:00Z"}
+        """
+        let profile = try ChoresJSON.decoder.decode(Profile.self, from: Data(json.utf8))
+        #expect(profile.afternoonReminderAt == nil)
+        #expect(profile.eveningReminderAt == nil)
+    }
+
     @Test func unknownTimezoneFallsBackRatherThanCrashing() throws {
         let json = """
         {"id":"11111111-1111-1111-1111-111111111111","name":"Koti",

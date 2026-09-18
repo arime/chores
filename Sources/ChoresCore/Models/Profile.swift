@@ -13,10 +13,17 @@ public struct Profile: Identifiable, Codable, Hashable, Sendable {
     /// Hex string, e.g. "#4C8BF5".
     public var color: String
     public var sortOrder: Int
+    /// When this person's reminders fire, in the family's timezone; nil is off.
+    /// A child has both — a local heads-up and a local nag. A parent has only
+    /// the evening one, which is a push sent by the server. Defaults are filled
+    /// by the database on insert, by role.
+    public var afternoonReminderAt: TimeOfDay?
+    public var eveningReminderAt: TimeOfDay?
     public let createdAt: Date
 
     public init(id: UUID, familyID: UUID, authUserID: UUID? = nil, displayName: String,
                 role: Role, color: String = "#4C8BF5", sortOrder: Int = 0,
+                afternoonReminderAt: TimeOfDay? = nil, eveningReminderAt: TimeOfDay? = nil,
                 createdAt: Date = .init()) {
         self.id = id
         self.familyID = familyID
@@ -25,6 +32,8 @@ public struct Profile: Identifiable, Codable, Hashable, Sendable {
         self.role = role
         self.color = color
         self.sortOrder = sortOrder
+        self.afternoonReminderAt = afternoonReminderAt
+        self.eveningReminderAt = eveningReminderAt
         self.createdAt = createdAt
     }
 
@@ -34,6 +43,8 @@ public struct Profile: Identifiable, Codable, Hashable, Sendable {
         case authUserID = "auth_user_id"
         case displayName = "display_name"
         case sortOrder = "sort_order"
+        case afternoonReminderAt = "afternoon_reminder_at"
+        case eveningReminderAt = "evening_reminder_at"
         case createdAt = "created_at"
     }
 }
