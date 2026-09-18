@@ -2,19 +2,15 @@ import Foundation
 import UserNotifications
 import ChoresCore
 
-/// Entirely on-device: no APNs, no certificates, no push tokens.
+/// The child's reminders, entirely on-device: no APNs, no certificates, no push
+/// tokens on this side of the app. The parent's evening reminder is the push,
+/// and lives on the server.
 @MainActor
 enum ReminderScheduler {
 
     private static let identifierPrefix = "chores.daily."
     /// Fixed in v1. Not configurable.
     private static let hour = 16
-
-    static func requestAuthorization() async {
-        // A refusal is fine — the app simply never notifies.
-        _ = try? await UNUserNotificationCenter.current()
-            .requestAuthorization(options: [.alert, .sound])
-    }
 
     /// Replaces all previously scheduled reminders with the given plans.
     static func reschedule(plans: [ReminderPlan], timeZone: TimeZone) async {
