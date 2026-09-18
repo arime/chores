@@ -85,15 +85,16 @@ struct ParentRootView: View {
     }
 }
 
-/// The three screens behind the hub.
+/// The four screens behind the hub.
 enum ManageDestination: Hashable {
     case people
     case chores
     case schedule
+    case reminder
 }
 
-/// The hub: People, Chores and Schedule behind three rows, then the pages the
-/// App Store listing points at, then the ways out.
+/// The hub: People, Chores, Schedule and the evening reminder behind four rows,
+/// then the pages the App Store listing points at, then the ways out.
 struct ManageView: View {
     let store: FamilyStore
     let environment: AppEnvironment
@@ -105,6 +106,17 @@ struct ManageView: View {
     @State private var isConfirmingLeave = false
     @State private var isConfirmingDelete = false
     @State private var errorMessage: String?
+
+    /// This parent as the snapshot has them now, so the hub reflects a change
+    /// the moment it is saved rather than what the session loaded.
+    private var me: Profile { store.snapshot?.profiles.first { $0.id == parent.id } ?? parent }
+
+    private var reminderMeta: Text {
+        if let time = me.eveningReminderAt {
+            return Text(time.date(on: store.today, in: store.timeZone), style: .time)
+        }
+        return Text("Off")
+    }
 
     private var isLastParent: Bool { (store.snapshot?.parents.count ?? 1) <= 1 }
     private var childCount: Int { store.snapshot?.children.count ?? 0 }
@@ -177,6 +189,8 @@ struct ManageView: View {
                         ChoresView(store: store, backend: environment.backend)
                     case .schedule:
                         ScheduleEditorView(store: store, backend: environment.backend)
+                    case .reminder:
+                        EveningReminderView(store: store, backend: environment.backend, me: me)
                     }
                 }
                 // Their back buttons sit in List rows, where `dismiss()` does
@@ -243,6 +257,13 @@ struct ManageView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("manage.schedule")
+
+            NavigationLink(value: ManageDestination.reminder) {
+                HubRow(systemImage: "bell", label: Text("Evening reminder"),
+                       meta: reminderMeta)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("manage.reminder")
         }
     }
 
