@@ -424,15 +424,18 @@ What the manifest declares, and therefore what to answer:
 |---|---|---|---|---|
 | Contact Info → Name | yes | yes | no | App Functionality |
 | User Content → Other User Content | yes | yes | no | App Functionality |
+| Identifiers → Device ID | yes | yes | no | App Functionality |
 
-Nothing else. No identifiers, no usage data, no diagnostics: there is no
-analytics or crash-reporting SDK in the project, and the reminder is a local
-notification with no push token. "Do you or your third-party partners use data
-for tracking?" is **no**.
+Nothing else. No usage data, no diagnostics: there is no analytics or
+crash-reporting SDK in the project. The one identifier is the APNs token of a
+parent's phone, which the evening reminder is sent to; children's devices
+register none, and their reminders are local notifications. "Do you or your
+third-party partners use data for tracking?" is **no**.
 
 The names are the display names of parents and children. The other user content
-is the chore names, the weekly schedule and the completion history. If what the
-app stores ever changes, the manifest, these answers and
+is the chore names, the weekly schedule and the completion history. The device ID
+is the push token, held in `device_tokens` and deleted with the session. If what
+the app stores ever changes, the manifest, these answers and
 `docs/site/privacy/` all change together.
 
 ### Trader status, once per account
@@ -618,6 +621,57 @@ remote.
 
 Enable **Authentication → Sign In / Providers → Anonymous sign-ins**. Without it every
 device fails at first launch with "Can't reach the server".
+
+### The evening reminder: APNs key, secrets, Vault, deploy
+
+Once per project. Nothing here recurs per release.
+
+1. **An APNs key.** Developer portal → Certificates, Identifiers & Profiles → Keys → +,
+   tick *Apple Push Notifications service (APNs)*, download the `.p8` — it is offered
+   once. Note its Key ID. The Team ID is `HPD6U8BLB5`, the `DEVELOPMENT_TEAM` in the
+   project. This is a different key from the App Store Connect API key in
+   `~/.appstoreconnect/`; the two do nothing for each other. The App ID also needs the
+   Push Notifications capability ticked — but not *Configure*, which creates the legacy
+   SSL certificates that token auth does not use.
+2. **Function secrets.**
+
+       supabase secrets set APNS_KEY_ID=<key id> APNS_TEAM_ID=HPD6U8BLB5
+       supabase secrets set APNS_PRIVATE_KEY="$(cat ~/Downloads/AuthKey_<key id>.p8)"
+       supabase secrets set EVENING_REMINDER_SECRET="$(openssl rand -hex 32)"
+
+3. **Vault entries**, in the hosted project's SQL editor, so the cron job can find the
+   function and prove who it is. The secret is the same value as above.
+
+       select vault.create_secret('https://<project ref>.supabase.co/functions/v1/evening-reminder',
+                                  'evening_reminder_url');
+       select vault.create_secret('<EVENING_REMINDER_SECRET>', 'evening_reminder_secret');
+
+4. **Deploy.** `supabase functions deploy evening-reminder`.
+5. **Watch it run.** The migration created the job; the next evening,
+   `select * from evening_reminder_sends order by claimed_at desc limit 5` shows a row
+   for every parent who was due with an unfinished day — `device_count = 0` and
+   `sent_at null` until a build with push has registered a phone, `sent_at` set after.
+   No rows on an evening you know was unfinished means the job is not running:
+   `select * from cron.job_run_details order by start_time desc limit 5`.
+
+If the `.p8` leaks, revoke it in the portal, make another, repeat step 2. Nothing in the
+database changes.
+
+### Testing a push end to end
+
+A debug build on a real phone registers a `development` token; find it with
+`select token from device_tokens`. Put the four secrets in `supabase/functions/.env`
+(gitignored), then:
+
+    supabase functions serve --env-file supabase/functions/.env
+    curl -X POST http://127.0.0.1:54321/functions/v1/evening-reminder \
+      -H 'Authorization: Bearer <EVENING_REMINDER_SECRET>' \
+      -H 'Content-Type: application/json' \
+      -d '{"work":[{"profile_id":"<your profile id>","local_date":"2026-09-21",
+                    "undone_count":2,"token":"<token>","environment":"development"}]}'
+
+The notification arrives within a second. `evening_reminder_record` updates nothing,
+since no claim row exists for a hand-made request; that is expected.
 
 ## If the app says "Can't reach the server"
 
