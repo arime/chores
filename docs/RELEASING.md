@@ -521,12 +521,13 @@ its refusal means when it tells you to bump the version.
    developer registers a business or starts earning from the app.
 6. `tools/appstore.sh --status`, and read it.
 7. `tools/appstore.sh --submit`.
-8. Once it is `READY_FOR_SALE`, tag the commit that shipped — see "What shipped
-   as what" below. This is the only step that happens after the release rather
-   than before it, and the only one nothing will remind you about.
+8. Tag the commit that was submitted — see "What shipped as what" below. Do it
+   while still here, not once the version is approved: nothing will remind you
+   later, and a tag that has to move if review fails is cheaper than a release
+   with no tag at all.
 
-Steps 2 to 6 are safe to repeat. Step 7 queues something; step 8 records what
-came of it.
+Steps 2 to 6 are safe to repeat. Step 7 queues something, and step 8 records what
+went into it.
 
 Where a version stands is a question for `tools/appstore.sh --status`, which
 prints Apple's state name along with what it means — whether the listing still
@@ -562,9 +563,10 @@ it, and neither is a diary of releases — they are both append-only facts:
   than `build/` because `build/` is gitignored: the mapping used to exist only on
   the Mac that did the upload, so a fresh clone started with no history at all.
   It is tracked, so each upload leaves one line to commit.
-- **A git tag per released version** — `v1.0`, `v1.1` — on the commit that
-  produced the build that version shipped with. The tag is what says *which* of
-  the uploads became a release.
+- **A git tag per version** — `v1.0`, `v1.1` — on the commit that produced the
+  build that version was submitted with. The tag is what says *which* of the
+  uploads became a release; the ledger cannot, because most uploads are just
+  TestFlight builds.
 
 Together they answer "what source is version 1.1?" without asking anybody:
 
@@ -575,11 +577,14 @@ Together they answer "what source is version 1.1?" without asking anybody:
 ### Cutting the tag
 
 Neither script does this. `tools/testflight.sh` and `tools/appstore.sh` both
-declare that they do not touch git, and that is deliberate: uploading and
-submitting are things you may do several times for one release, while a tag is a
-statement that this exact source is what people got. Tag when the version reaches
-`READY_FOR_SALE` — not at upload, and not at submission, because a submission can
-come back rejected and be replaced by another build.
+declare that they do not touch git, and that is deliberate.
+
+**Tag at submission**, as soon as `--submit` has gone through. The build is fixed
+at that point, and the tag is correct for every release that passes — which is
+almost all of them. Waiting for `READY_FOR_SALE` would buy accuracy in the rare
+case at the price of a step nobody is prompted to take, days later, once
+attention has moved on. An untagged release is worse than a tag that needed
+moving.
 
 Read the build off Apple rather than trusting memory, then the commit off the
 ledger:
@@ -587,6 +592,18 @@ ledger:
     tools/appstore.sh --status
     grep <build number> docs/uploads.log
     git tag -a v1.1 <commit> -m 'App Store 1.1 — build <build number>'
+
+So the tag is provisional until Apple approves it, and **moving it is expected
+rather than a mistake**. A rejection means cancelling the submission, uploading
+another build and submitting again — "Swapping the build while a version waits for
+review" above — and then the tag moves to what was sent the second time:
+
+    git tag -f -a v1.1 <new commit> -m 'App Store 1.1 — build <new build number>'
+
+`-f` rewrites it locally and silently. A tag that was already pushed stays put on
+the remote until `git push --force origin v1.1`, so that is the one case here
+worth a second of care: the local and remote tags can disagree and nothing says
+so.
 
 **Apple strips leading zeros from the build number.** A build uploaded as
 `20260907.0701` is reported by the API as `20260907.701`, because `CFBundleVersion`
