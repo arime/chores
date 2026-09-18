@@ -11,7 +11,7 @@
 <h1>Privacy policy</h1>
 <p class="langs">Chores for iPhone · <a href="fi/">Suomeksi</a> · <a href="../">Home</a></p>
 
-<p class="updated">Last updated 21 August 2026.</p>
+<p class="updated">Last updated 18 September 2026.</p>
 
 <p>Chores is a household chore chart. This policy covers the iPhone app and the server
 it talks to. It is written to be read rather than skimmed past, so it says plainly what
@@ -40,6 +40,8 @@ family sees the same chart on every one of their devices:</p>
 	<li>For a child's device, and for a parent who joined with a code rather than an
 		Apple ID: an anonymous session identifier created by the server. It is not tied
 		to an Apple ID, an email address or a phone number.</li>
+	<li>For a parent's phone: the push token Apple issues to it for this app, so the
+		server can send that parent's evening reminder. See Notifications below.</li>
 </ul>
 
 <h2>What it does not do</h2>
@@ -75,9 +77,17 @@ copy of the current chart is also cached on the device, so the app works with no
 
 <h2>Notifications</h2>
 
-<p>The daily reminder is scheduled by the app on the device itself. There are no push
-servers and no push tokens: nothing about a reminder leaves the phone. Declining the
-notification permission simply means no reminder.</p>
+<p>A child's reminders are scheduled by the app on the child's own device. Nothing about
+them leaves the phone, and a child's device holds no push token.</p>
+
+<p>A parent's evening reminder is different. It is sent by the server, because only the
+server knows whether a chore ticked off on a child's phone is still open. To deliver it,
+the app stores the push token Apple issues to the parent's phone for this app, beside
+that parent's profile. The token identifies the phone to Apple's notification service
+and nothing else. The reminder itself carries a count of unticked chores and no names.
+The token is deleted when the parent signs out, leaves the family or deletes their
+account. Declining the notification permission, or switching the reminder off under
+<strong>Manage → Evening reminder</strong>, means no reminder.</p>
 
 <h2>How long it is kept, and how to delete it</h2>
 

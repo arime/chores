@@ -11,7 +11,7 @@
 <h1>Tietosuojakäytäntö</h1>
 <p class="langs">Chores iPhonelle · <a href="../">In English</a> · <a href="../../">Etusivu</a></p>
 
-<p class="updated">Päivitetty 21.8.2026.</p>
+<p class="updated">Päivitetty 18.9.2026.</p>
 
 <p>Chores on kotitalouden tehtävätaulu. Tämä käytäntö koskee iPhone-sovellusta ja
 palvelinta, jonka kanssa se keskustelee. Se on kirjoitettu luettavaksi eikä ohitettavaksi,
@@ -40,6 +40,8 @@ saman taulun kaikilla laitteillaan:</p>
 	<li>Lapsen laitteesta — ja vanhemmasta, joka liittyi koodilla eikä Apple ID:llä:
 		palvelimen luoma anonyymi istuntotunniste. Sitä ei ole kytketty Apple ID:hen,
 		sähköpostiosoitteeseen eikä puhelinnumeroon.</li>
+	<li>Vanhemman puhelimesta: Applen tälle sovellukselle antama push-tunniste, jotta
+		palvelin voi lähettää kyseisen vanhemman iltamuistutuksen. Katso Ilmoitukset alla.</li>
 </ul>
 
 <h2>Mitä se ei tee</h2>
@@ -77,9 +79,17 @@ toimii ilman verkkoyhteyttä.</p>
 
 <h2>Ilmoitukset</h2>
 
-<p>Päivittäisen muistutuksen ajastaa sovellus itse laitteella. Push-palvelimia ja
-push-tunnisteita ei ole: muistutuksesta ei lähde mitään puhelimesta ulos. Jos
-ilmoituslupaa ei anna, muistutusta ei vain tule.</p>
+<p>Lapsen muistutukset ajastaa sovellus itse lapsen laitteella. Niistä ei lähde mitään
+puhelimesta ulos, eikä lapsen laitteella ole push-tunnistetta.</p>
+
+<p>Vanhemman iltamuistutus on eri asia. Sen lähettää palvelin, koska vain palvelin tietää,
+onko lapsen puhelimella kuitattu tehtävä yhä auki. Toimitusta varten sovellus tallentaa
+Applen vanhemman puhelimelle tälle sovellukselle antaman push-tunnisteen kyseisen
+vanhemman profiilin yhteyteen. Tunniste yksilöi puhelimen Applen ilmoituspalvelulle eikä
+mitään muuta. Itse muistutuksessa on kuittaamattomien tehtävien lukumäärä, ei nimiä.
+Tunniste poistetaan, kun vanhempi kirjautuu ulos, poistuu perheestä tai poistaa tilinsä.
+Jos ilmoituslupaa ei anna tai muistutuksen kytkee pois kohdasta
+<strong>Hallinta → Iltamuistutus</strong>, muistutusta ei tule.</p>
 
 <h2>Kuinka kauan tiedot säilyvät ja miten ne poistetaan</h2>
 
