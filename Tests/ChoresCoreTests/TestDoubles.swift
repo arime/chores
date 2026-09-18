@@ -86,6 +86,12 @@ class ForwardingBackend: ChoresBackend, @unchecked Sendable {
     func uncomplete(profileID: UUID, choreID: UUID, dueOn: CalendarDay) async throws {
         try await inner.uncomplete(profileID: profileID, choreID: choreID, dueOn: dueOn)
     }
+    func registerDeviceToken(_ token: String, environment: PushEnvironment) async throws {
+        try await inner.registerDeviceToken(token, environment: environment)
+    }
+    func forgetDeviceToken(_ token: String) async throws {
+        try await inner.forgetDeviceToken(token)
+    }
 }
 
 /// A backend whose completion writes fail on demand, so flush behaviour can be
@@ -273,6 +279,10 @@ final class UnavailableBackend: ChoresBackend, @unchecked Sendable {
     func uncomplete(profileID: UUID, choreID: UUID, dueOn: CalendarDay) async throws {
         throw error
     }
+    func registerDeviceToken(_ token: String, environment: PushEnvironment) async throws {
+        throw error
+    }
+    func forgetDeviceToken(_ token: String) async throws { throw error }
 }
 
 /// Creates a fresh temporary directory for cache and outbox files.

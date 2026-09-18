@@ -27,6 +27,7 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
         var chores: [UUID: Chore] = [:]
         var template: [UUID: ScheduleEntry] = [:]
         var completions: [Completion] = []
+        var deviceTokens: [String: DeviceTokenRecord] = [:]
         var nextCodeSuffix = 0
         /// Apple identity token -> the auth user it resolves to, so signing in
         /// twice with the same token is the same person, as it is for real.
@@ -39,6 +40,18 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
         let familyID: UUID
         var claimed: Bool
         var expiresAt: Date
+    }
+
+    public struct DeviceTokenRecord: Equatable, Sendable {
+        public let profileID: UUID
+        public let familyID: UUID
+        public let environment: PushEnvironment
+
+        public init(profileID: UUID, familyID: UUID, environment: PushEnvironment) {
+            self.profileID = profileID
+            self.familyID = familyID
+            self.environment = environment
+        }
     }
 
     let store: Store
@@ -242,6 +255,7 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
         store.completions.removeAll { $0.profileID == id }
         store.template = store.template.filter { $0.value.profileID != id }
         store.claimCodes = store.claimCodes.filter { $0.value.profileID != id }
+        store.deviceTokens = store.deviceTokens.filter { $0.value.profileID != id }
         // `completed_by` is `on delete set null`, not a cascade.
         store.completions = store.completions.map {
             $0.completedBy == id
@@ -340,5 +354,31 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
                 $0.profileID == profileID && $0.choreID == choreID && $0.dueOn == dueOn
             }
         }
+    }
+
+    // MARK: Push
+
+    public func registerDeviceToken(_ token: String, environment: PushEnvironment) async throws {
+        guard let me = try await currentProfile(), me.role == .parent else {
+            throw ChoresBackendError.notPermitted
+        }
+        withStore {
+            $0.deviceTokens[token] = DeviceTokenRecord(
+                profileID: me.id, familyID: me.familyID, environment: environment)
+        }
+    }
+
+    public func forgetDeviceToken(_ token: String) async throws {
+        guard let me = try await currentProfile() else { return }
+        withStore { store in
+            if store.deviceTokens[token]?.profileID == me.id {
+                store.deviceTokens[token] = nil
+            }
+        }
+    }
+
+    /// For assertions: every registered token and who holds it.
+    public func deviceTokens() -> [String: DeviceTokenRecord] {
+        withStore { $0.deviceTokens }
     }
 }
