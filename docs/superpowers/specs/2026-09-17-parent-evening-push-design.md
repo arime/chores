@@ -108,10 +108,21 @@ of leaving a stale one pointing at the previous parent. `environment` records wh
 build that registered was a debug build (Apple's sandbox gateway) or a TestFlight/App
 Store build (production); a token is valid on exactly one.
 
-RLS: one policy per verb, all `using`/`with check`
-`profile_id = public.current_profile_id() and public.is_parent()`. A parent sees and
-writes only their own rows; a child none. Grants follow
-`20260813120000_table_grants.sql`.
+Clients never write this table directly. A token proves possession of a phone, and the
+row has to follow the phone: if parent A signed out uncleanly and parent B signs in on
+the same device, B's registration must take the row over, which a per-row RLS policy
+would refuse. So writes go through two `security definer` RPCs for `authenticated`
+callers, each guarded by `is_parent()` (raising `P0005` like the other parent-only
+guards):
+
+- `device_token_register(p_token text, p_environment text)` — upserts the row for the
+  caller's own profile and family, overwriting whoever held the token before.
+- `device_token_forget(p_token text)` — deletes the row **only if it is the caller's**,
+  so a late forget from the previous holder cannot remove the new holder's registration.
+
+RLS: `select` only, `profile_id = public.current_profile_id()` — a parent sees their own
+rows, a child none, nobody sees anyone else's. Grant `select` to `authenticated`, nothing
+more; the rest is the RPCs.
 
 ### 4.2 `evening_reminder_sends`
 
@@ -266,9 +277,9 @@ Connect API key in `~/.appstoreconnect/`.
 - `PushRegistration` (`@MainActor`, app target, decision logic in `ChoresCore` as
   `PushRegistrationState` so it is unit-testable) holds the latest token and the current
   parent profile, which arrive in either order. When it has both, it calls
-  `backend.registerDeviceToken(token:profileID:familyID:environment:)`, an upsert on
-  `device_tokens`. It re-registers on every parent launch; tokens can change and the
-  upsert is cheap. Environment is `development` under `#if DEBUG`, else `production`.
+  `backend.registerDeviceToken(_:environment:)`. It re-registers on every parent launch;
+  tokens can change and the upsert is cheap. Environment is `development` under
+  `#if DEBUG`, else `production`.
 - `ParentRootView`'s `.task` requests notification authorization — the kid's
   `ReminderScheduler.requestAuthorization()` moves to a shared `Notifications` enum — then
   calls `UIApplication.shared.registerForRemoteNotifications()`. Both skipped when
@@ -285,8 +296,11 @@ longer shows.
 
 ### 7.3 `ChoresBackend`
 
-Two methods: `registerDeviceToken(...)` and `forgetDeviceToken(_ token: String)`. Supabase
-implementation upserts / deletes `device_tokens`; in-memory implementation records calls.
+Two methods: `registerDeviceToken(_ token: String, environment: PushEnvironment)` and
+`forgetDeviceToken(_ token: String)`. The server derives the profile and family from the
+caller, so neither is a parameter. Supabase implementation calls the two RPCs in §4.1;
+in-memory implementation keeps a token → (profile, family, environment) map keyed by
+the session's profile, and cascades it when a profile is deleted.
 
 ### 7.4 Settings
 
@@ -345,8 +359,9 @@ All in the same version, in this order.
 - a due parent with no `device_tokens` is claimed with `device_count = 0` and returns no
   rows
 - `record()` sets `sent_at` / `failure`; `forget()` deletes exactly the given tokens
-- `device_tokens` RLS: a parent selects/inserts/updates/deletes only their own rows; a
-  child can do none of it
+- `device_token_register` writes the caller's own row, takes over a token another
+  parent held, and refuses a child with `P0005`; `device_token_forget` removes only
+  the caller's own row; a parent selects only their own rows and a child none
 - the trigger fills `21:00` / `null` for a parent and `15:00` / `20:00` for a child; a
   provided value is kept
 - `anon` and `authenticated` cannot execute the three RPCs

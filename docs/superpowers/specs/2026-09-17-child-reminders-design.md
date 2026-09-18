@@ -134,7 +134,7 @@ existing "You have %lld chores today." already is.
 
 | Key / en | fi (proposed) |
 |---|---|
-| Chores today *(exists)* | Tehtävät tänään *(exists)* |
+| Chores today *(exists)* | Tehtäviä tänään *(exists)* |
 | You have %lld chores today. *(exists, plural variants)* | *(exists)* |
 | Chores tonight | Illan tehtävät |
 | %lld chores still unticked. Done them? Tick them off. — *one:* 1 chore still unticked. Done it? Tick it off. | %lld tehtävää on vielä kuittaamatta. Tehty? Kuittaa ne. — *one:* 1 tehtävä on vielä kuittaamatta. Tehty? Kuittaa se. |
