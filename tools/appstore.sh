@@ -414,7 +414,7 @@ if [ "$do_build" -eq 1 ]; then
 	if [ -n "$build_number" ]; then
 		build_id="$(asc_build_id "$app_id" "$build_number")"
 		[ -n "$build_id" ] ||
-			fail "App Store Connect has no build $build_number for $BUNDLE_ID. See build/uploads.log for what has been sent, and remember processing takes a few minutes."
+			fail "App Store Connect has no build $build_number for $BUNDLE_ID. See docs/uploads.log for what has been sent, and remember processing takes a few minutes."
 	else
 		latest="$(asc_latest_build "$app_id")"
 		[ -n "$latest" ] ||
