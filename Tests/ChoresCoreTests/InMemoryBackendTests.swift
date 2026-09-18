@@ -366,3 +366,45 @@ import Foundation
         #expect(snapshot.profiles.contains { $0.id == child.id })
     }
 }
+
+/// The database fills reminder defaults by role in a BEFORE INSERT trigger. The
+/// in-memory backend mirrors it, so these assertions say something about both.
+@Suite struct InMemoryReminderDefaultsTests {
+
+    @Test func aNewParentGetsTheEveningDefaultOnly() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "apple-1", nonce: "n")
+        _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+        let parent = try #require(try await backend.currentProfile())
+        #expect(parent.eveningReminderAt == TimeOfDay(hour: 21, minute: 0))
+        #expect(parent.afternoonReminderAt == nil)
+    }
+
+    @Test func aNewChildGetsBothDefaults() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "apple-1", nonce: "n")
+        let familyID = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                                      timezone: "Europe/Helsinki")
+        let child = try await backend.addChild(familyID: familyID, name: "Kid",
+                                               color: "#FF8800", sortOrder: 0)
+        #expect(child.afternoonReminderAt == TimeOfDay(hour: 15, minute: 0))
+        #expect(child.eveningReminderAt == TimeOfDay(hour: 20, minute: 0))
+    }
+
+    @Test func switchingAReminderOffPersistsAsNil() async throws {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "apple-1", nonce: "n")
+        let familyID = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                                      timezone: "Europe/Helsinki")
+        var child = try await backend.addChild(familyID: familyID, name: "Kid",
+                                               color: "#FF8800", sortOrder: 0)
+        child.eveningReminderAt = nil
+        try await backend.updateProfile(child)
+        let snapshot = try await backend.fetchSnapshot(
+            familyID: familyID, weekOf: CalendarDay(year: 2026, month: 9, day: 21))
+        let stored = try #require(snapshot.profiles.first { $0.id == child.id })
+        #expect(stored.eveningReminderAt == nil)
+        #expect(stored.afternoonReminderAt == TimeOfDay(hour: 15, minute: 0))
+    }
+}

@@ -95,6 +95,17 @@ import Foundation
         #expect(profile.eveningReminderAt == nil)
     }
 
+    /// PostgREST reads an omitted column as "leave it alone". Switching a
+    /// reminder off has to send an explicit null, or it silently does nothing.
+    @Test func profileUpdateEncodesNilReminderAsNull() throws {
+        let update = ProfileUpdate(displayName: "Kid", color: "#FF8800", sortOrder: 1,
+                                   afternoonReminderAt: TimeOfDay(hour: 15, minute: 0),
+                                   eveningReminderAt: nil)
+        let json = String(decoding: try ChoresJSON.encoder.encode(update), as: UTF8.self)
+        #expect(json.contains("\"afternoon_reminder_at\":\"15:00:00\""))
+        #expect(json.contains("\"evening_reminder_at\":null"))
+    }
+
     @Test func unknownTimezoneFallsBackRatherThanCrashing() throws {
         let json = """
         {"id":"11111111-1111-1111-1111-111111111111","name":"Koti",
