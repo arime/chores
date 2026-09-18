@@ -195,8 +195,10 @@ validates all three up front and passes them to `-exportArchive`.
 **There is no `.ipa` afterwards.** `App/ExportOptions.plist` sets `destination` to
 `upload`, so the build goes straight to App Store Connect and nothing is written to
 the export path. The upload is recorded in the archive's own `Info.plist` under
-`Distributions`, and `build/uploads.log` gets a line with the build number and the
-commit it came from. To read the record back:
+`Distributions`, and `docs/uploads.log` gets a line with the build number and the
+commit it came from. That file is tracked, so an upload leaves a one-line change
+to commit — see "What shipped as what" below for why it is not in `build/`. To
+read the record back:
 
     plutil -p build/Chores.xcarchive/Info.plist
 
@@ -519,8 +521,12 @@ its refusal means when it tells you to bump the version.
    developer registers a business or starts earning from the app.
 6. `tools/appstore.sh --status`, and read it.
 7. `tools/appstore.sh --submit`.
+8. Once it is `READY_FOR_SALE`, tag the commit that shipped — see "What shipped
+   as what" below. This is the only step that happens after the release rather
+   than before it, and the only one nothing will remind you about.
 
-Steps 2 to 6 are safe to repeat. Only the last one queues anything.
+Steps 2 to 6 are safe to repeat. Step 7 queues something; step 8 records what
+came of it.
 
 Where a version stands is a question for `tools/appstore.sh --status`, which
 prints Apple's state name along with what it means — whether the listing still
@@ -542,6 +548,54 @@ The submission goes to `CANCELING` and the version to `DEVELOPER_REJECTED`, whic
 is one of the editable states. Then `tools/testflight.sh`, wait for the build to
 process, and `tools/appstore.sh --submit --build <number>` does the rest in one
 run.
+
+## What shipped as what
+
+Where a version *stands* is a question for `tools/appstore.sh --status`, which
+asks Apple. What a released version *was* is the opposite kind of question: Apple
+cannot answer it, because App Store Connect knows build numbers and nothing about
+git, and once a version is superseded its old state is gone. Two records answer
+it, and neither is a diary of releases — they are both append-only facts:
+
+- **`docs/uploads.log`** — every upload, as time, build number and the commit it
+  was built from, appended by `tools/testflight.sh`. It lives in `docs/` rather
+  than `build/` because `build/` is gitignored: the mapping used to exist only on
+  the Mac that did the upload, so a fresh clone started with no history at all.
+  It is tracked, so each upload leaves one line to commit.
+- **A git tag per released version** — `v1.0`, `v1.1` — on the commit that
+  produced the build that version shipped with. The tag is what says *which* of
+  the uploads became a release.
+
+Together they answer "what source is version 1.1?" without asking anybody:
+
+    git show v1.1 --stat        # the commit that shipped
+    git tag -n9                 # every release, with its build number
+    git log v1.0..v1.1 --oneline
+
+### Cutting the tag
+
+Neither script does this. `tools/testflight.sh` and `tools/appstore.sh` both
+declare that they do not touch git, and that is deliberate: uploading and
+submitting are things you may do several times for one release, while a tag is a
+statement that this exact source is what people got. Tag when the version reaches
+`READY_FOR_SALE` — not at upload, and not at submission, because a submission can
+come back rejected and be replaced by another build.
+
+Read the build off Apple rather than trusting memory, then the commit off the
+ledger:
+
+    tools/appstore.sh --status
+    grep <build number> docs/uploads.log
+    git tag -a v1.1 <commit> -m 'App Store 1.1 — build <build number>'
+
+**Apple strips leading zeros from the build number.** A build uploaded as
+`20260907.0701` is reported by the API as `20260907.701`, because `CFBundleVersion`
+is a dotted number rather than a string. So a plain `grep` of the ledger for what
+Apple printed can find nothing while the build is sitting right there — search for
+the date part.
+
+Tags are not pushed by anything here. `git push --tags` when you want them on the
+remote.
 
 ## First-time setup of the hosted project
 

@@ -140,7 +140,7 @@ if [ "$external" -eq 1 ]; then
 	# likely mistake and the more actionable message, and checking the key
 	# first would report a key problem to someone whose key is fine.
 	if [ "$external_only" -eq 1 ] && [ -z "$build_number" ]; then
-		fail '--external-only needs --build <number>, naming a build already uploaded. See build/uploads.log for what has been sent.'
+		fail '--external-only needs --build <number>, naming a build already uploaded. See docs/uploads.log for what has been sent.'
 	fi
 
 	# shellcheck source=tools/asc-api.sh
@@ -306,7 +306,11 @@ xcodebuild -exportArchive \
 	-allowProvisioningUpdates \
 	"${auth_args[@]+"${auth_args[@]}"}" 2>&1 | tee -a "$LOG"
 
-printf '%s\t%s\t%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$build_number" "$commit" >> build/uploads.log
+# docs/ rather than build/, because this is the only place the build-to-commit
+# mapping exists: Apple knows the build number and nothing about git, and build/
+# is gitignored, so a fresh clone used to start with no history at all. It is
+# tracked, so an upload leaves a one-line change to commit.
+printf '%s\t%s\t%s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$build_number" "$commit" >> docs/uploads.log
 
 step "Uploaded build $build_number"
 cat <<EOF
@@ -315,7 +319,7 @@ Processing in App Store Connect takes a few minutes. The internal test group has
 step; watch for the email, or check TestFlight → iOS Builds.
 
 Build log:     $LOG
-Upload record: build/uploads.log
+Upload record: docs/uploads.log (tracked — commit the new line)
 EOF
 
 if [ "$external" -eq 1 ]; then
