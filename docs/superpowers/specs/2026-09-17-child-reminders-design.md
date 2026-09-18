@@ -137,7 +137,7 @@ existing "You have %lld chores today." already is.
 | Chores today *(exists)* | Tehtävät tänään *(exists)* |
 | You have %lld chores today. *(exists, plural variants)* | *(exists)* |
 | Chores tonight | Illan tehtävät |
-| %lld chores still unticked. Done them? Tick them off. — *one:* 1 chore still unticked. Done it? Tick it off. | %lld tehtävää on vielä kuittaamatta. Tehtyjä? Kuittaa ne. — *one:* 1 tehtävä on vielä kuittaamatta. Tehty? Kuittaa se. |
+| %lld chores still unticked. Done them? Tick them off. — *one:* 1 chore still unticked. Done it? Tick it off. | %lld tehtävää on vielä kuittaamatta. Tehty? Kuittaa ne. — *one:* 1 tehtävä on vielä kuittaamatta. Tehty? Kuittaa se. |
 | Afternoon reminder | Iltapäivän muistutus |
 | Evening reminder | Illan muistutus |
 | Each fires only when this child still has chores unticked. Off means never. | Kumpikin tulee vain, jos lapsella on vielä kuittaamattomia tehtäviä. Pois tarkoittaa ei koskaan. |
