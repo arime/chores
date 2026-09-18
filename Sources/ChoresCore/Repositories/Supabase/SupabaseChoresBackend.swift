@@ -342,6 +342,25 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
                 .execute()
         }
     }
+
+    // MARK: Push
+
+    public func registerDeviceToken(_ token: String, environment: PushEnvironment) async throws {
+        try await run {
+            _ = try await client
+                .rpc("device_token_register",
+                     params: ["p_token": token, "p_environment": environment.rawValue])
+                .execute()
+        }
+    }
+
+    public func forgetDeviceToken(_ token: String) async throws {
+        try await run {
+            _ = try await client
+                .rpc("device_token_forget", params: ["p_token": token])
+                .execute()
+        }
+    }
 }
 
 // MARK: - Insert and update payloads

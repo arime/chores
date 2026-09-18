@@ -408,3 +408,77 @@ import Foundation
         #expect(stored.afternoonReminderAt == TimeOfDay(hour: 15, minute: 0))
     }
 }
+
+/// A push token belongs to the phone, not to the person holding it this week.
+@Suite struct InMemoryDeviceTokenTests {
+
+    func parentBackend() async throws -> (InMemoryChoresBackend, Profile) {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInWithApple(idToken: "apple-1", nonce: "n")
+        _ = try await backend.createFamily(familyName: "Koti", parentName: "Parent",
+                                           timezone: "Europe/Helsinki")
+        return (backend, try #require(try await backend.currentProfile()))
+    }
+
+    @Test func registeringRecordsTheCallersProfile() async throws {
+        let (backend, parent) = try await parentBackend()
+        try await backend.registerDeviceToken("abc123", environment: .development)
+        let record = try #require(backend.deviceTokens()["abc123"])
+        #expect(record.profileID == parent.id)
+        #expect(record.familyID == parent.familyID)
+        #expect(record.environment == .development)
+    }
+
+    @Test func aTokenFollowsTheDeviceToItsNewHolder() async throws {
+        let (backend, first) = try await parentBackend()
+        try await backend.registerDeviceToken("abc123", environment: .production)
+        try await backend.signOut()
+
+        // A different parent signs in on the same phone.
+        try await backend.signInWithApple(idToken: "apple-2", nonce: "n")
+        _ = try await backend.createFamily(familyName: "Toinen", parentName: "Other",
+                                           timezone: "Europe/Helsinki")
+        let second = try #require(try await backend.currentProfile())
+        try await backend.registerDeviceToken("abc123", environment: .production)
+
+        #expect(backend.deviceTokens()["abc123"]?.profileID == second.id)
+        #expect(backend.deviceTokens().values.filter { $0.profileID == first.id }.isEmpty)
+    }
+
+    @Test func aChildCannotRegister() async throws {
+        let backend = InMemoryChoresBackend()
+        backend.seedClaimedChild(childName: "Kid", choreNames: ["Bins"], onISOWeekdays: [1])
+        await #expect(throws: ChoresBackendError.notPermitted) {
+            try await backend.registerDeviceToken("kid-token", environment: .development)
+        }
+        #expect(backend.deviceTokens().isEmpty)
+    }
+
+    @Test func forgettingRemovesOnlyTheCallersOwnRow() async throws {
+        let (backend, _) = try await parentBackend()
+        try await backend.registerDeviceToken("mine", environment: .production)
+        try await backend.signOut()
+        try await backend.signInWithApple(idToken: "apple-2", nonce: "n")
+        _ = try await backend.createFamily(familyName: "Toinen", parentName: "Other",
+                                           timezone: "Europe/Helsinki")
+
+        try await backend.forgetDeviceToken("mine")   // not this caller's
+        #expect(backend.deviceTokens()["mine"] != nil)
+
+        try await backend.registerDeviceToken("theirs", environment: .production)
+        try await backend.forgetDeviceToken("theirs")
+        #expect(backend.deviceTokens()["theirs"] == nil)
+    }
+
+    @Test func deletingAProfileTakesItsTokens() async throws {
+        let (backend, parent) = try await parentBackend()
+        let child = try await backend.addChild(familyID: parent.familyID, name: "Kid",
+                                               color: "#FF8800", sortOrder: 0)
+        // Seat a token directly on the child to prove the cascade, since a child
+        // cannot register one.
+        backend.withStore { $0.deviceTokens["kid"] = InMemoryChoresBackend.DeviceTokenRecord(
+            profileID: child.id, familyID: parent.familyID, environment: .development) }
+        try await backend.deleteChild(profileID: child.id)
+        #expect(backend.deviceTokens()["kid"] == nil)
+    }
+}

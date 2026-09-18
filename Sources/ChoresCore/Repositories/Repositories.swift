@@ -102,4 +102,15 @@ public protocol ChoresBackend: Sendable {
     func complete(familyID: UUID, profileID: UUID, choreID: UUID,
                   dueOn: CalendarDay, completedBy: UUID) async throws
     func uncomplete(profileID: UUID, choreID: UUID, dueOn: CalendarDay) async throws
+
+    // MARK: Push
+
+    /// Records this device's APNs token against the caller's own profile. The
+    /// server derives profile and family from the session, and takes the token
+    /// over from whoever held it before — a token proves possession of the
+    /// phone. Parents only; a child device never has one.
+    func registerDeviceToken(_ token: String, environment: PushEnvironment) async throws
+    /// Removes the caller's own row for this token. Call it *before* ending a
+    /// session: after sign-out there is no identity left to delete with.
+    func forgetDeviceToken(_ token: String) async throws
 }
