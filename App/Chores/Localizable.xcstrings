@@ -672,6 +672,64 @@
         }
       }
     },
+    "EVENING_PUSH_TITLE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chores tonight"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Illan tehtävät"
+          }
+        }
+      }
+    },
+    "EVENING_PUSH_BODY_ONE" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 chore is still unticked."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 tehtävä on vielä kuittaamatta."
+          }
+        }
+      }
+    },
+    "EVENING_PUSH_BODY_MANY" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ chores are still unticked."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tehtävää on vielä kuittaamatta."
+          }
+        }
+      }
+    },
+    "Evening reminder" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iltamuistutus"
+          }
+        }
+      }
+    },
     "Expires in 7 days. Generating a new code cancels this one." : {
       "localizations" : {
         "fi" : {
@@ -1023,6 +1081,26 @@
         }
       }
     },
+    "Remind me" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muistuta minua"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pois"
+          }
+        }
+      }
+    },
     "Remove" : {
       "localizations" : {
         "fi" : {
@@ -1069,6 +1147,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aikataulu"
+          }
+        }
+      }
+    },
+    "Sent to this phone at this time when a child still has chores unticked. Off means never." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähetetään tähän puhelimeen tähän aikaan, jos lapsella on vielä kuittaamattomia tehtäviä. Pois tarkoittaa ei koskaan."
           }
         }
       }
