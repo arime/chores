@@ -33,7 +33,7 @@ struct EveningReminderView: View {
                                     defaultTime: TimeOfDay(hour: 21, minute: 0),
                                     identifier: "reminder.evening")
 
-                Footnote(text: Text("Sent to this phone at this time when a child still has chores unticked. Off means never."))
+                Footnote(text: Text("Sent to this phone at this time when a child still has chores unticked."))
 
                 if let errorMessage {
                     Text(errorMessage)
