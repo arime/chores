@@ -1151,12 +1151,12 @@
         }
       }
     },
-    "Sent to this phone at this time when a child still has chores unticked. Off means never." : {
+    "Sent to this phone at this time when a child still has chores unticked." : {
       "localizations" : {
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lähetetään tähän puhelimeen tähän aikaan, jos lapsella on vielä kuittaamattomia tehtäviä. Pois tarkoittaa ei koskaan."
+            "value" : "Lähetetään tähän puhelimeen tähän aikaan, jos lapsella on vielä kuittaamattomia tehtäviä."
           }
         }
       }
