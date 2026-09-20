@@ -35,11 +35,12 @@ struct KidRootView: View {
                     await Notifications.requestAuthorization()
                 }
             }
-            // Rescheduled whenever the template changes, which is exactly when the
-            // set of chore-bearing days can change.
-            .onChange(of: store.snapshot?.template) { _, _ in
-                guard let snapshot = store.snapshot else { return }
-                let plans = ReminderSchedule.plans(for: profile.id, snapshot: snapshot)
+            // Rescheduled on every change, not only the template's: a tick,
+            // an untick, a schedule edit, or a changed reminder time all move
+            // what should be queued. The recompute is a few dozen rows.
+            .onChange(of: store.snapshot) { _, snapshot in
+                guard let snapshot else { return }
+                let plans = ReminderSchedule.plans(for: profile.id, snapshot: snapshot, now: Date())
                 Task { await ReminderScheduler.reschedule(plans: plans,
                                                           timeZone: snapshot.family.timeZone) }
             }
