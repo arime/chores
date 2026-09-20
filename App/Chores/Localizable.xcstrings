@@ -1151,6 +1151,36 @@
         }
       }
     },
+    "Reminders" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muistutukset"
+          }
+        }
+      }
+    },
+    "Afternoon reminder" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Iltapäivän muistutus"
+          }
+        }
+      }
+    },
+    "Each fires only when this child still has chores unticked." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kumpikin tulee vain, jos lapsella on vielä kuittaamattomia tehtäviä."
+          }
+        }
+      }
+    },
     "Remove" : {
       "localizations" : {
         "fi" : {

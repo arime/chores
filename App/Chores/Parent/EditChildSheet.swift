@@ -9,6 +9,8 @@ struct EditChildSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
     @State private var color: String
+    @State private var afternoon: TimeOfDay?
+    @State private var evening: TimeOfDay?
     @State private var showingCode = false
     @State private var errorMessage: String?
 
@@ -28,38 +30,57 @@ struct EditChildSheet: View {
         self.backend = backend
         _name = State(initialValue: child.displayName)
         _color = State(initialValue: child.color)
+        _afternoon = State(initialValue: child.afternoonReminderAt)
+        _evening = State(initialValue: child.eveningReminderAt)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.blockGap) {
-            SheetHeader(onCancel: { dismiss() }, title: Text(child.displayName)) {
-                SheetPrimaryButton(title: Text("Save"), isEnabled: canSave) {
-                    Task { await save() }
-                }
-            }
-
-            NocturneField(kicker: Text("Name"), placeholder: "Name", text: $name,
-                          identifier: "editChild.name")
-
-            VStack(alignment: .leading, spacing: 10) {
-                Kicker(text: Text("Colour"))
-                HStack(spacing: 12) {
-                    ForEach(ProfilePalette.options, id: \.self) { option in
-                        swatch(option)
+        // A scroll view because the two reminder rows and their pickers no
+        // longer fit a medium detent.
+        ScrollView {
+            VStack(alignment: .leading, spacing: Theme.blockGap) {
+                SheetHeader(onCancel: { dismiss() }, title: Text(child.displayName)) {
+                    SheetPrimaryButton(title: Text("Save"), isEnabled: canSave) {
+                        Task { await save() }
                     }
                 }
-            }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Button("Show setup code") { showingCode = true }
-                    .buttonStyle(.primary)
-                Footnote(text: Text(codeFooter))
-            }
+                NocturneField(kicker: Text("Name"), placeholder: "Name", text: $name,
+                              identifier: "editChild.name")
 
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.danger)
+                VStack(alignment: .leading, spacing: 10) {
+                    Kicker(text: Text("Colour"))
+                    HStack(spacing: 12) {
+                        ForEach(ProfilePalette.options, id: \.self) { option in
+                            swatch(option)
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Kicker(text: Text("Reminders"))
+                    ReminderTimeControl(label: Text("Afternoon reminder"),
+                                        time: $afternoon,
+                                        defaultTime: TimeOfDay(hour: 15, minute: 0),
+                                        identifier: "editChild.afternoon")
+                    ReminderTimeControl(label: Text("Evening reminder"),
+                                        time: $evening,
+                                        defaultTime: TimeOfDay(hour: 20, minute: 0),
+                                        identifier: "editChild.evening")
+                    Footnote(text: Text("Each fires only when this child still has chores unticked."))
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Button("Show setup code") { showingCode = true }
+                        .buttonStyle(.primary)
+                    Footnote(text: Text(codeFooter))
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.danger)
+                }
             }
         }
         .nocturneSheet()
@@ -96,6 +117,8 @@ struct EditChildSheet: View {
         var updated = child
         updated.displayName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         updated.color = color
+        updated.afternoonReminderAt = afternoon
+        updated.eveningReminderAt = evening
         do {
             try await backend.updateProfile(updated)
             await store.reloadAfterEdit()
