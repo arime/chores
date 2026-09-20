@@ -361,6 +361,56 @@
         }
       }
     },
+    "Chores tonight" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Illan tehtävät"
+          }
+        }
+      }
+    },
+    "%lld chores still unticked. Done them? Tick them off." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "1 chore still unticked. Done it? Tick it off."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld chores still unticked. Done them? Tick them off."
+                }
+              }
+            }
+          }
+        },
+        "fi" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "1 tehtävä on vielä kuittaamatta. Tehty? Kuittaa se."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tehtävää on vielä kuittaamatta. Tehty? Kuittaa ne."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Colour" : {
       "localizations" : {
         "fi" : {

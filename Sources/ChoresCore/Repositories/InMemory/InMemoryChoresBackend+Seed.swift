@@ -17,10 +17,14 @@ extension InMemoryChoresBackend {
         sessionUserID = userID
 
         let family = Family(id: UUID(), name: familyName)
+        // Reminder times as the database trigger would fill them, by role.
         let parent = Profile(id: UUID(), familyID: family.id, displayName: "Parent",
-                             role: .parent)
+                             role: .parent,
+                             eveningReminderAt: TimeOfDay(hour: 21, minute: 0))
         let child = Profile(id: UUID(), familyID: family.id, authUserID: userID,
-                            displayName: childName, role: .child)
+                            displayName: childName, role: .child,
+                            afternoonReminderAt: TimeOfDay(hour: 15, minute: 0),
+                            eveningReminderAt: TimeOfDay(hour: 20, minute: 0))
         let chores = choreNames.map { Chore(id: UUID(), familyID: family.id, name: $0) }
 
         withStore { store in
@@ -81,7 +85,8 @@ extension InMemoryChoresBackend {
         let family = Family(id: UUID(), name: familyName)
         let parent = Profile(id: UUID(), familyID: family.id,
                              authUserID: claimedChildIndex == nil ? userID : nil,
-                             displayName: parentName, role: .parent)
+                             displayName: parentName, role: .parent,
+                             eveningReminderAt: TimeOfDay(hour: 21, minute: 0))
         let children = childNames.enumerated().map { index, name in
             Profile(id: UUID(), familyID: family.id,
                     authUserID: index == claimedChildIndex ? userID : nil,
@@ -89,7 +94,9 @@ extension InMemoryChoresBackend {
                     color: childColors.isEmpty
                         ? "#4C8BF5"
                         : childColors[index % childColors.count],
-                    sortOrder: index)
+                    sortOrder: index,
+                    afternoonReminderAt: TimeOfDay(hour: 15, minute: 0),
+                    eveningReminderAt: TimeOfDay(hour: 20, minute: 0))
         }
         let chores = choreNames.map { Chore(id: UUID(), familyID: family.id, name: $0) }
 
