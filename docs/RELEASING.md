@@ -192,6 +192,23 @@ export `ASC_KEY_PATH`, `ASC_KEY_ID` and `ASC_ISSUER_ID` for an App Store Connect
 key instead (Users and Access → Integrations → App Store Connect API); the script
 validates all three up front and passes them to `-exportArchive`.
 
+**Adding a capability to the App ID invalidates the distribution profile, and the API
+key cannot regenerate it.** The archive succeeds and the export fails:
+
+    error: exportArchive Cloud signing permission error
+    error: exportArchive Provisioning profile "iOS Team Store Provisioning Profile:
+           com.metsahalme.Chores" doesn't include the aps-environment entitlement.
+
+`-allowProvisioningUpdates` is already passed; the first line is the real one. Creating
+signing assets needs App Manager or Admin on the API key, and the release key does not
+have it. Run `tools/testflight.sh` with no `ASC_*` variables so the Xcode Apple ID does
+the signing — it regenerates the profile and the export succeeds. Hit once, on
+2026-09-20, adding Push Notifications for the evening reminder.
+
+Note that a simulator build proves nothing here: Xcode writes an empty entitlements blob
+for simulator destinations, so the first thing that ever exercises a new entitlement is
+the archive.
+
 **There is no `.ipa` afterwards.** `App/ExportOptions.plist` sets `destination` to
 `upload`, so the build goes straight to App Store Connect and nothing is written to
 the export path. The upload is recorded in the archive's own `Info.plist` under
