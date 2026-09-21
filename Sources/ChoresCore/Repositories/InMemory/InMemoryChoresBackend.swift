@@ -302,7 +302,7 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
             }
             let entry = ScheduleEntry(id: UUID(), familyID: familyID, profileID: profileID,
                                       choreID: choreID, weekday: weekday,
-                                      validFrom: CalendarDay(Date(), in: .current))
+                                      validFrom: Self.seedValidFrom)
             store.template[entry.id] = entry
             return entry
         }
@@ -326,7 +326,7 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
                     let copy = ScheduleEntry(id: UUID(), familyID: familyID,
                                              profileID: entry.profileID,
                                              choreID: entry.choreID, weekday: target,
-                                             validFrom: CalendarDay(Date(), in: .current))
+                                             validFrom: Self.seedValidFrom)
                     store.template[copy.id] = copy
                 }
             }

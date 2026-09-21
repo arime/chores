@@ -105,6 +105,58 @@ import Foundation
         #expect(result.map(\.chore.name) == ["Dishwasher"])
     }
 
+    // MARK: - History
+
+    @Test func anEntryAppliesFromItsFirstDay() {
+        let template = [entry(kidA, bins, 1, validFrom: monday.adding(days: 7))]
+
+        let thisMonday = ScheduleResolver.chores(
+            for: kidA, on: monday, template: template, chores: [bins], completions: [])
+        let nextMonday = ScheduleResolver.chores(
+            for: kidA, on: monday.adding(days: 7), template: template, chores: [bins], completions: [])
+
+        #expect(thisMonday.isEmpty)
+        #expect(nextMonday.map(\.chore.name) == ["Bins"])
+    }
+
+    @Test func aClosedEntryStopsApplyingOnItsLastDay() {
+        // Closed on the second Monday: valid_until is exclusive.
+        let template = [entry(kidA, bins, 1, validUntil: monday.adding(days: 7))]
+
+        let thisMonday = ScheduleResolver.chores(
+            for: kidA, on: monday, template: template, chores: [bins], completions: [])
+        let nextMonday = ScheduleResolver.chores(
+            for: kidA, on: monday.adding(days: 7), template: template, chores: [bins], completions: [])
+
+        #expect(thisMonday.map(\.chore.name) == ["Bins"])
+        #expect(nextMonday.isEmpty)
+    }
+
+    @Test func aChoreArchivedMidWeekIsStillDueOnTheDaysBefore() {
+        // Archived on Wednesday: Monday's tick still counts, Wednesday has nothing.
+        let archived = chore("44444444-0000-0000-0000-000000000003", "Bins", archivedOn: wednesday)
+        let template = [entry(kidA, archived, 1), entry(kidA, archived, 3)]
+        let done = Completion(id: UUID(), familyID: family, profileID: kidA,
+                              choreID: archived.id, dueOn: monday, completedBy: kidA)
+
+        let mondayResult = ScheduleResolver.chores(
+            for: kidA, on: monday, template: template, chores: [archived], completions: [done])
+        let wednesdayResult = ScheduleResolver.chores(
+            for: kidA, on: wednesday, template: template, chores: [archived], completions: [])
+
+        #expect(mondayResult.map(\.isCompleted) == [true])
+        #expect(wednesdayResult.isEmpty)
+    }
+
+    @Test func progressFollowsTheRangeToo() {
+        let template = [entry(kidA, bins, 1, validUntil: tuesday)]
+
+        let progress = ScheduleResolver.progress(
+            for: kidA, on: tuesday.adding(days: 6), template: template, chores: [bins], completions: [])
+
+        #expect(progress == (0, 0))
+    }
+
     @Test func ignoresTemplateEntriesReferencingAnUnknownChore() {
         let orphan = ScheduleEntry(id: UUID(), familyID: family, profileID: kidA,
                                    choreID: UUID(), weekday: 1,
