@@ -114,10 +114,10 @@ select throws_ok(
   '42501', null, 'a child cannot create chores');
 
 select throws_ok(
-  $$insert into public.schedule_entries (family_id, profile_id, chore_id, weekday)
+  $$insert into public.schedule_entries (family_id, profile_id, chore_id, weekday, valid_from)
     values ('11111111-1111-1111-1111-111111111111',
             'aaaa0000-0000-0000-0000-000000000002',
-            'cccc0000-0000-0000-0000-000000000001', 1)$$,
+            'cccc0000-0000-0000-0000-000000000001', 1, date '2026-08-01')$$,
   '42501', null, 'a child cannot edit the schedule');
 
 -- A child's UPDATE on a sibling is filtered out by the USING clause, so it
@@ -400,9 +400,9 @@ insert into public.profiles (id, family_id, auth_user_id, display_name, role) va
    null, 'Surviving Child', 'child');
 insert into public.chores (id, family_id, name) values
   ('cccc0000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Task 4 Chore');
-insert into public.schedule_entries (family_id, profile_id, chore_id, weekday) values
+insert into public.schedule_entries (family_id, profile_id, chore_id, weekday, valid_from) values
   ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000006',
-   'cccc0000-0000-0000-0000-000000000003', 1);
+   'cccc0000-0000-0000-0000-000000000003', 1, date '2026-08-01');
 insert into public.completions (family_id, profile_id, chore_id, due_on, completed_by) values
   ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000006',
    'cccc0000-0000-0000-0000-000000000003', '2026-08-11', 'aaaa0000-0000-0000-0000-000000000006'),
