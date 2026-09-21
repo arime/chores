@@ -141,8 +141,13 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
                 .select().eq("family_id", value: familyID).execute().value
             async let chores: [Chore] = client.from("chores")
                 .select().eq("family_id", value: familyID).execute().value
+            // Every template row whose range touches the week, closed ones
+            // included, so a past day in it resolves against its own template.
             async let template: [ScheduleEntry] = client.from("schedule_entries")
-                .select().eq("family_id", value: familyID).execute().value
+                .select().eq("family_id", value: familyID)
+                .lte("valid_from", value: lastDay)
+                .or("valid_until.is.null,valid_until.gt.\(firstDay)")
+                .execute().value
             async let completions: [Completion] = client.from("completions")
                 .select().eq("family_id", value: familyID)
                 .gte("due_on", value: firstDay).lte("due_on", value: lastDay)
@@ -249,7 +254,7 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
     public func updateChore(_ chore: Chore) async throws {
         try await run {
             let payload = ChoreUpdate(name: chore.name, icon: chore.icon,
-                                      isArchived: chore.isArchived)
+                                      archivedOn: chore.archivedOn)
             _ = try await client
                 .from("chores").update(payload).eq("id", value: chore.id).execute()
         }
@@ -257,64 +262,39 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
 
     // MARK: Schedule
 
+    // The three schedule writes are RPCs: each is several statements that
+    // must not interleave with another parent's, and the partial unique
+    // index on open rows is one PostgREST's `on_conflict` cannot target.
+    // The rules — return, reopen or insert; delete or close — live in
+    // 20260921100000_schedule_history.sql.
+
     public func addScheduleEntry(familyID: UUID, profileID: UUID, choreID: UUID,
                                  weekday: Int, from today: CalendarDay) async throws -> ScheduleEntry {
-        _ = today
-        return try await run {
-            let payload = NewScheduleEntry(familyID: familyID, profileID: profileID,
-                                           choreID: choreID, weekday: weekday)
-            // Upsert so assigning an already-assigned chore is a no-op rather than
-            // a unique-violation the UI would have to interpret.
-            let rows: [ScheduleEntry] = try await client
-                .from("schedule_entries")
-                .upsert(payload, onConflict: "profile_id,chore_id,weekday")
-                .select()
+        try await run {
+            try await client
+                .rpc("schedule_entry_add", params: ScheduleEntryAddParams(
+                    familyID: familyID, profileID: profileID, choreID: choreID,
+                    weekday: weekday, today: today))
                 .execute()
                 .value
-            guard let created = rows.first else {
-                throw ChoresBackendError.underlying("upsert returned no row")
-            }
-            return created
         }
     }
 
     public func removeScheduleEntry(id: UUID, on today: CalendarDay) async throws {
-        _ = today
         try await run {
             _ = try await client
-                .from("schedule_entries").delete().eq("id", value: id).execute()
+                .rpc("schedule_entry_remove", params: ScheduleEntryRemoveParams(id: id, today: today))
+                .execute()
         }
     }
 
     public func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int],
                         on today: CalendarDay) async throws {
-        _ = today
         try await run {
-            let source: [ScheduleEntry] = try await client
-                .from("schedule_entries")
-                .select()
-                .eq("family_id", value: familyID)
-                .eq("weekday", value: fromWeekday)
+            _ = try await client
+                .rpc("schedule_copy_day", params: ScheduleCopyDayParams(
+                    familyID: familyID, from: fromWeekday, to: toWeekdays, today: today))
                 .execute()
-                .value
-
-            for target in toWeekdays where target != fromWeekday {
-                // Replace rather than merge: copying Monday onto Tuesday should
-                // leave Tuesday looking like Monday.
-                _ = try await client
-                    .from("schedule_entries").delete()
-                    .eq("family_id", value: familyID)
-                    .eq("weekday", value: target)
-                    .execute()
-
-                let copies = source.map {
-                    NewScheduleEntry(familyID: familyID, profileID: $0.profileID,
-                                     choreID: $0.choreID, weekday: target)
-                }
-                if !copies.isEmpty {
-                    _ = try await client.from("schedule_entries").insert(copies).execute()
-                }
-            }
         }
     }
 
@@ -428,28 +408,64 @@ private struct NewChore: Encodable {
     }
 }
 
+/// `archivedOn` is sent as an explicit `null` when nil — that is what
+/// un-archiving is — so it is encoded by hand rather than left to
+/// `encodeIfPresent`.
 private struct ChoreUpdate: Encodable {
     let name: String
     let icon: String?
-    let isArchived: Bool
+    let archivedOn: CalendarDay?
 
     enum CodingKeys: String, CodingKey {
         case name, icon
-        case isArchived = "is_archived"
+        case archivedOn = "archived_on"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(icon, forKey: .icon)
+        try container.encode(archivedOn, forKey: .archivedOn)
     }
 }
 
-private struct NewScheduleEntry: Encodable {
+private struct ScheduleEntryAddParams: Encodable {
     let familyID: UUID
     let profileID: UUID
     let choreID: UUID
     let weekday: Int
+    let today: CalendarDay
 
     enum CodingKeys: String, CodingKey {
-        case weekday
-        case familyID = "family_id"
-        case profileID = "profile_id"
-        case choreID = "chore_id"
+        case familyID = "p_family_id"
+        case profileID = "p_profile_id"
+        case choreID = "p_chore_id"
+        case weekday = "p_weekday"
+        case today = "p_today"
+    }
+}
+
+private struct ScheduleEntryRemoveParams: Encodable {
+    let id: UUID
+    let today: CalendarDay
+
+    enum CodingKeys: String, CodingKey {
+        case id = "p_id"
+        case today = "p_today"
+    }
+}
+
+private struct ScheduleCopyDayParams: Encodable {
+    let familyID: UUID
+    let from: Int
+    let to: [Int]
+    let today: CalendarDay
+
+    enum CodingKeys: String, CodingKey {
+        case familyID = "p_family_id"
+        case from = "p_from"
+        case to = "p_to"
+        case today = "p_today"
     }
 }
 
