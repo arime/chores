@@ -1,9 +1,9 @@
 # Schedule History — Design
 
 **Date:** 2026-09-21
-**Status:** Designed, not implemented. Lands after the foreground-refresh fix
-(commit "Bring the week screen up to date when the app comes back to the front")
-and before any previous-week review, which is postponed.
+**Status:** Implemented 2026-09-21 on the `schedule-history` branch, after the
+foreground-refresh fix and before any previous-week review, which is postponed.
+Migration `20260921100000_schedule_history.sql` awaits the user's push to production.
 
 ## 1. Purpose
 

@@ -18,13 +18,15 @@ struct ScheduleEditorView: View {
     private var chores: [Chore] { store.snapshot?.activeChores ?? [] }
     private var dayName: String { WeekdayNames.full(selectedWeekday) }
 
+    /// Only current entries: the snapshot also carries rows closed earlier in
+    /// the week, which the resolver needs and the editor must not show.
     private func entries(for child: Profile) -> [(entry: ScheduleEntry, chore: Chore)] {
         guard let snapshot = store.snapshot else { return [] }
         var byID: [UUID: Chore] = [:]
         for chore in snapshot.chores { byID[chore.id] = chore }
 
         return snapshot.template
-            .filter { $0.profileID == child.id && $0.weekday == selectedWeekday }
+            .filter { $0.profileID == child.id && $0.weekday == selectedWeekday && $0.isCurrent }
             .compactMap { entry in
                 guard let chore = byID[entry.choreID], !chore.isArchived else { return nil }
                 return (entry, chore)
