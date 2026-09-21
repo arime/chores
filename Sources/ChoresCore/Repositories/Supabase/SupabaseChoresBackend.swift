@@ -258,8 +258,9 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
     // MARK: Schedule
 
     public func addScheduleEntry(familyID: UUID, profileID: UUID, choreID: UUID,
-                                 weekday: Int) async throws -> ScheduleEntry {
-        try await run {
+                                 weekday: Int, from today: CalendarDay) async throws -> ScheduleEntry {
+        _ = today
+        return try await run {
             let payload = NewScheduleEntry(familyID: familyID, profileID: profileID,
                                            choreID: choreID, weekday: weekday)
             // Upsert so assigning an already-assigned chore is a no-op rather than
@@ -277,14 +278,17 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
         }
     }
 
-    public func removeScheduleEntry(id: UUID) async throws {
+    public func removeScheduleEntry(id: UUID, on today: CalendarDay) async throws {
+        _ = today
         try await run {
             _ = try await client
                 .from("schedule_entries").delete().eq("id", value: id).execute()
         }
     }
 
-    public func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int]) async throws {
+    public func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int],
+                        on today: CalendarDay) async throws {
+        _ = today
         try await run {
             let source: [ScheduleEntry] = try await client
                 .from("schedule_entries")

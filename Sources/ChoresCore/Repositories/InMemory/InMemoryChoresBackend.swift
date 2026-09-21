@@ -149,7 +149,9 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
 
     public func fetchSnapshot(familyID: UUID,
                              weekOf day: CalendarDay) async throws -> FamilySnapshot {
-        let week = Set(WeekCalendar.isoWeek(containing: day))
+        let week = WeekCalendar.isoWeek(containing: day)
+        let weekDays = Set(week)
+        let monday = week.first!, sunday = week.last!
         return try withStore { store in
             guard let family = store.families[familyID] else {
                 throw ChoresBackendError.underlying("no such family")
@@ -158,9 +160,15 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
                 family: family,
                 profiles: store.profiles.values.filter { $0.familyID == familyID },
                 chores: store.chores.values.filter { $0.familyID == familyID },
-                template: store.template.values.filter { $0.familyID == familyID },
+                // Every row whose range touches the week, closed ones included,
+                // so a past day in it resolves against the template of its day.
+                template: store.template.values.filter {
+                    $0.familyID == familyID
+                        && $0.validFrom <= sunday
+                        && ($0.validUntil.map { $0 > monday } ?? true)
+                },
                 completions: store.completions.filter {
-                    $0.familyID == familyID && week.contains($0.dueOn)
+                    $0.familyID == familyID && weekDays.contains($0.dueOn)
                 },
                 fetchedAt: Date())
         }
@@ -292,45 +300,68 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
     // MARK: Schedule
 
     public func addScheduleEntry(familyID: UUID, profileID: UUID, choreID: UUID,
-                                 weekday: Int) async throws -> ScheduleEntry {
+                                 weekday: Int, from today: CalendarDay) async throws -> ScheduleEntry {
         withStore { store in
-            // Mirrors the (profile_id, chore_id, weekday) unique constraint.
-            if let existing = store.template.values.first(where: {
-                $0.profileID == profileID && $0.choreID == choreID && $0.weekday == weekday
-            }) {
-                return existing
-            }
-            let entry = ScheduleEntry(id: UUID(), familyID: familyID, profileID: profileID,
-                                      choreID: choreID, weekday: weekday,
-                                      validFrom: Self.seedValidFrom)
-            store.template[entry.id] = entry
-            return entry
+            Self.add(into: store, familyID: familyID, profileID: profileID,
+                     choreID: choreID, weekday: weekday, today: today)
         }
     }
 
-    public func removeScheduleEntry(id: UUID) async throws {
-        withStore { $0.template[id] = nil }
+    public func removeScheduleEntry(id: UUID, on today: CalendarDay) async throws {
+        withStore { store in Self.remove(from: store, id: id, today: today) }
     }
 
-    public func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int]) async throws {
+    public func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int],
+                        on today: CalendarDay) async throws {
         withStore { store in
-            let source = store.template.values.filter {
-                $0.familyID == familyID && $0.weekday == fromWeekday
-            }
             for target in toWeekdays where target != fromWeekday {
                 for existing in store.template.values
-                where existing.familyID == familyID && existing.weekday == target {
-                    store.template[existing.id] = nil
+                where existing.familyID == familyID && existing.weekday == target && existing.isCurrent {
+                    Self.remove(from: store, id: existing.id, today: today)
+                }
+                let source = store.template.values.filter {
+                    $0.familyID == familyID && $0.weekday == fromWeekday && $0.isCurrent
                 }
                 for entry in source {
-                    let copy = ScheduleEntry(id: UUID(), familyID: familyID,
-                                             profileID: entry.profileID,
-                                             choreID: entry.choreID, weekday: target,
-                                             validFrom: Self.seedValidFrom)
-                    store.template[copy.id] = copy
+                    _ = Self.add(into: store, familyID: familyID, profileID: entry.profileID,
+                                 choreID: entry.choreID, weekday: target, today: today)
                 }
             }
         }
+    }
+
+    /// Mirrors `schedule_entry_add`: return the open row, else reopen a row
+    /// closed today, else insert. The partial unique index on open rows is
+    /// what the first branch stands in for.
+    private static func add(into store: Store, familyID: UUID, profileID: UUID,
+                            choreID: UUID, weekday: Int, today: CalendarDay) -> ScheduleEntry {
+        let matching = store.template.values.filter {
+            $0.profileID == profileID && $0.choreID == choreID && $0.weekday == weekday
+        }
+        if let open = matching.first(where: \.isCurrent) {
+            return open
+        }
+        if var closedToday = matching.first(where: { $0.validUntil == today }) {
+            closedToday.validUntil = nil
+            store.template[closedToday.id] = closedToday
+            return closedToday
+        }
+        let entry = ScheduleEntry(id: UUID(), familyID: familyID, profileID: profileID,
+                                  choreID: choreID, weekday: weekday, validFrom: today)
+        store.template[entry.id] = entry
+        return entry
+    }
+
+    /// Mirrors `schedule_entry_remove`: delete a row added today, close an open
+    /// one, leave a closed one alone.
+    private static func remove(from store: Store, id: UUID, today: CalendarDay) {
+        guard var entry = store.template[id], entry.isCurrent else { return }
+        if entry.validFrom == today {
+            store.template[id] = nil
+            return
+        }
+        entry.validUntil = today
+        store.template[id] = entry
     }
 
     // MARK: Completions

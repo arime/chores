@@ -171,9 +171,11 @@ import Foundation
         let chore = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
 
         let first = try await backend.addScheduleEntry(
-            familyID: familyID, profileID: child.id, choreID: chore.id, weekday: 1)
+            familyID: familyID, profileID: child.id, choreID: chore.id, weekday: 1,
+            from: CalendarDay(year: 2026, month: 8, day: 10))
         let second = try await backend.addScheduleEntry(
-            familyID: familyID, profileID: child.id, choreID: chore.id, weekday: 1)
+            familyID: familyID, profileID: child.id, choreID: chore.id, weekday: 1,
+            from: CalendarDay(year: 2026, month: 8, day: 10))
 
         #expect(first.id == second.id)
     }
@@ -188,21 +190,162 @@ import Foundation
         let dishes = try await backend.addChore(familyID: familyID, name: "Dishes", icon: nil)
         let bins = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
 
+        let monday = CalendarDay(year: 2026, month: 8, day: 10)
         _ = try await backend.addScheduleEntry(familyID: familyID, profileID: child.id,
-                                               choreID: dishes.id, weekday: 1)
+                                               choreID: dishes.id, weekday: 1, from: monday)
         _ = try await backend.addScheduleEntry(familyID: familyID, profileID: child.id,
-                                               choreID: bins.id, weekday: 2)
+                                               choreID: bins.id, weekday: 2, from: monday)
 
-        try await backend.copyDay(familyID: familyID, from: 1, to: [2, 3])
+        try await backend.copyDay(familyID: familyID, from: 1, to: [2, 3], on: monday)
 
-        let snapshot = try await backend.fetchSnapshot(
-            familyID: familyID, weekOf: CalendarDay(year: 2026, month: 8, day: 10))
-        let tuesday = snapshot.template.filter { $0.weekday == 2 }
-        let wednesday = snapshot.template.filter { $0.weekday == 3 }
+        let snapshot = try await backend.fetchSnapshot(familyID: familyID, weekOf: monday)
+        let tuesday = snapshot.template.filter { $0.weekday == 2 && $0.isCurrent }
+        let wednesday = snapshot.template.filter { $0.weekday == 3 && $0.isCurrent }
 
         #expect(tuesday.count == 1)
         #expect(tuesday.first?.choreID == dishes.id)   // Bins was replaced, not merged
         #expect(wednesday.count == 1)
+    }
+
+    // MARK: - Schedule history
+
+    struct ScheduleFixture {
+        let backend: InMemoryChoresBackend
+        let familyID: UUID
+        let childID: UUID
+        let bins: Chore
+        let dishes: Chore
+    }
+
+    func makeScheduleFixture() async throws -> ScheduleFixture {
+        let backend = InMemoryChoresBackend()
+        try await backend.signInAnonymously()
+        let familyID = try await backend.createFamily(
+            familyName: "Koti", parentName: "Parent", timezone: "Europe/Helsinki")
+        let child = try await backend.addChild(
+            familyID: familyID, name: "Kid", color: "#FF8800", sortOrder: 0)
+        let bins = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
+        let dishes = try await backend.addChore(familyID: familyID, name: "Dishes", icon: nil)
+        return ScheduleFixture(backend: backend, familyID: familyID, childID: child.id,
+                               bins: bins, dishes: dishes)
+    }
+
+    let day1 = CalendarDay(year: 2026, month: 8, day: 10)   // Monday
+    var day5: CalendarDay { day1.adding(days: 4) }
+    var day9: CalendarDay { day1.adding(days: 8) }
+
+    func template(_ f: ScheduleFixture, weekOf day: CalendarDay) async throws -> [ScheduleEntry] {
+        try await f.backend.fetchSnapshot(familyID: f.familyID, weekOf: day).template
+    }
+
+    @Test func addingStampsTheDayItWasAddedOn() async throws {
+        let f = try await makeScheduleFixture()
+
+        let entry = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
+
+        #expect(entry.validFrom == day1)
+        #expect(entry.isCurrent)
+    }
+
+    @Test func removingOnALaterDayClosesTheEntryAndKeepsIt() async throws {
+        let f = try await makeScheduleFixture()
+        let entry = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
+
+        try await f.backend.removeScheduleEntry(id: entry.id, on: day5)
+
+        let rows = try await template(f, weekOf: day1)
+        #expect(rows.count == 1)
+        #expect(rows.first?.validUntil == day5)
+        #expect(rows.first?.isValid(on: day1) == true)
+        #expect(rows.first?.isValid(on: day5) == false)
+    }
+
+    @Test func removingOnTheDayItWasAddedDeletesIt() async throws {
+        let f = try await makeScheduleFixture()
+        let entry = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
+
+        try await f.backend.removeScheduleEntry(id: entry.id, on: day1)
+
+        #expect(try await template(f, weekOf: day1).isEmpty)
+    }
+
+    @Test func removingAnAlreadyClosedEntryChangesNothing() async throws {
+        let f = try await makeScheduleFixture()
+        let entry = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
+        try await f.backend.removeScheduleEntry(id: entry.id, on: day5)
+
+        try await f.backend.removeScheduleEntry(id: entry.id, on: day9)
+
+        #expect(try await template(f, weekOf: day1).first?.validUntil == day5)
+    }
+
+    @Test func addingBackOnTheDayItWasClosedReopensTheSameRow() async throws {
+        let f = try await makeScheduleFixture()
+        let entry = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
+        try await f.backend.removeScheduleEntry(id: entry.id, on: day5)
+
+        let again = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day5)
+
+        #expect(again.id == entry.id)
+        #expect(again.isCurrent)
+        #expect(again.validFrom == day1)
+        #expect(try await template(f, weekOf: day1).count == 1)
+    }
+
+    @Test func addingBackAfterAnOlderCloseStartsANewRow() async throws {
+        let f = try await makeScheduleFixture()
+        let entry = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
+        try await f.backend.removeScheduleEntry(id: entry.id, on: day5)
+
+        // Sunday of the same week, so one fetch shows the closed row and the new one.
+        let day7 = day1.adding(days: 6)
+        let again = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day7)
+
+        #expect(again.id != entry.id)
+        #expect(again.validFrom == day7)
+        let rows = try await template(f, weekOf: day1)
+        #expect(rows.count == 2)
+        #expect(rows.filter(\.isCurrent).count == 1)
+    }
+
+    @Test func aSnapshotCarriesOnlyEntriesThatOverlapItsWeek() async throws {
+        let f = try await makeScheduleFixture()
+        let entry = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
+        try await f.backend.removeScheduleEntry(id: entry.id, on: day5)   // valid 10–14 Aug
+
+        // The week of 17 Aug: the entry ended before it began.
+        #expect(try await template(f, weekOf: day1.adding(days: 7)).isEmpty)
+        // The week of 3 Aug: the entry begins after it ends.
+        #expect(try await template(f, weekOf: day1.adding(days: -7)).isEmpty)
+        // Its own week.
+        #expect(try await template(f, weekOf: day1).count == 1)
+    }
+
+    @Test func copyDayClosesWhatItReplacesAndKeepsWhatMatches() async throws {
+        let f = try await makeScheduleFixture()
+        // Monday: Dishes. Tuesday: Bins and Dishes.
+        _ = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.dishes.id, weekday: 1, from: day1)
+        let tuesdayBins = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 2, from: day1)
+        let tuesdayDishes = try await f.backend.addScheduleEntry(
+            familyID: f.familyID, profileID: f.childID, choreID: f.dishes.id, weekday: 2, from: day1)
+
+        try await f.backend.copyDay(familyID: f.familyID, from: 1, to: [2], on: day5)
+
+        let tuesday = try await template(f, weekOf: day1).filter { $0.weekday == 2 }
+        #expect(tuesday.count == 2)
+        #expect(tuesday.first { $0.id == tuesdayBins.id }?.validUntil == day5)
+        #expect(tuesday.first { $0.id == tuesdayDishes.id }?.isCurrent == true)
     }
 
     @Test func snapshotContainsOnlyTheRequestedWeeksCompletions() async throws {

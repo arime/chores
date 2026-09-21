@@ -161,16 +161,16 @@ struct SupabaseIntegrationTests {
         let dishes = try await parent.addChore(familyID: familyID, name: "Dishes", icon: nil)
         let bins = try await parent.addChore(familyID: familyID, name: "Bins", icon: nil)
 
-        // Weekly template: Monday dishes, Tuesday bins.
+        // Weekly template: Monday dishes, Tuesday bins, all from this Monday.
+        let monday = CalendarDay(year: 2026, month: 8, day: 10)
         _ = try await parent.addScheduleEntry(familyID: familyID, profileID: child.id,
-                                              choreID: dishes.id, weekday: 1)
+                                              choreID: dishes.id, weekday: 1, from: monday)
         _ = try await parent.addScheduleEntry(familyID: familyID, profileID: child.id,
-                                              choreID: bins.id, weekday: 2)
+                                              choreID: bins.id, weekday: 2, from: monday)
         // Re-adding is a no-op rather than a unique violation.
         _ = try await parent.addScheduleEntry(familyID: familyID, profileID: child.id,
-                                              choreID: dishes.id, weekday: 1)
+                                              choreID: dishes.id, weekday: 1, from: monday)
 
-        let monday = CalendarDay(year: 2026, month: 8, day: 10)
         var snapshot = try await parent.fetchSnapshot(familyID: familyID, weekOf: monday)
         #expect(snapshot.family.name == "Integration Koti")
         #expect(snapshot.children.map(\.displayName) == ["Kid"])
@@ -220,7 +220,7 @@ struct SupabaseIntegrationTests {
         #expect(snapshot.children.first?.displayName == "Renamed")
 
         // copyDay replaces the target day rather than merging into it.
-        try await parent.copyDay(familyID: familyID, from: 1, to: [3])
+        try await parent.copyDay(familyID: familyID, from: 1, to: [3], on: monday)
         snapshot = try await parent.fetchSnapshot(familyID: familyID, weekOf: monday)
         let wednesday = snapshot.template.filter { $0.weekday == 3 }
         #expect(wednesday.count == 1)

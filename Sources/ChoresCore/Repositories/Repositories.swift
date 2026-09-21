@@ -89,13 +89,20 @@ public protocol ChoresBackend: Sendable {
 
     // MARK: Schedule
 
+    /// `today` is the family's day, and the day the change takes effect from.
+    /// An entry that already applies is returned as is; one closed today is
+    /// reopened, so removing and re-adding within a day leaves no gap.
     func addScheduleEntry(familyID: UUID, profileID: UUID, choreID: UUID,
-                          weekday: Int) async throws -> ScheduleEntry
-    func removeScheduleEntry(id: UUID) async throws
+                          weekday: Int, from today: CalendarDay) async throws -> ScheduleEntry
+    /// Closes the entry from `today` on, so days before it still resolve
+    /// against it. An entry added today is deleted instead: it never applied.
+    func removeScheduleEntry(id: UUID, on today: CalendarDay) async throws
     /// Replaces the assignments on each day in `toWeekdays` with those from
-    /// `fromWeekday`. Replaces rather than merges — copying a day onto a populated
-    /// one should leave it looking like the source.
-    func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int]) async throws
+    /// `fromWeekday`, by the same close-and-add rules as the two above.
+    /// Replaces rather than merges — copying a day onto a populated one should
+    /// leave it looking like the source.
+    func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int],
+                 on today: CalendarDay) async throws
 
     // MARK: Completions
 
