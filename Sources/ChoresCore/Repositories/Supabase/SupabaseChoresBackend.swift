@@ -143,7 +143,9 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
                 .select().eq("family_id", value: familyID).execute().value
             // Every template row whose range touches the week, closed ones
             // included, so a past day in it resolves against its own template.
-            async let template: [ScheduleEntry] = client.from("schedule_entries")
+            // The view unions the current template with schedule_entry_history;
+            // the table alone is what the shipped client reads.
+            async let template: [ScheduleEntry] = client.from("schedule_entries_all")
                 .select().eq("family_id", value: familyID)
                 .lte("valid_from", value: lastDay)
                 .or("valid_until.is.null,valid_until.gt.\(firstDay)")
