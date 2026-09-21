@@ -212,6 +212,23 @@ struct SupabaseIntegrationTests {
         #expect(snapshot.activeChores.map(\.name) == ["Dishes"])
         #expect(snapshot.template.count == 2)
 
+        // Archived from Monday: not due on Monday, still due the day before.
+        #expect(snapshot.chores.first { $0.id == bins.id }?.isArchived(on: monday) == true)
+        #expect(snapshot.chores.first { $0.id == bins.id }?.isArchived(on: monday.adding(days: -1)) == false)
+
+        // Removing an entry on a later day closes it and keeps it; adding it
+        // back that same day reopens the very same row.
+        let binsEntry = try #require(snapshot.template.first { $0.choreID == bins.id && $0.weekday == 2 })
+        let friday = monday.adding(days: 4)
+        try await parent.removeScheduleEntry(id: binsEntry.id, on: friday)
+        snapshot = try await parent.fetchSnapshot(familyID: familyID, weekOf: monday)
+        #expect(snapshot.template.first { $0.id == binsEntry.id }?.validUntil == friday)
+
+        let reopened = try await parent.addScheduleEntry(
+            familyID: familyID, profileID: child.id, choreID: bins.id, weekday: 2, from: friday)
+        #expect(reopened.id == binsEntry.id)
+        #expect(reopened.isCurrent)
+
         // Renaming a child persists.
         var renamed = child
         renamed.displayName = "Renamed"
@@ -222,7 +239,7 @@ struct SupabaseIntegrationTests {
         // copyDay replaces the target day rather than merging into it.
         try await parent.copyDay(familyID: familyID, from: 1, to: [3], on: monday)
         snapshot = try await parent.fetchSnapshot(familyID: familyID, weekOf: monday)
-        let wednesday = snapshot.template.filter { $0.weekday == 3 }
+        let wednesday = snapshot.template.filter { $0.weekday == 3 && $0.isCurrent }
         #expect(wednesday.count == 1)
         #expect(wednesday.first?.choreID == dishes.id)
 
