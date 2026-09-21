@@ -1,14 +1,17 @@
--- Schedule history: validity ranges on the template, the three RPCs that
--- maintain them, and the undone count reading through them.
+-- Schedule history: the current template stays in schedule_entries, closed
+-- rows move to schedule_entry_history, and the build already in the App
+-- Store keeps working against both.
 --
--- Every rule here is one the in-memory backend mirrors in Swift. If one of
--- these changes, InMemoryBackendTests changes with it. Run with:
+-- The compatibility assertions come first and matter most: the shipped
+-- client inserts without valid_from, upserts on (profile_id, chore_id,
+-- weekday), and reads and writes chores.is_archived. Every rule the RPCs
+-- enforce is one the in-memory backend mirrors in Swift. Run with:
 --   supabase db reset && supabase test db
 
 begin;
 set local search_path to public, extensions;
 
-select plan(28);
+select plan(39);
 
 -- ---------------------------------------------------------------------------
 -- Helpers (same shape as 01_rls_and_rpcs.sql; each file is its own transaction)
@@ -33,6 +36,10 @@ begin
   perform set_config('request.jwt.claims', '', true);
 end $$;
 
+-- The family's local today, as the triggers compute it.
+create function tests.helsinki_today() returns date language sql stable as
+  $$ select (now() at time zone 'Europe/Helsinki')::date $$;
+
 -- ---------------------------------------------------------------------------
 -- Fixtures. One family in Helsinki: a parent, a child, two chores.
 -- 2026-08-10 is a Monday.
@@ -51,51 +58,69 @@ insert into public.profiles (id, family_id, auth_user_id, display_name, role) va
   ('aaaa0000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111',
    'a0000000-0000-0000-0000-000000000003', 'C1', 'child');
 
-insert into public.chores (id, family_id, name, archived_on) values
-  ('cccc0000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Bins',   null),
-  ('cccc0000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Dishes', null);
+insert into public.chores (id, family_id, name) values
+  ('cccc0000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Bins'),
+  ('cccc0000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Dishes');
 
 -- ---------------------------------------------------------------------------
--- The columns and the index
+-- Shape
 -- ---------------------------------------------------------------------------
 
-select has_column('public', 'schedule_entries', 'valid_from',  'schedule_entries.valid_from exists');
-select has_column('public', 'schedule_entries', 'valid_until', 'schedule_entries.valid_until exists');
+select has_column('public', 'schedule_entries', 'valid_from', 'schedule_entries.valid_from exists');
+select hasnt_column('public', 'schedule_entries', 'valid_until', 'an open row has no end');
+select has_table('public', 'schedule_entry_history', 'schedule_entry_history exists');
+select has_view('public', 'schedule_entries_all', 'schedule_entries_all exists');
 select has_column('public', 'chores', 'archived_on', 'chores.archived_on exists');
-select hasnt_column('public', 'chores', 'is_archived', 'chores.is_archived is gone');
+select has_column('public', 'chores', 'is_archived', 'chores.is_archived is kept for the shipped build');
 
 select throws_ok(
-  $$insert into public.schedule_entries (family_id, profile_id, chore_id, weekday, valid_from)
-    values ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
-            'cccc0000-0000-0000-0000-000000000001', 1, null)$$,
-  '23502', null, 'valid_from is required');
-
-select throws_ok(
-  $$insert into public.schedule_entries (family_id, profile_id, chore_id, weekday, valid_from, valid_until)
-    values ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
-            'cccc0000-0000-0000-0000-000000000001', 1, '2026-08-10', '2026-08-10')$$,
-  '23514', null, 'a range must end after it begins');
-
--- A closed row and an open row may share a (profile, chore, weekday); two open rows may not.
-insert into public.schedule_entries (id, family_id, profile_id, chore_id, weekday, valid_from, valid_until) values
-  ('ee000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
-   'aaaa0000-0000-0000-0000-000000000003', 'cccc0000-0000-0000-0000-000000000002', 1, '2026-07-01', '2026-07-15'),
-  ('ee000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111',
-   'aaaa0000-0000-0000-0000-000000000003', 'cccc0000-0000-0000-0000-000000000002', 1, '2026-08-01', null);
-select pass('a closed and an open row for one triple coexist');
-select throws_ok(
-  $$insert into public.schedule_entries (family_id, profile_id, chore_id, weekday, valid_from)
-    values ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
-            'cccc0000-0000-0000-0000-000000000002', 1, '2026-08-05')$$,
-  '23505', null, 'but not two open rows');
-delete from public.schedule_entries where id in
-  ('ee000000-0000-0000-0000-000000000001', 'ee000000-0000-0000-0000-000000000002');
+  $$insert into public.schedule_entry_history
+      (id, family_id, profile_id, chore_id, weekday, valid_from, valid_until)
+    values (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+            'aaaa0000-0000-0000-0000-000000000003', 'cccc0000-0000-0000-0000-000000000001',
+            1, '2026-08-10', '2026-08-10')$$,
+  '23514', null, 'a closed range must end after it begins');
 
 -- ---------------------------------------------------------------------------
--- schedule_entry_add / schedule_entry_remove, as the parent
+-- The shipped build, as the parent: no valid_from, upsert, is_archived
 -- ---------------------------------------------------------------------------
 
 select tests.auth_as('a0000000-0000-0000-0000-000000000001');
+
+insert into public.schedule_entries (id, family_id, profile_id, chore_id, weekday)
+values ('ee000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111',
+        'aaaa0000-0000-0000-0000-000000000003', 'cccc0000-0000-0000-0000-000000000002', 4);
+select is((select valid_from from public.schedule_entries where id = 'ee000000-0000-0000-0000-000000000001'),
+          tests.helsinki_today(),
+          'an insert with no valid_from is stamped with the family''s local today');
+
+with upserted as (
+  insert into public.schedule_entries (family_id, profile_id, chore_id, weekday)
+  values ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
+          'cccc0000-0000-0000-0000-000000000002', 4)
+  on conflict (profile_id, chore_id, weekday) do update set weekday = excluded.weekday
+  returning id)
+select is((select id from upserted), 'ee000000-0000-0000-0000-000000000001'::uuid,
+          'the shipped upsert still resolves on (profile_id, chore_id, weekday)');
+delete from public.schedule_entries where id = 'ee000000-0000-0000-0000-000000000001';
+
+update public.chores set is_archived = true where id = 'cccc0000-0000-0000-0000-000000000002';
+select is((select archived_on from public.chores where id = 'cccc0000-0000-0000-0000-000000000002'),
+          tests.helsinki_today(), 'flipping is_archived on stamps archived_on with today');
+update public.chores set is_archived = false where id = 'cccc0000-0000-0000-0000-000000000002';
+select is((select archived_on from public.chores where id = 'cccc0000-0000-0000-0000-000000000002'),
+          null::date, 'flipping it off clears archived_on');
+
+update public.chores set archived_on = date '2026-08-17' where id = 'cccc0000-0000-0000-0000-000000000002';
+select is((select is_archived from public.chores where id = 'cccc0000-0000-0000-0000-000000000002'),
+          true, 'setting archived_on sets is_archived');
+update public.chores set archived_on = null where id = 'cccc0000-0000-0000-0000-000000000002';
+select is((select is_archived from public.chores where id = 'cccc0000-0000-0000-0000-000000000002'),
+          false, 'clearing archived_on clears is_archived');
+
+-- ---------------------------------------------------------------------------
+-- schedule_entry_add / schedule_entry_remove
+-- ---------------------------------------------------------------------------
 
 -- Day 1: add Bins on Monday.
 create temp table t as
@@ -103,7 +128,6 @@ create temp table t as
     '11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
     'cccc0000-0000-0000-0000-000000000001', 1, date '2026-08-10');
 select is((select valid_from from t), date '2026-08-10', 'add stamps valid_from with p_today');
-select is((select valid_until from t), null::date, 'and leaves valid_until open');
 
 -- Adding again returns the same open row.
 select is(
@@ -115,25 +139,29 @@ select is(
 select is((select count(*)::int from public.schedule_entries
             where chore_id = 'cccc0000-0000-0000-0000-000000000001'), 1, 'and inserts nothing');
 
--- Day 5: remove it. Closed, not deleted.
+-- Day 5: remove it. Moved to history, not deleted.
 select public.schedule_entry_remove((select id from t), date '2026-08-14');
-select is((select valid_until from public.schedule_entries where id = (select id from t)),
-          date '2026-08-14', 'removing on a later day closes the entry from that day');
+select is((select count(*)::int from public.schedule_entries where id = (select id from t)), 0,
+          'removing on a later day takes the row out of the template');
+select is((select valid_until from public.schedule_entry_history where id = (select id from t)),
+          date '2026-08-14', 'and files it in history, closed from that day');
+select is((select valid_from from public.schedule_entry_history where id = (select id from t)),
+          date '2026-08-10', 'with its first day intact');
 
--- Removing a closed entry again does nothing.
+-- Removing an id that is already history does nothing.
 select public.schedule_entry_remove((select id from t), date '2026-08-20');
-select is((select valid_until from public.schedule_entries where id = (select id from t)),
+select is((select valid_until from public.schedule_entry_history where id = (select id from t)),
           date '2026-08-14', 'removing an already closed entry leaves its close day alone');
 
--- Day 5 still: add it back. The same row reopens.
+-- Day 5 still: add it back. The same row comes back.
 select is(
   (select id from public.schedule_entry_add(
     '11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
     'cccc0000-0000-0000-0000-000000000001', 1, date '2026-08-14')),
   (select id from t),
-  'adding back on the close day reopens the same row');
-select is((select valid_until from public.schedule_entries where id = (select id from t)),
-          null::date, 'and it is open again');
+  'adding back on the close day brings the same row back');
+select is((select count(*)::int from public.schedule_entry_history where id = (select id from t)), 0,
+          'and it leaves history');
 select is((select valid_from from public.schedule_entries where id = (select id from t)),
           date '2026-08-10', 'with its original first day');
 
@@ -145,13 +173,25 @@ create temp table t2 as
     'cccc0000-0000-0000-0000-000000000001', 1, date '2026-08-18');
 select isnt((select id from t2), (select id from t), 'adding after an older close starts a new row');
 select is((select valid_from from t2), date '2026-08-18', 'from p_today');
-select is((select count(*)::int from public.schedule_entries
-            where chore_id = 'cccc0000-0000-0000-0000-000000000001'), 2, 'both rows remain');
+select is((select count(*)::int from public.schedule_entry_history where id = (select id from t)), 1,
+          'while the closed one stays in history');
 
 -- An entry added and removed on the same day never existed.
 select public.schedule_entry_remove((select id from t2), date '2026-08-18');
 select is((select count(*)::int from public.schedule_entries where id = (select id from t2)), 0,
           'removing on the day it was added deletes it');
+select is((select count(*)::int from public.schedule_entry_history where id = (select id from t2)), 0,
+          'and files nothing');
+
+-- ---------------------------------------------------------------------------
+-- schedule_entries_all: what the new client reads
+-- ---------------------------------------------------------------------------
+
+select is((select count(*)::int from public.schedule_entries_all
+            where chore_id = 'cccc0000-0000-0000-0000-000000000001'), 1,
+          'the view shows the closed row');
+select is((select valid_until from public.schedule_entries_all where id = (select id from t)),
+          date '2026-08-14', 'with its end');
 
 -- ---------------------------------------------------------------------------
 -- schedule_copy_day
@@ -172,11 +212,11 @@ create temp table tue_dishes as
 
 select public.schedule_copy_day('11111111-1111-1111-1111-111111111111', 1, array[2], date '2026-08-14');
 
-select is((select valid_until from public.schedule_entries where id = (select id from tue_bins)),
+select is((select valid_until from public.schedule_entry_history where id = (select id from tue_bins)),
           date '2026-08-14', 'copy-day closes a target entry the source lacks');
-select is((select valid_until from public.schedule_entries where id = (select id from tue_dishes)),
-          null::date, 'and leaves a matching one open');
-select is((select count(*)::int from public.schedule_entries where weekday = 2 and valid_until is null), 1,
+select is((select count(*)::int from public.schedule_entries where id = (select id from tue_dishes)), 1,
+          'and leaves a matching one open');
+select is((select count(*)::int from public.schedule_entries where weekday = 2), 1,
           'so Tuesday now looks like Monday');
 
 -- ---------------------------------------------------------------------------
@@ -189,21 +229,33 @@ select throws_ok(
       '11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
       'cccc0000-0000-0000-0000-000000000002', 3, date '2026-08-10')$$,
   '42501', null, 'a child cannot add to the schedule through the RPC');
+select throws_ok(
+  $$insert into public.schedule_entry_history
+      (id, family_id, profile_id, chore_id, weekday, valid_from, valid_until)
+    values (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
+            'aaaa0000-0000-0000-0000-000000000003', 'cccc0000-0000-0000-0000-000000000001',
+            5, '2026-08-01', '2026-08-02')$$,
+  '42501', null, 'nor write history directly');
+select is((select count(*)::int from public.schedule_entries_all), 4,
+          'but reads the family''s whole template, history included');
 
 -- ---------------------------------------------------------------------------
--- family_undone_count reads through the ranges
+-- family_undone_count reads through both tables
 -- ---------------------------------------------------------------------------
 
 select tests.as_admin();
 delete from public.schedule_entries;
+delete from public.schedule_entry_history;
 
 -- Bins on Monday, valid 10–14 Aug (closed on the 14th). Dishes on Monday, open.
 -- Dishes archived on Monday 17 Aug.
-insert into public.schedule_entries (family_id, profile_id, chore_id, weekday, valid_from, valid_until) values
+insert into public.schedule_entry_history
+  (id, family_id, profile_id, chore_id, weekday, valid_from, valid_until) values
+  (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
+   'cccc0000-0000-0000-0000-000000000001', 1, '2026-08-10', '2026-08-14');
+insert into public.schedule_entries (family_id, profile_id, chore_id, weekday, valid_from) values
   ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
-   'cccc0000-0000-0000-0000-000000000001', 1, '2026-08-10', '2026-08-14'),
-  ('11111111-1111-1111-1111-111111111111', 'aaaa0000-0000-0000-0000-000000000003',
-   'cccc0000-0000-0000-0000-000000000002', 1, '2026-08-01', null);
+   'cccc0000-0000-0000-0000-000000000002', 1, '2026-08-01');
 update public.chores set archived_on = '2026-08-17' where id = 'cccc0000-0000-0000-0000-000000000002';
 
 select is(public.family_undone_count('11111111-1111-1111-1111-111111111111', date '2026-08-10'), 2,

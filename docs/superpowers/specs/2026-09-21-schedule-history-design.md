@@ -1,7 +1,7 @@
 # Schedule History — Design
 
-**Date:** 2026-09-21
-**Status:** Implemented 2026-09-21 on the `schedule-history` branch, after the
+**Date:** 2026-09-21 (revised the same day: the two-table shape, see §2)
+**Status:** Implemented on the `schedule-history` branch, after the
 foreground-refresh fix and before any previous-week review, which is postponed.
 Migration `20260921100000_schedule_history.sql` awaits the user's push to production.
 
@@ -27,70 +27,79 @@ is resolved against the wrong template: backfill can only guess.
 
 | Question | Decision |
 |---|---|
-| Ranges or weekly snapshots? | **Validity ranges** on each template row. A frozen copy per week needs a job to make it, duplicates rows weekly, and leaves a Wednesday edit ambiguous. A range answers that: the edit applies from today. |
-| Which rows carry a range? | `schedule_entries` (`valid_from`, `valid_until`) and `chores` (`archived_on`). Profiles are not versioned: a deleted child cascades away as today. |
-| Interval ends | `valid_from` inclusive, `valid_until` **exclusive**, `null` = still current. "Removed on Tuesday" means valid through Monday. |
-| Remove an entry | **Close it** (`valid_until = today`) rather than delete — except an entry added *today*, which is deleted: it lived zero days and never existed. |
-| Re-add an entry closed today | **Reopen** the same row (`valid_until = null`). Remove-then-add within a day is a no-op, not a one-day gap. |
-| `is_archived` | **Replaced** by `archived_on date null`. Two columns for one fact would drift. `Chore.isArchived` stays as a computed property so most call sites do not change. |
-| Un-archive | Sets `archived_on = null`. The archived stretch is forgotten — the chore reads as never archived. Acceptable: un-archive means "never mind". |
-| Whose "today"? | **The family's**, sent by the client (`store.today`). Postgres `current_date` is UTC; a Helsinki parent editing at 01:00 Tuesday must produce Tuesday. |
-| Where do the rules live? | **In SQL, as RPCs** under RLS (`security invoker`). Close-or-delete, reopen-or-insert and copy-day are each several statements that must not interleave with another parent's, and the partial unique index below cannot be targeted by PostgREST's `on_conflict`. The in-memory backend mirrors the rules for the UI tests; pgTAP proves the SQL, Swift Testing proves the mirror. |
-| Uniqueness | `unique (profile_id, chore_id, weekday)` becomes a **partial unique index** `where valid_until is null`. One open row per triple; any number of closed ones. |
-| Backfill | `valid_from = created_at` as a date in the family's timezone. Existing archived chores get `archived_on = created_at::date`: archived for their whole life, which is exactly how the app draws them today. Neither guess can be better than that. |
-| Fetch window | Entries whose range **overlaps** the fetched week, not only open ones: `valid_from <= sunday and (valid_until is null or valid_until > monday)`. Closed rows accumulate but the window bounds what a phone ever holds. All chores are fetched as today. |
+| Must the shipped build keep working? | **Yes, indefinitely.** Production is the only environment a TestFlight build can talk to, and the App Store build is downloadable at any time. Every migration must therefore be compatible with the build currently in the store: expand, never contract. This decision shapes every row below. |
+| Where do closed rows live? | **In their own table**, `schedule_entry_history`. `schedule_entries` keeps meaning exactly what it means today — the current template — so every read and write the shipped build makes still works. The first draft put a range on every row of one table; that broke the old build's `select *` (closed rows drawn as live) and its upsert (`on_conflict` cannot target a partial index). |
+| Interval ends | `valid_from` inclusive on both tables; `valid_until` exclusive, on the history table only. An open row has no end. |
+| Remove an entry | **Move it** to history with `valid_until = today` — except an entry added *today* (or later, under clock skew), which is deleted: it lived zero days. |
+| Re-add an entry closed today | **Move it back**, same `id`, same `valid_from`. Remove-then-add within a day is a no-op, not a one-day gap. |
+| `is_archived` | **Kept**, and kept in sync with the new `archived_on` by a trigger. The old build reads and writes the flag; the new build reads and writes the day; the row is always consistent. `Chore.isArchived` in Swift is a computed property over `archivedOn`. |
+| Un-archive | `archived_on = null`, `is_archived = false`. The archived stretch is forgotten. |
+| Whose "today"? | **The family's**, sent by the new client (`store.today`). For the old build, which sends no day, triggers stamp the family's local today from `families.timezone`. Never Postgres `current_date`, which is UTC. |
+| Where do the rules live? | **In SQL, as RPCs** under RLS (`security invoker`). Moving a row between tables is two statements that must not interleave with another parent's. The in-memory backend mirrors the *semantics* — one collection with ranges — since what it models is behaviour, not storage; pgTAP proves the SQL, Swift Testing proves the mirror. |
+| Uniqueness | `unique (profile_id, chore_id, weekday)` on `schedule_entries` **stays**: with only open rows in the table it is exactly right, and it is what the old build's upsert infers. History has no uniqueness beyond `id`. |
+| Backfill | `valid_from = created_at` as a date in the family's timezone. Existing archived chores get `archived_on = created_at::date`: archived for their whole life, which is exactly how the app draws them today. |
+| Fetch window | The new client reads a union view, `schedule_entries_all`, filtered to rows that **overlap** the fetched week: `valid_from <= sunday and (valid_until is null or valid_until > monday)`. All chores are fetched as today. |
+| Old-build degradation | An old *parent* build's schedule edits work but leave no history (its delete is a delete). Old kid builds are unaffected. Nobody sees an error. |
 
 ## 3. Data
 
 ### 3.1 Migration
 
 ```sql
-alter table public.schedule_entries
-  add column valid_from  date,
-  add column valid_until date;
+-- schedule_entries: the first day, stamped by the client or, for the old
+-- build, by a trigger from the family's timezone.
+alter table public.schedule_entries add column valid_from date;
+update ... set valid_from = (created_at at time zone f.timezone)::date ...;
+alter table public.schedule_entries alter column valid_from set not null;
+create trigger schedule_entries_default_valid_from before insert ...;
 
-update public.schedule_entries se
-   set valid_from = (se.created_at at time zone f.timezone)::date
-  from public.families f
- where f.id = se.family_id;
+-- Closed rows. Same id as the row had while open, so a reopen is the same row.
+create table public.schedule_entry_history (
+  id, family_id, profile_id, chore_id, weekday, created_at,   -- as schedule_entries
+  valid_from  date not null,
+  valid_until date not null,
+  closed_at   timestamptz not null default now(),
+  check (valid_until > valid_from)
+);
+-- RLS and grants mirror schedule_entries: family-scoped select, parents write.
 
-alter table public.schedule_entries
-  alter column valid_from set not null,
-  add constraint schedule_entries_range check (valid_until is null or valid_until > valid_from),
-  drop constraint schedule_entries_profile_id_chore_id_weekday_key;
-
-create unique index schedule_entries_open_key
-  on public.schedule_entries (profile_id, chore_id, weekday)
-  where valid_until is null;
-
+-- chores: the day, alongside the flag, kept in step both ways.
 alter table public.chores add column archived_on date;
-update public.chores c
-   set archived_on = (c.created_at at time zone f.timezone)::date
-  from public.families f
- where f.id = c.family_id and c.is_archived;
-alter table public.chores drop column is_archived;
-```
+update ... set archived_on = (created_at at time zone f.timezone)::date where is_archived;
+create trigger chores_sync_archived before insert or update ...;
 
-The constraint name is Postgres's default for the inline `unique (...)`; the migration
-confirms it with `\d` on the local stack before it is trusted.
+-- One relation over both tables for readers that want history.
+create view public.schedule_entries_all with (security_invoker = true) as
+  select ..., null::date as valid_until from public.schedule_entries
+  union all
+  select ..., valid_until from public.schedule_entry_history;
+```
 
 ### 3.2 RPCs
 
-All three run as the caller (`security invoker`), so `schedule_write` RLS applies as it
-does to the direct writes they replace. Each takes `p_today date` from the client.
+All three run as the caller (`security invoker`); RLS on both tables applies. Each
+takes `p_today date` from the client.
 
 | Function | Rule |
 |---|---|
-| `schedule_entry_add(p_family_id, p_profile_id, p_chore_id, p_weekday, p_today) returns schedule_entries` | Open row exists → return it. Row closed *on* `p_today` (`valid_until = p_today`) → reopen it and return it. Otherwise insert with `valid_from = p_today`. |
-| `schedule_entry_remove(p_id, p_today) returns void` | `valid_from = p_today` → delete. Else, if open → `valid_until = p_today`. Already closed → no-op. |
-| `schedule_copy_day(p_family_id, p_from, p_to int[], p_today) returns void` | For each target ≠ source: remove every open target entry (by the rule above), then add each open source entry onto the target (by the rule above). One transaction. |
+| `schedule_entry_add(p_family_id, p_profile_id, p_chore_id, p_weekday, p_today) returns schedule_entries` | Open row exists → return it. History row closed *on* `p_today` → move it back (same `id`, `valid_from`, `created_at`) and return it. Otherwise insert with `valid_from = p_today`. |
+| `schedule_entry_remove(p_id, p_today) returns void` | `valid_from >= p_today` → delete. Otherwise move the row to history with `valid_until = p_today`. An id that is already in history → no-op. |
+| `schedule_copy_day(p_family_id, p_from, p_to int[], p_today) returns void` | For each target ≠ source: remove every open target entry, then add each open source entry onto the target, both by the rules above. One transaction. |
 
 `execute` is granted to `authenticated` only; RLS does the family scoping.
 
-### 3.3 Reads
+### 3.3 Triggers
 
-`family_undone_count` (`20260918100200_evening_reminder.sql`) gains the same filter the
-resolver applies:
+- **`schedule_entries_default_valid_from`** (before insert): when `valid_from` is null,
+  stamp the family's local today. The old build's upsert sends no `valid_from`.
+- **`chores_sync_archived`** (before insert or update): if `archived_on` changed, set
+  `is_archived = archived_on is not null`; else if `is_archived` changed, set `archived_on`
+  to the family's local today or null. On insert, whichever is given wins.
+
+### 3.4 Reads
+
+`family_undone_count` (`20260918100200_evening_reminder.sql`) reads `schedule_entries_all`
+with the same filter the resolver applies:
 
 ```sql
    and se.valid_from <= p_date and (se.valid_until is null or se.valid_until > p_date)
@@ -103,20 +112,15 @@ resolver applies:
 public struct ScheduleEntry {
     // ...existing fields...
     public let validFrom: CalendarDay
-    public let validUntil: CalendarDay?          // exclusive
+    public var validUntil: CalendarDay?          // exclusive; nil = open
     public var isCurrent: Bool { validUntil == nil }
-    public func isValid(on day: CalendarDay) -> Bool {
-        day >= validFrom && (validUntil.map { day < $0 } ?? true)
-    }
+    public func isValid(on day: CalendarDay) -> Bool
 }
 
 public struct Chore {
-    // is_archived is gone
-    public var archivedOn: CalendarDay?
+    public var archivedOn: CalendarDay?          // is_archived is not decoded
     public var isArchived: Bool { archivedOn != nil }
-    public func isArchived(on day: CalendarDay) -> Bool {
-        archivedOn.map { day >= $0 } ?? false
-    }
+    public func isArchived(on day: CalendarDay) -> Bool
 }
 ```
 
@@ -126,7 +130,6 @@ public struct Chore {
 
 Every other reader of `snapshot.template` wants the *current* template and filters
 `isCurrent`: `ScheduleEditorView.entries(for:)` and the in-memory `copyDay` source.
-`FamilySnapshot.activeChores` is unchanged in meaning (`!isArchived` = not archived now).
 
 ### 4.1 `ChoresBackend`
 
@@ -137,7 +140,7 @@ func copyDay(familyID:from:to:on today: CalendarDay) async throws
 ```
 
 `updateChore(_:)` is unchanged in signature; its payload carries `archived_on`
-(explicit `null` to un-archive, as `updateProfile` already does for reminder times).
+(explicit `null` to un-archive). The trigger keeps `is_archived` in step.
 `ChoresView.setArchived` sets `archivedOn = isArchived ? store.today : nil`.
 
 ## 5. What this does not do
@@ -147,6 +150,8 @@ func copyDay(familyID:from:to:on today: CalendarDay) async throws
   because of this one.
 - **No history for profiles, names or icons.** A renamed chore is renamed in the past too.
 - **No exact history for archived stretches** once un-archived (§2).
+- **No history from old-build edits.** A parent still on the shipped build deletes rather
+  than closes. The window is as long as that parent takes to update.
 - **Existing data is a guess.** `created_at` is right for entries never edited and wrong
   for the rest; there is no way to do better.
 
@@ -155,8 +160,8 @@ func copyDay(familyID:from:to:on today: CalendarDay) async throws
 | Layer | Proves |
 |---|---|
 | `ScheduleResolverTests` | Range boundaries: valid on `valid_from`, not on `valid_until`; open row valid forever; chore archived on *d* is due on *d − 1* and not on *d*; an archived chore's earlier ticks in the week still count. |
-| `InMemoryBackendTests` | Remove closes (row still returned, closed); remove-same-day deletes; add after close-same-day reopens the same id; add after an older close inserts a new row and both are returned; copy-day closes and adds by the same rules. |
+| `InMemoryBackendTests` | Remove closes (row still returned, closed); remove-same-day deletes; add after close-same-day reopens the same id; add after an older close inserts a new row and both are returned; copy-day closes and adds by the same rules; a snapshot carries only rows overlapping its week. |
 | `ModelDecodingTests` | Both models round-trip the new keys; `valid_until`/`archived_on` decode from `null`. |
-| pgTAP `03_schedule_history.sql` | The three RPCs' rules; the partial index allows a closed and an open row for one triple and rejects two open; `family_undone_count` ignores a closed entry and a chore archived before `p_date`, counts one archived after. |
-| `SupabaseIntegrationTests` | The existing schedule and archive cases, updated to the new signatures, plus one round trip for close-and-reopen. |
-| UI tests | Unchanged in intent; the schedule editor still adds and removes. The seed gives every entry a fixed `validFrom` years before any seeded `today` (one seed has no `today` to count back from). |
+| pgTAP `03_schedule_history.sql` | **The old build's calls still work**: an insert with no `valid_from` is stamped with the family's local today; the upsert's `on_conflict` still resolves; flipping `is_archived` sets `archived_on` and vice versa. The three RPCs' rules across both tables. `schedule_entries_all` shows open and closed rows to the family. `family_undone_count` ignores a closed entry and a chore archived before `p_date`. |
+| `SupabaseIntegrationTests` | The existing schedule and archive cases, updated to the new signatures, plus one round trip for close-and-reopen through the view. |
+| UI tests | Unchanged in intent; the schedule editor still adds and removes. The seed gives every entry a fixed `validFrom` years before any seeded `today`. |
