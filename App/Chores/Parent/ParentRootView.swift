@@ -57,6 +57,7 @@ struct ParentRootView: View {
         }
         .tint(Theme.accent)
         .minimizingTabBar()
+        .refreshingOnForeground(store: store, selectedDay: $selectedDay)
         .task {
             await store.start()
             // The system permission alert would block UI tests, and the fake

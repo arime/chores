@@ -215,6 +215,31 @@ final class ParkedWriteBackend: ForwardingBackend, @unchecked Sendable {
     }
 }
 
+/// Counts snapshot fetches, so a test can tell a refresh that happened from one
+/// that was judged unnecessary.
+final class FetchCountingBackend: ForwardingBackend, @unchecked Sendable {
+    private(set) var fetchCount = 0
+
+    override func fetchSnapshot(familyID: UUID, weekOf day: CalendarDay) async throws -> FamilySnapshot {
+        fetchCount += 1
+        return try await super.fetchSnapshot(familyID: familyID, weekOf: day)
+    }
+}
+
+/// A clock a test can move, for stores whose behaviour depends on how long ago
+/// something happened.
+final class MutableClock: @unchecked Sendable {
+    var now: Date
+
+    init(_ now: Date) {
+        self.now = now
+    }
+
+    func advance(by seconds: TimeInterval) {
+        now = now.addingTimeInterval(seconds)
+    }
+}
+
 /// Fails every call with the same error. The default, `.projectUnavailable`,
 /// stands in for a paused project or a device with no connectivity; pass another
 /// to exercise a backend that answers and refuses.
