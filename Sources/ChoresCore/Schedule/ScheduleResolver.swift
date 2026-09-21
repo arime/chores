@@ -6,9 +6,13 @@ import Foundation
 /// no SwiftUI. That is what makes it exhaustively testable, and it is where the
 /// only real logic in the system lives.
 ///
-/// When per-date overrides are added later they are applied here — the read path
-/// changes from *template* to *template, then overrides* — and nothing else in the
-/// app needs to know.
+/// The template carries a validity range per row and each chore an archived-on
+/// day, and both are applied here by the day asked about — so a past day is
+/// resolved against the template as it stood then, not as it stands now.
+///
+/// When per-date overrides are added later they are applied here too — the read
+/// path changes from *template* to *template, then overrides* — and nothing else
+/// in the app needs to know.
 public enum ScheduleResolver {
 
     public static func chores(
@@ -28,9 +32,9 @@ public enum ScheduleResolver {
         }
 
         return template
-            .filter { $0.profileID == profileID && $0.weekday == day.isoWeekday }
+            .filter { $0.profileID == profileID && $0.weekday == day.isoWeekday && $0.isValid(on: day) }
             .compactMap { entry -> ChoreForDay? in
-                guard let chore = choresByID[entry.choreID], !chore.isArchived else { return nil }
+                guard let chore = choresByID[entry.choreID], !chore.isArchived(on: day) else { return nil }
                 let key = CompletionKey(profileID: profileID, choreID: chore.id, dueOn: day)
                 return ChoreForDay(chore: chore,
                                    profileID: profileID,
