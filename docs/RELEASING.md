@@ -10,6 +10,57 @@ Migrations live in `supabase/migrations/`. Apply them yourself:
 Run `supabase test db` locally first — the pgTAP suite in `supabase/tests/` is the
 regression gate for RLS, and an RLS bug fails silently.
 
+### The installed base must keep working
+
+**A model change and the migration that carries it must never break a build that is
+already on someone's phone.** Not for a review window, not for an afternoon.
+
+The reason is structural, not cautious. A Release build — TestFlight or App Store —
+talks to hosted Supabase and nothing else, so there is exactly one database and every
+installed build shares it. The App Store build can be downloaded at any moment, App
+Review takes days, and a family updates its devices when it gets round to it. The
+migration is pushed before the new build exists (`tools/testflight.sh` insists on it),
+so from that moment until the last device updates, the *old* client is running against
+the *new* schema. That window is the normal case, and it has to work.
+
+**Compatible means every call the shipped client makes still succeeds and still means
+the same thing.** Before writing a migration, list them for each table touched — the
+`select *` and what its decoder requires, every insert and upsert with its
+`on_conflict` target, every column name in an update payload, every RPC name and
+signature — and keep each one true. In practice:
+
+- **Expand, never contract.** Add columns, tables, views, RPCs. Do not drop, rename,
+  narrow or retype anything a shipped build reads or writes, and do not change a unique
+  constraint a shipped upsert infers.
+- **A new `not null` column needs a default or a `before insert` trigger**, because the
+  shipped client does not send it.
+- **When the new client writes a different column than the old one, keep both and sync
+  them with a trigger.** `chores.is_archived` ↔ `archived_on` is the precedent.
+- **Give the new client a new read path rather than changing the old one** — a view or
+  an RPC — when it needs to see rows the old client must not. `schedule_entries_all`
+  over `schedule_entries` + `schedule_entry_history` is the precedent.
+- **Prove it in pgTAP, as `authenticated`.** Each of the shipped client's calls is an
+  assertion; a compatibility claim without one is a guess. `03_schedule_history.sql`
+  opens with these and they matter more than the ones for the new behaviour.
+
+Degradation is allowed where breakage is not: an old parent build that deletes where the
+new one closes leaves no history for that edit, and that is fine. An old build that
+shows an error, a permanent stale banner, or a failed edit is not.
+
+**Deprecated columns and paths come out later, in their own migration**, once no shipped
+build uses them. "No shipped build" is checked, not assumed: the git tags and
+`docs/uploads.log` say which source each build came from, and App Store Connect says
+which versions are still installed. Until then the compatibility layer stays, and a
+synced boolean or an unused RPC costs nothing.
+
+**Deviating is a decision, not a shortcut.** Only when compatibility is genuinely
+impossible or its cost is out of all proportion, and only with the decision recorded in
+the migration's header comment together with the cutover plan — which at minimum means
+removing the app from sale for the window and updating every known device the same day.
+The first draft of the schedule-history migration would have broken every installed
+build on its first refresh; the rework that avoided it took an afternoon. That is the
+expected ratio.
+
 ## Environments
 
 `Secrets.swift` holds both projects, and the build configuration decides which one the
