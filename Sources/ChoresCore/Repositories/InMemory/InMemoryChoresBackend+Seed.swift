@@ -1,6 +1,10 @@
 import Foundation
 
 extension InMemoryChoresBackend {
+    /// Seeded entries have always existed. A day years before any seeded
+    /// `today` keeps every fetched week inside their range.
+    static let seedValidFrom = CalendarDay(year: 2020, month: 1, day: 1)
+
     /// Seeds a family whose child is already claimed by this device's session.
     ///
     /// The real path to kid mode spans two devices — a parent generates a code,
@@ -36,7 +40,7 @@ extension InMemoryChoresBackend {
                 for chore in chores {
                     let entry = ScheduleEntry(id: UUID(), familyID: family.id,
                                               profileID: child.id, choreID: chore.id,
-                                              weekday: weekday)
+                                              weekday: weekday, validFrom: Self.seedValidFrom)
                     store.template[entry.id] = entry
                 }
             }
@@ -122,7 +126,7 @@ extension InMemoryChoresBackend {
                     for chore in assigned {
                         let entry = ScheduleEntry(id: UUID(), familyID: family.id,
                                                   profileID: child.id, choreID: chore.id,
-                                                  weekday: weekday)
+                                                  weekday: weekday, validFrom: Self.seedValidFrom)
                         store.template[entry.id] = entry
                     }
                 }

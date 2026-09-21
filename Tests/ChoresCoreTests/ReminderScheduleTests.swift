@@ -27,8 +27,8 @@ import Foundation
                 afternoonReminderAt: afternoon, eveningReminderAt: evening)
     }
 
-    func chore(_ name: String, archived: Bool = false) -> Chore {
-        Chore(id: UUID(), familyID: familyID, name: name, isArchived: archived)
+    func chore(_ name: String, archivedOn: CalendarDay? = nil) -> Chore {
+        Chore(id: UUID(), familyID: familyID, name: name, archivedOn: archivedOn)
     }
 
     func done(_ chore: Chore, on day: CalendarDay, by profile: UUID? = nil) -> Completion {
@@ -46,7 +46,8 @@ import Foundation
             chores: chores,
             template: entries.map {
                 ScheduleEntry(id: UUID(), familyID: familyID, profileID: $0.profile,
-                              choreID: $0.chore.id, weekday: $0.weekday)
+                              choreID: $0.chore.id, weekday: $0.weekday,
+                              validFrom: CalendarDay(year: 2020, month: 1, day: 1))
             },
             completions: completions,
             fetchedAt: Date())
@@ -142,7 +143,7 @@ import Foundation
     }
 
     @Test func archivedChoresDoNotCount() {
-        let bins = chore("Bins"), old = chore("Old", archived: true)
+        let bins = chore("Bins"), old = chore("Old", archivedOn: CalendarDay(year: 2020, month: 1, day: 1))
         let snapshot = makeSnapshot(entries: [(childID, bins, 1), (childID, old, 1)],
                                     chores: [bins, old])
 

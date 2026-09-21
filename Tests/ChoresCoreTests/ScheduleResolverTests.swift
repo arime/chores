@@ -13,13 +13,18 @@ import Foundation
     let tuesday   = CalendarDay(year: 2026, month: 8, day: 11)
     let wednesday = CalendarDay(year: 2026, month: 8, day: 12)
 
-    func chore(_ id: String, _ name: String, archived: Bool = false) -> Chore {
-        Chore(id: UUID(uuidString: id)!, familyID: family, name: name, isArchived: archived)
+    func chore(_ id: String, _ name: String, archivedOn: CalendarDay? = nil) -> Chore {
+        Chore(id: UUID(uuidString: id)!, familyID: family, name: name, archivedOn: archivedOn)
     }
 
-    func entry(_ profile: UUID, _ chore: Chore, _ weekday: Int) -> ScheduleEntry {
+    /// An entry that has always applied, so existing tests are about weekdays,
+    /// not ranges.
+    func entry(_ profile: UUID, _ chore: Chore, _ weekday: Int,
+               validFrom: CalendarDay = CalendarDay(year: 2020, month: 1, day: 1),
+               validUntil: CalendarDay? = nil) -> ScheduleEntry {
         ScheduleEntry(id: UUID(), familyID: family, profileID: profile,
-                      choreID: chore.id, weekday: weekday)
+                      choreID: chore.id, weekday: weekday,
+                      validFrom: validFrom, validUntil: validUntil)
     }
 
     var dishwasher: Chore { chore("44444444-0000-0000-0000-000000000001", "Dishwasher") }
@@ -89,7 +94,8 @@ import Foundation
     }
 
     @Test func excludesArchivedChores() {
-        let archived = chore("44444444-0000-0000-0000-000000000009", "Old job", archived: true)
+        let archived = chore("44444444-0000-0000-0000-000000000009", "Old job",
+                             archivedOn: CalendarDay(year: 2020, month: 1, day: 1))
         let template = [entry(kidA, dishwasher, 1), entry(kidA, archived, 1)]
 
         let result = ScheduleResolver.chores(
@@ -101,7 +107,8 @@ import Foundation
 
     @Test func ignoresTemplateEntriesReferencingAnUnknownChore() {
         let orphan = ScheduleEntry(id: UUID(), familyID: family, profileID: kidA,
-                                   choreID: UUID(), weekday: 1)
+                                   choreID: UUID(), weekday: 1,
+                                   validFrom: CalendarDay(year: 2020, month: 1, day: 1))
         let result = ScheduleResolver.chores(
             for: kidA, on: monday, template: [orphan, entry(kidA, dishwasher, 1)],
             chores: [dishwasher], completions: [])
