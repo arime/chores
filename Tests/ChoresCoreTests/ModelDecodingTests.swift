@@ -61,11 +61,81 @@ import Foundation
 
     @Test func encodesScheduleEntryWithSnakeCaseKeys() throws {
         let entry = ScheduleEntry(
-            id: UUID(), familyID: UUID(), profileID: UUID(), choreID: UUID(), weekday: 3)
+            id: UUID(), familyID: UUID(), profileID: UUID(), choreID: UUID(), weekday: 3,
+            validFrom: CalendarDay(year: 2026, month: 8, day: 10))
         let json = String(decoding: try ChoresJSON.encoder.encode(entry), as: UTF8.self)
         #expect(json.contains("\"profile_id\""))
         #expect(json.contains("\"chore_id\""))
+        #expect(json.contains("\"valid_from\":\"2026-08-10\""))
         #expect(!json.contains("\"profileID\""))
+    }
+
+    @Test func decodesScheduleEntryRange() throws {
+        let json = """
+        {"id":"22222222-2222-2222-2222-222222222222",
+         "family_id":"11111111-1111-1111-1111-111111111111",
+         "profile_id":"33333333-3333-3333-3333-333333333333",
+         "chore_id":"44444444-4444-4444-4444-444444444444",
+         "weekday":3,"created_at":"2026-08-10T09:00:00Z",
+         "valid_from":"2026-08-10","valid_until":null}
+        """
+        let entry = try ChoresJSON.decoder.decode(ScheduleEntry.self, from: Data(json.utf8))
+        #expect(entry.validFrom == CalendarDay(year: 2026, month: 8, day: 10))
+        #expect(entry.validUntil == nil)
+        #expect(entry.isCurrent)
+    }
+
+    @Test func scheduleEntryIsValidFromItsFirstDayUpToButNotIncludingItsLast() {
+        let entry = ScheduleEntry(
+            id: UUID(), familyID: UUID(), profileID: UUID(), choreID: UUID(), weekday: 1,
+            validFrom: CalendarDay(year: 2026, month: 8, day: 10),
+            validUntil: CalendarDay(year: 2026, month: 8, day: 17))
+        #expect(!entry.isValid(on: CalendarDay(year: 2026, month: 8, day: 9)))
+        #expect(entry.isValid(on: CalendarDay(year: 2026, month: 8, day: 10)))
+        #expect(entry.isValid(on: CalendarDay(year: 2026, month: 8, day: 16)))
+        #expect(!entry.isValid(on: CalendarDay(year: 2026, month: 8, day: 17)))
+        #expect(!entry.isCurrent)
+    }
+
+    @Test func anOpenScheduleEntryIsValidForever() {
+        let entry = ScheduleEntry(
+            id: UUID(), familyID: UUID(), profileID: UUID(), choreID: UUID(), weekday: 1,
+            validFrom: CalendarDay(year: 2026, month: 8, day: 10))
+        #expect(entry.isValid(on: CalendarDay(year: 2099, month: 1, day: 1)))
+    }
+
+    @Test func decodesChoreArchivedOn() throws {
+        let json = """
+        {"id":"44444444-4444-4444-4444-444444444444",
+         "family_id":"11111111-1111-1111-1111-111111111111",
+         "name":"Bins","icon":null,"points":null,
+         "created_at":"2026-08-10T09:00:00Z","archived_on":"2026-09-01"}
+        """
+        let chore = try ChoresJSON.decoder.decode(Chore.self, from: Data(json.utf8))
+        #expect(chore.archivedOn == CalendarDay(year: 2026, month: 9, day: 1))
+        #expect(chore.isArchived)
+        #expect(!chore.isArchived(on: CalendarDay(year: 2026, month: 8, day: 31)))
+        #expect(chore.isArchived(on: CalendarDay(year: 2026, month: 9, day: 1)))
+    }
+
+    @Test func aChoreWithNoArchivedOnIsNotArchivedOnAnyDay() throws {
+        let json = """
+        {"id":"44444444-4444-4444-4444-444444444444",
+         "family_id":"11111111-1111-1111-1111-111111111111",
+         "name":"Bins","icon":null,"points":null,
+         "created_at":"2026-08-10T09:00:00Z","archived_on":null}
+        """
+        let chore = try ChoresJSON.decoder.decode(Chore.self, from: Data(json.utf8))
+        #expect(!chore.isArchived)
+        #expect(!chore.isArchived(on: CalendarDay(year: 2099, month: 1, day: 1)))
+    }
+
+    @Test func encodesChoreArchivedOnNotIsArchived() throws {
+        let chore = Chore(id: UUID(), familyID: UUID(), name: "Bins",
+                          archivedOn: CalendarDay(year: 2026, month: 9, day: 1))
+        let json = String(decoding: try ChoresJSON.encoder.encode(chore), as: UTF8.self)
+        #expect(json.contains("\"archived_on\":\"2026-09-01\""))
+        #expect(!json.contains("is_archived"))
     }
 
     @Test func decodesProfileReminderTimes() throws {

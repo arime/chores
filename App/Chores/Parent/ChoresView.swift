@@ -189,7 +189,7 @@ struct ChoresView: View {
     // the schedule entries are kept so un-archiving restores the old assignments.
     private func setArchived(_ isArchived: Bool, _ chore: Chore) async {
         var updated = chore
-        updated.isArchived = isArchived
+        updated.archivedOn = isArchived ? store.today : nil
         do {
             try await backend.updateChore(updated)
             errorMessage = nil

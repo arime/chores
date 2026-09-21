@@ -206,7 +206,7 @@ struct SupabaseIntegrationTests {
 
         // Archiving hides a chore but keeps its schedule entry.
         var archived = bins
-        archived.isArchived = true
+        archived.archivedOn = monday
         try await parent.updateChore(archived)
         snapshot = try await parent.fetchSnapshot(familyID: familyID, weekOf: monday)
         #expect(snapshot.activeChores.map(\.name) == ["Dishes"])

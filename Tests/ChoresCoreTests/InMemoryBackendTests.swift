@@ -287,7 +287,7 @@ import Foundation
         _ = try await backend.addChild(familyID: familyID, name: "First",
                                        color: "#00897B", sortOrder: 0)
         var archived = try await backend.addChore(familyID: familyID, name: "Old", icon: nil)
-        archived.isArchived = true
+        archived.archivedOn = CalendarDay(year: 2026, month: 8, day: 10)
         try await backend.updateChore(archived)
         _ = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
 
