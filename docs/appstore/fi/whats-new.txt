@@ -1,1 +1,4 @@
-Uusi ilme ja ikoni.
+• Iltamuistutus vanhemmalle, kun jotain on vielä tekemättä.
+• Lapselle iltapäivän ja illan muistutus vanhemman valitsemina aikoina.
+• Oikea päivä näkyy heti, kun sovelluksen avaa uudelleen.
+• Aikataulun muokkaus ei enää muuta menneitä päiviä.
