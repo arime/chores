@@ -382,6 +382,74 @@ import Foundation
         #expect(online.errorMessage == nil)
     }
 
+    // MARK: - Returning to the foreground
+
+    /// The fixture's family behind a fetch-counting backend, on a clock the test
+    /// moves. `start()` has run, so the count begins at one.
+    func makeForegroundFixture(now: Date = FamilyStoreTests.mondayNoon) async throws
+        -> (store: FamilyStore, backend: FetchCountingBackend, clock: MutableClock) {
+        let fixture = try await makeFixture(now: now)
+        let backend = FetchCountingBackend(inner: fixture.backend)
+        let clock = MutableClock(now)
+        let store = FamilyStore(
+            backend: backend,
+            cache: SnapshotCache(directory: fixture.directory),
+            outbox: Outbox(directory: fixture.directory, backend: backend),
+            familyID: fixture.familyID,
+            clock: { clock.now })
+        await store.start()
+        #expect(backend.fetchCount == 1)
+        return (store, backend, clock)
+    }
+
+    /// The scene turns active moments after launch, while `start()` is still
+    /// on its way to the server. That first load is `start()`'s to make.
+    @Test func refreshIfNeededLeavesTheFirstLoadToStart() async throws {
+        let fixture = try await makeFixture()
+        let backend = FetchCountingBackend(inner: fixture.backend)
+        let store = FamilyStore(
+            backend: backend,
+            cache: SnapshotCache(directory: fixture.directory),
+            outbox: Outbox(directory: fixture.directory, backend: backend),
+            familyID: fixture.familyID,
+            clock: { Self.mondayNoon })
+
+        await store.refreshIfNeeded(staleAfter: 60)
+
+        #expect(backend.fetchCount == 0)
+    }
+
+    @Test func refreshIfNeededSkipsTheFetchSoonAfterTheLastOne() async throws {
+        let (store, backend, clock) = try await makeForegroundFixture()
+
+        clock.advance(by: 30)
+        await store.refreshIfNeeded(staleAfter: 60)
+
+        #expect(backend.fetchCount == 1)
+    }
+
+    @Test func refreshIfNeededFetchesOnceTheLastOneIsOldEnough() async throws {
+        let (store, backend, clock) = try await makeForegroundFixture()
+
+        clock.advance(by: 61)
+        await store.refreshIfNeeded(staleAfter: 60)
+
+        #expect(backend.fetchCount == 2)
+    }
+
+    @Test func refreshIfNeededFetchesWhenTheDayHasTurnedHoweverRecentTheLastOne() async throws {
+        // 2026-08-09T20:59:40Z: twenty seconds before midnight, Sunday, Helsinki.
+        let (store, backend, clock) = try await makeForegroundFixture(
+            now: Date(timeIntervalSince1970: 1_786_309_180))
+        #expect(store.today == monday.adding(days: -1))
+
+        clock.advance(by: 40)
+        #expect(store.today == monday)
+        await store.refreshIfNeeded(staleAfter: 60)
+
+        #expect(backend.fetchCount == 2)
+    }
+
     // MARK: - Eligibility passthrough
 
     @Test func eligibilityIsEvaluatedAgainstTheFamilyTimezone() async throws {

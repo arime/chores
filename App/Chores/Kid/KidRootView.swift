@@ -27,6 +27,7 @@ struct KidRootView: View {
             .background(Theme.bg.ignoresSafeArea())
             // Every Theme colour is a dark-appearance value.
             .preferredColorScheme(.dark)
+            .refreshingOnForeground(store: store, selectedDay: $selectedDay)
             .task {
                 await store.start()
                 // The system permission alert would block UI tests, and they have

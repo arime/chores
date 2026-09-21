@@ -23,6 +23,10 @@ public final class FamilyStore {
     /// Set only when there is nothing to show at all; a stale snapshot is shown
     /// with a banner instead of an error.
     public private(set) var errorMessage: String?
+    /// When `refresh` last ran, whether or not it reached the server. Kept here
+    /// rather than read off `snapshot.fetchedAt`, which the backend stamps with
+    /// its own clock and which a failed refresh leaves untouched.
+    private var lastRefreshAt: Date?
 
     public init(backend: ChoresBackend,
                 cache: SnapshotCache,
@@ -93,6 +97,24 @@ public final class FamilyStore {
             errorMessage = snapshot == nil ? Self.message(for: error) : nil
         }
         hasLoaded = true
+        lastRefreshAt = clock()
+    }
+
+    /// The refresh for coming back to the foreground. A screen returning after
+    /// a moment — a notification banner, Control Centre — has nothing new to
+    /// learn, so the last refresh stands until it is `staleAfter` old. A turned
+    /// day is different: the week may have moved and the other device may have
+    /// ticked yesterday, so that refreshes however recent the last one was.
+    ///
+    /// Before the first refresh has run this does nothing: the scene turns
+    /// active moments after launch, while `start()` is still on its way to the
+    /// server, and that load is `start()`'s to make.
+    public func refreshIfNeeded(staleAfter: TimeInterval) async {
+        guard let lastRefreshAt else { return }
+        let now = clock()
+        let dayHasTurned = CalendarDay(lastRefreshAt, in: timeZone) != CalendarDay(now, in: timeZone)
+        guard dayHasTurned || now.timeIntervalSince(lastRefreshAt) >= staleAfter else { return }
+        await refresh()
     }
 
     /// Called after a parent edits children, chores, or the schedule.
