@@ -68,15 +68,16 @@ class ForwardingBackend: ChoresBackend, @unchecked Sendable {
         try await inner.updateChore(chore)
     }
     func addScheduleEntry(familyID: UUID, profileID: UUID, choreID: UUID,
-                          weekday: Int) async throws -> ScheduleEntry {
+                          weekday: Int, from today: CalendarDay) async throws -> ScheduleEntry {
         try await inner.addScheduleEntry(familyID: familyID, profileID: profileID,
-                                        choreID: choreID, weekday: weekday)
+                                        choreID: choreID, weekday: weekday, from: today)
     }
-    func removeScheduleEntry(id: UUID) async throws {
-        try await inner.removeScheduleEntry(id: id)
+    func removeScheduleEntry(id: UUID, on today: CalendarDay) async throws {
+        try await inner.removeScheduleEntry(id: id, on: today)
     }
-    func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int]) async throws {
-        try await inner.copyDay(familyID: familyID, from: fromWeekday, to: toWeekdays)
+    func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int],
+                 on today: CalendarDay) async throws {
+        try await inner.copyDay(familyID: familyID, from: fromWeekday, to: toWeekdays, on: today)
     }
     func complete(familyID: UUID, profileID: UUID, choreID: UUID,
                   dueOn: CalendarDay, completedBy: UUID) async throws {
@@ -288,13 +289,14 @@ final class UnavailableBackend: ChoresBackend, @unchecked Sendable {
         throw error
     }
     func addScheduleEntry(familyID: UUID, profileID: UUID, choreID: UUID,
-                          weekday: Int) async throws -> ScheduleEntry {
+                          weekday: Int, from today: CalendarDay) async throws -> ScheduleEntry {
         throw error
     }
-    func removeScheduleEntry(id: UUID) async throws {
+    func removeScheduleEntry(id: UUID, on today: CalendarDay) async throws {
         throw error
     }
-    func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int]) async throws {
+    func copyDay(familyID: UUID, from fromWeekday: Int, to toWeekdays: [Int],
+                 on today: CalendarDay) async throws {
         throw error
     }
     func complete(familyID: UUID, profileID: UUID, choreID: UUID,

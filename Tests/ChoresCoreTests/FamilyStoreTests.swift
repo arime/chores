@@ -31,7 +31,7 @@ import Foundation
             familyID: familyID, name: "Kid", color: "#FF8800", sortOrder: 0)
         let chore = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
         _ = try await backend.addScheduleEntry(familyID: familyID, profileID: child.id,
-                                               choreID: chore.id, weekday: 1)
+                                               choreID: chore.id, weekday: 1, from: monday)
 
         let store = FamilyStore(
             backend: backend,

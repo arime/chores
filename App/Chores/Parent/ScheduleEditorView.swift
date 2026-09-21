@@ -172,7 +172,7 @@ struct ScheduleEditorView: View {
         do {
             _ = try await backend.addScheduleEntry(
                 familyID: familyID, profileID: child.id, choreID: chore.id,
-                weekday: selectedWeekday)
+                weekday: selectedWeekday, from: store.today)
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
@@ -182,7 +182,7 @@ struct ScheduleEditorView: View {
 
     private func remove(_ entry: ScheduleEntry) async {
         do {
-            try await backend.removeScheduleEntry(id: entry.id)
+            try await backend.removeScheduleEntry(id: entry.id, on: store.today)
             errorMessage = nil
             await store.reloadAfterEdit()
         } catch {
@@ -194,7 +194,7 @@ struct ScheduleEditorView: View {
         guard let familyID = store.snapshot?.family.id else { return }
         do {
             try await backend.copyDay(familyID: familyID, from: selectedWeekday,
-                                      to: Array(targets))
+                                      to: Array(targets), on: store.today)
             errorMessage = nil
             isCopying = false
             await store.reloadAfterEdit()
