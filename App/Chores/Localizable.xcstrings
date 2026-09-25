@@ -6,7 +6,7 @@
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ tehtävistä tehtiin, %2$@."
+            "value" : "Viikolla %2$@ tehtiin %1$@ tehtävistä."
           }
         }
       }

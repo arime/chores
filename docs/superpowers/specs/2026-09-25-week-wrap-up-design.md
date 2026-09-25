@@ -200,7 +200,7 @@ where a bare `%` followed by a space and a letter is read as a directive.
 | This week so far | Viikko tähän mennessä |
 | Every chore for this week is ticked. | Kaikki tämän viikon tehtävät on tehty. |
 | %@ of this week's chores ticked so far. | %@ tämän viikon tehtävistä on tehty. |
-| %@ of chores were ticked, %@. | %1$@ tehtävistä tehtiin, %2$@. |
+| %@ of chores were ticked, %@. | Viikolla %2$@ tehtiin %1$@ tehtävistä. (The Finnish short date ends in a full stop, so the range cannot end the sentence.) |
 | %lld of %lld | %1$lld/%2$lld |
 | Dismiss | Sulje |
 
