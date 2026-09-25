@@ -17,6 +17,9 @@ extension View {
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)
                     .strokeBorder(Theme.neutral800, lineWidth: 1)
             }
+            // A container, so the card's own identifier reaches the
+            // accessibility tree while its texts and the × stay reachable.
+            .accessibilityElement(children: .contain)
     }
 }
 
