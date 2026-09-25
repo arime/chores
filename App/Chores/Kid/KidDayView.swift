@@ -10,6 +10,16 @@ struct KidDayView: View {
     let store: FamilyStore
     let profile: Profile
     @Binding var selectedDay: CalendarDay
+    /// The reported week the child last dismissed, e.g. "2026-W39". Keyed by
+    /// profile, so a device that changes hands does not carry a dismissal over.
+    @AppStorage private var dismissedWrapUpKey: String
+
+    init(store: FamilyStore, profile: Profile, selectedDay: Binding<CalendarDay>) {
+        self.store = store
+        self.profile = profile
+        _selectedDay = selectedDay
+        _dismissedWrapUpKey = AppStorage(wrappedValue: "", "wrapUpDismissedWeek.\(profile.id.uuidString)")
+    }
 
     private var hue: ChildHue { ChildHue(hex: profile.color) }
     private var isToday: Bool { selectedDay == store.today }
@@ -23,6 +33,15 @@ struct KidDayView: View {
 
     private var progress: (done: Int, total: Int) {
         store.progress(for: profile.id, on: selectedDay)
+    }
+
+    /// The card that is due, unless it was dismissed or the week had nothing in it.
+    private var wrapUp: WeekWrapUp? {
+        guard let wrapUp = WeekWrapUp.current(now: store.now, timeZone: store.timeZone),
+              wrapUp.key != dismissedWrapUpKey,
+              store.weekProgress(for: profile.id, in: wrapUp.week).total > 0
+        else { return nil }
+        return wrapUp
     }
 
     var body: some View {
@@ -41,6 +60,12 @@ struct KidDayView: View {
 
                     if store.isStale {
                         StaleCard(fetchedAt: store.snapshot?.fetchedAt, tint: hue.base)
+                    }
+
+                    if let wrapUp {
+                        KidWrapUpCard(store: store, profile: profile, hue: hue, wrapUp: wrapUp) {
+                            withAnimation(.snappy) { dismissedWrapUpKey = wrapUp.key }
+                        }
                     }
 
                     WeekStrip(store: store, selectedDay: selectedDay,

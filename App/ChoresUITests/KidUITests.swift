@@ -30,6 +30,24 @@ final class KidUITests: XCTestCase {
                        "kid mode must not expose parent functionality")
     }
 
+    /// Sunday evening, on a frozen clock: the wrap-up card is there, and the ×
+    /// takes it away. That it stays away across launches is `@AppStorage`'s
+    /// promise, keyed by profile — and the fixture mints a new profile id every
+    /// launch, so a relaunch here would show the card again by design.
+    func testWrapUpCardShowsOnSundayEveningAndDismisses() {
+        let app = XCUIApplication()
+        app.launchInEnglish("-ui-testing-kid", "-frozenNow", "2026-09-27T18:30:00+03:00")
+        XCTAssertTrue(app.buttons["kidWeek.day.1"].waitForExistence(timeout: 10))
+
+        XCTAssertTrue(app.otherElements["kidDay.wrapUp"].waitForExistence(timeout: 5),
+                      "Sunday at 18:30 is inside the wrap-up window")
+        XCTAssertTrue(app.staticTexts["Nearly the end of the week"].exists)
+
+        app.buttons["kidDay.wrapUp.dismiss"].tap()
+        XCTAssertTrue(app.otherElements["kidDay.wrapUp"].waitForNonExistence(timeout: 5),
+                      "dismissing should remove the card")
+    }
+
     func testTappingAChoreMarksItDone() {
         let app = launchAsKid()
 
