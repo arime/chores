@@ -51,6 +51,10 @@ public final class FamilyStore {
     /// The current day in the family's timezone — never a UTC day.
     public var today: CalendarDay { CalendarDay(clock(), in: timeZone) }
 
+    /// The injected clock. Views read this rather than `Date()`, so a fixture
+    /// launched with a frozen clock draws the same screen every time.
+    public var now: Date { clock() }
+
     // MARK: Loading
 
     public func start() async {
@@ -136,6 +140,15 @@ public final class FamilyStore {
         return ScheduleResolver.progress(
             for: profileID, on: day, template: snapshot.template,
             chores: snapshot.chores, completions: snapshot.completions)
+    }
+
+    /// `progress(for:on:)` summed over `days` — a week's worth for the wrap-up card.
+    public func weekProgress(for profileID: UUID, in days: [CalendarDay]) -> (done: Int, total: Int) {
+        days.reduce(into: (done: 0, total: 0)) { sum, day in
+            let progress = progress(for: profileID, on: day)
+            sum.done += progress.done
+            sum.total += progress.total
+        }
     }
 
     public func eligibility(for day: CalendarDay) -> CompletionEligibility {
