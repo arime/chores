@@ -107,6 +107,10 @@ final class AppEnvironment {
     /// below and `RootView`'s `@AppStorage` cannot drift apart.
     static let hasBeenClaimedKey = "device.hasBeenClaimed"
 
+    /// Where `FamilyView` and `KidDayView` remember a dismissed wrap-up card:
+    /// the parent's is the prefix alone, a child's carries their profile id.
+    static let wrapUpDismissedKeyPrefix = "wrapUpDismissedWeek"
+
     /// Ticked in the scheme's Run arguments to point a development build at the
     /// hosted project. Read only in Debug builds — see `credentials`.
     static let hostedFlag = "-hosted"
@@ -136,6 +140,12 @@ final class AppEnvironment {
                 UserDefaults.standard.set(true, forKey: hasBeenClaimedKey)
             } else {
                 UserDefaults.standard.removeObject(forKey: hasBeenClaimedKey)
+            }
+            // A dismissed wrap-up card stays dismissed across launches — which
+            // is the point — so a fixture that wants to show it must forget.
+            for key in UserDefaults.standard.dictionaryRepresentation().keys
+            where key.hasPrefix(wrapUpDismissedKeyPrefix) {
+                UserDefaults.standard.removeObject(forKey: key)
             }
         }
         if arguments.contains(screenshotParentFlag) || arguments.contains(screenshotKidFlag) {

@@ -18,7 +18,8 @@ struct KidDayView: View {
         self.store = store
         self.profile = profile
         _selectedDay = selectedDay
-        _dismissedWrapUpKey = AppStorage(wrappedValue: "", "wrapUpDismissedWeek.\(profile.id.uuidString)")
+        _dismissedWrapUpKey = AppStorage(
+            wrappedValue: "", "\(AppEnvironment.wrapUpDismissedKeyPrefix).\(profile.id.uuidString)")
     }
 
     private var hue: ChildHue { ChildHue(hex: profile.color) }
