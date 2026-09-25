@@ -10,6 +10,8 @@ struct FamilyView: View {
     /// behalf, so the audit trail says who actually did it.
     let parent: Profile
     @Binding var selectedDay: CalendarDay
+    /// The reported week this parent last dismissed, e.g. "2026-W39".
+    @AppStorage("wrapUpDismissedWeek") private var dismissedWrapUpKey = ""
 
     private var children: [Profile] { store.snapshot?.children ?? [] }
     private var week: [CalendarDay] { WeekCalendar.isoWeek(containing: store.today) }
@@ -31,6 +33,15 @@ struct FamilyView: View {
         }
     }
 
+    /// The card that is due, unless it was dismissed or nobody had anything that week.
+    private var wrapUp: WeekWrapUp? {
+        guard let wrapUp = WeekWrapUp.current(now: store.now, timeZone: store.timeZone),
+              wrapUp.key != dismissedWrapUpKey,
+              children.contains(where: { store.weekProgress(for: $0.id, in: wrapUp.week).total > 0 })
+        else { return nil }
+        return wrapUp
+    }
+
     var body: some View {
         // A spinner until the first snapshot settles: without it "No children yet"
         // flashes at every launch, before the family has arrived.
@@ -45,6 +56,12 @@ struct FamilyView: View {
 
                     if store.isStale {
                         StaleCard(fetchedAt: store.snapshot?.fetchedAt, tint: Theme.accent)
+                    }
+
+                    if let wrapUp {
+                        FamilyWrapUpCard(store: store, children: children, wrapUp: wrapUp) {
+                            withAnimation(.snappy) { dismissedWrapUpKey = wrapUp.key }
+                        }
                     }
 
                     WeekStrip(store: store, selectedDay: selectedDay,
