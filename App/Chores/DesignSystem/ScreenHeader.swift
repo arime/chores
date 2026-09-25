@@ -29,10 +29,11 @@ struct Headline: View {
     }
 }
 
-/// A 2pt capsule: track in neutral900, done-mint fill.
+/// A 2pt capsule: track in neutral900, done-mint fill unless told otherwise.
 struct ThinProgressBar: View {
     let done: Int
     let total: Int
+    var fill: Color = Theme.done
 
     private var fraction: Double { total == 0 ? 0 : Double(done) / Double(total) }
 
@@ -40,7 +41,7 @@ struct ThinProgressBar: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(Theme.neutral900)
-                Capsule().fill(Theme.done)
+                Capsule().fill(fill)
                     .frame(width: geometry.size.width * fraction)
             }
         }
