@@ -79,7 +79,7 @@ extension InMemoryChoresBackend {
                                childNames: [String],
                                childColors: [String],
                                choreNames: [String],
-                               today: CalendarDay,
+                               now: Date,
                                claimingChildAt claimedChildIndex: Int?) -> Profile {
         precondition(!childNames.isEmpty && !choreNames.isEmpty,
                      "a demo family needs at least one child and one chore")
@@ -89,6 +89,9 @@ extension InMemoryChoresBackend {
         sessionIsAnonymous = claimedChildIndex != nil
 
         let family = Family(id: UUID(), name: familyName)
+        // The family's day, as `FamilyStore.today` will read it — never the
+        // machine's, which a frozen clock on a distant simulator would disagree with.
+        let today = CalendarDay(now, in: family.timeZone)
         let parent = Profile(id: UUID(), familyID: family.id,
                              authUserID: claimedChildIndex == nil ? userID : nil,
                              displayName: parentName, role: .parent,

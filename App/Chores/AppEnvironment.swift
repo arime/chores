@@ -158,7 +158,7 @@ final class AppEnvironment {
                 childNames: content.children,
                 childColors: ProfilePalette.options,
                 choreNames: content.chores,
-                today: CalendarDay(now, in: .current),
+                now: now,
                 // The second child, whose day is halfway done — the most
                 // informative of the three to photograph.
                 claimingChildAt: arguments.contains(screenshotKidFlag) ? 1 : nil)

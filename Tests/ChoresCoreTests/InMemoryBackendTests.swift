@@ -519,7 +519,8 @@ import Foundation
             familyName: "Home", parentName: "Mum",
             childNames: ["Ada", "Oscar", "Iris"], childColors: ["#9084da"],
             choreNames: ["Bins", "Dishes", "Vacuum", "Make bed", "Feed the cat", "Laundry"],
-            today: today, claimingChildAt: nil)
+            now: today.date(in: TimeZone(identifier: "Europe/Helsinki")!).addingTimeInterval(12 * 3600),
+            claimingChildAt: nil)
 
         let snapshot = try await backend.fetchSnapshot(familyID: parent.familyID, weekOf: today)
         let lastWeek = Set(WeekCalendar.isoWeek(containing: today.adding(days: -7)))
@@ -531,6 +532,29 @@ import Foundation
         #expect(lastWeekDone(children[0]) == 21)
         #expect(lastWeekDone(children[1]) == 19)
         #expect(lastWeekDone(children[2]) == 11)
+    }
+
+    /// The seed's "today" is the family's day, not the machine's. 21:30 UTC on
+    /// Sunday 27 Sep is already 00:30 on Monday in Helsinki, so the current week
+    /// starts on the 28th and the 27th belongs to last week.
+    @Test func theDemoSeedReadsTodayInTheFamilysTimeZone() async throws {
+        let backend = InMemoryChoresBackend()
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let sundayNightUTC = utc.date(from: DateComponents(
+            year: 2026, month: 9, day: 27, hour: 21, minute: 30))!
+        let parent = backend.seedDemoFamily(
+            familyName: "Home", parentName: "Mum",
+            childNames: ["Ada"], childColors: ["#9084da"],
+            choreNames: ["Bins", "Dishes", "Vacuum"],
+            now: sundayNightUTC, claimingChildAt: nil)
+
+        let monday = CalendarDay(year: 2026, month: 9, day: 28)
+        let snapshot = try await backend.fetchSnapshot(familyID: parent.familyID, weekOf: monday)
+        let days = Set(snapshot.completions.map(\.dueOn))
+        #expect(days.contains(monday), "today is Monday in Helsinki, so Monday has ticks")
+        #expect(!days.contains(monday.adding(days: 1)), "Tuesday is still ahead")
+        #expect(days.contains(monday.adding(days: -1)), "Sunday the 27th is last week, fully ticked")
     }
 }
 
