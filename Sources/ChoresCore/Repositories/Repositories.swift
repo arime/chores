@@ -62,6 +62,8 @@ public protocol ChoresBackend: Sendable {
 
     // MARK: Reads
 
+    /// The family graph plus two ISO weeks of schedule and completions: the
+    /// week containing `day` and the one before it.
     func fetchSnapshot(familyID: UUID, weekOf day: CalendarDay) async throws -> FamilySnapshot
 
     // MARK: People

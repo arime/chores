@@ -129,8 +129,10 @@ public final class SupabaseChoresBackend: ChoresBackend, @unchecked Sendable {
     public func fetchSnapshot(familyID: UUID,
                              weekOf day: CalendarDay) async throws -> FamilySnapshot {
         try await run {
+            // Two ISO weeks: the previous one and the one containing `day`, so
+            // Monday's wrap-up can report the week that has just ended.
             let week = WeekCalendar.isoWeek(containing: day)
-            let firstDay = ChoresJSON.encodedDay(week.first!)
+            let firstDay = ChoresJSON.encodedDay(week.first!.adding(days: -7))
             let lastDay = ChoresJSON.encodedDay(week.last!)
 
             // Five small queries in parallel. The whole family is ~100 rows, so this

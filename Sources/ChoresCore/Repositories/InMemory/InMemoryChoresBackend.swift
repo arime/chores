@@ -149,9 +149,10 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
 
     public func fetchSnapshot(familyID: UUID,
                              weekOf day: CalendarDay) async throws -> FamilySnapshot {
+        // Two ISO weeks: the previous one and the one containing `day`, so
+        // Monday's wrap-up can report the week that has just ended.
         let week = WeekCalendar.isoWeek(containing: day)
-        let weekDays = Set(week)
-        let monday = week.first!, sunday = week.last!
+        let monday = week.first!.adding(days: -7), sunday = week.last!
         return try withStore { store in
             guard let family = store.families[familyID] else {
                 throw ChoresBackendError.underlying("no such family")
@@ -168,7 +169,7 @@ public final class InMemoryChoresBackend: ChoresBackend, @unchecked Sendable {
                         && ($0.validUntil.map { $0 > monday } ?? true)
                 },
                 completions: store.completions.filter {
-                    $0.familyID == familyID && weekDays.contains($0.dueOn)
+                    $0.familyID == familyID && $0.dueOn >= monday && $0.dueOn <= sunday
                 },
                 fetchedAt: Date())
         }

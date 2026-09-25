@@ -316,16 +316,18 @@ import Foundation
         #expect(rows.filter(\.isCurrent).count == 1)
     }
 
-    @Test func aSnapshotCarriesOnlyEntriesThatOverlapItsWeek() async throws {
+    @Test func aSnapshotCarriesOnlyEntriesThatOverlapItsTwoWeeks() async throws {
         let f = try await makeScheduleFixture()
         let entry = try await f.backend.addScheduleEntry(
             familyID: f.familyID, profileID: f.childID, choreID: f.bins.id, weekday: 1, from: day1)
         try await f.backend.removeScheduleEntry(id: entry.id, on: day5)   // valid 10–14 Aug
 
-        // The week of 17 Aug: the entry ended before it began.
-        #expect(try await template(f, weekOf: day1.adding(days: 7)).isEmpty)
-        // The week of 3 Aug: the entry begins after it ends.
+        // The week of 24 Aug fetches 17–30 Aug: the entry ended before it began.
+        #expect(try await template(f, weekOf: day1.adding(days: 14)).isEmpty)
+        // The week of 3 Aug fetches 27 Jul – 9 Aug: the entry begins after it ends.
         #expect(try await template(f, weekOf: day1.adding(days: -7)).isEmpty)
+        // The week of 17 Aug fetches 10–23 Aug, which is the entry's own week too.
+        #expect(try await template(f, weekOf: day1.adding(days: 7)).count == 1)
         // Its own week.
         #expect(try await template(f, weekOf: day1).count == 1)
     }
@@ -348,7 +350,7 @@ import Foundation
         #expect(tuesday.first { $0.id == tuesdayDishes.id }?.isCurrent == true)
     }
 
-    @Test func snapshotContainsOnlyTheRequestedWeeksCompletions() async throws {
+    @Test func snapshotCarriesThisWeekAndLastWeekButNotTwoWeeksAgo() async throws {
         let backend = InMemoryChoresBackend()
         try await backend.signInAnonymously()
         let familyID = try await backend.createFamily(
@@ -357,16 +359,16 @@ import Foundation
             familyID: familyID, name: "Kid", color: "#FF8800", sortOrder: 0)
         let chore = try await backend.addChore(familyID: familyID, name: "Bins", icon: nil)
 
-        let thisWeek = CalendarDay(year: 2026, month: 8, day: 12)
-        let lastWeek = CalendarDay(year: 2026, month: 8, day: 5)
-        try await backend.complete(familyID: familyID, profileID: child.id,
-                                   choreID: chore.id, dueOn: thisWeek, completedBy: child.id)
-        try await backend.complete(familyID: familyID, profileID: child.id,
-                                   choreID: chore.id, dueOn: lastWeek, completedBy: child.id)
+        let thisWeek = CalendarDay(year: 2026, month: 8, day: 12)      // Wed
+        let lastWeek = CalendarDay(year: 2026, month: 8, day: 5)       // Wed before
+        let twoWeeksAgo = CalendarDay(year: 2026, month: 8, day: 2)    // the Sunday before that
+        for day in [thisWeek, lastWeek, twoWeeksAgo] {
+            try await backend.complete(familyID: familyID, profileID: child.id,
+                                       choreID: chore.id, dueOn: day, completedBy: child.id)
+        }
 
         let snapshot = try await backend.fetchSnapshot(familyID: familyID, weekOf: thisWeek)
-        #expect(snapshot.completions.count == 1)
-        #expect(snapshot.completions.first?.dueOn == thisWeek)
+        #expect(Set(snapshot.completions.map(\.dueOn)) == [thisWeek, lastWeek])
     }
 
     @Test func uncompleteRemovesOnlyTheMatchingCompletion() async throws {
