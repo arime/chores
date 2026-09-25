@@ -65,6 +65,8 @@ extension InMemoryChoresBackend {
     /// - Today is partly done, and differently per child: the first is finished,
     ///   the second is halfway, the rest have not started. A progress ring is
     ///   worth showing at three different fills.
+    /// - Last week is complete for the first child, two short for the second and
+    ///   about half done for the rest, so Monday's wrap-up card has a spread to show.
     ///
     /// `claimingChildAt` decides which side of the app the launch lands on: an
     /// index claims that child, so the device is in kid mode; nil claims the
@@ -144,6 +146,26 @@ extension InMemoryChoresBackend {
                     case (true, _): doneCount = 0
                     }
 
+                    for chore in assigned.prefix(doneCount) {
+                        store.completions.append(Completion(
+                            id: UUID(), familyID: family.id, profileID: child.id,
+                            choreID: chore.id, dueOn: day,
+                            completedAt: day.date(in: family.timeZone),
+                            completedBy: child.id))
+                    }
+                }
+
+                // Last week, Monday to Sunday.
+                for dayOffset in 0..<7 {
+                    let day = monday.adding(days: dayOffset - 7)
+                    let doneCount: Int
+                    switch childIndex {
+                    case 0: doneCount = assigned.count
+                    // Two days one short, so 19 of 21 — a "great week", not a legend.
+                    case 1: doneCount = (dayOffset == 2 || dayOffset == 5) ? assigned.count - 1 : assigned.count
+                    // Two and one on alternate days: 11 of 21.
+                    default: doneCount = dayOffset.isMultiple(of: 2) ? 2 : 1
+                    }
                     for chore in assigned.prefix(doneCount) {
                         store.completions.append(Completion(
                             id: UUID(), familyID: family.id, profileID: child.id,

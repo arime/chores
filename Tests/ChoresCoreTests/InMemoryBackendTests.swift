@@ -510,6 +510,28 @@ import Foundation
         #expect(snapshot.profiles.contains { $0.id == otherParent.id })
         #expect(snapshot.profiles.contains { $0.id == child.id })
     }
+
+    @Test func theDemoSeedGivesEachChildADifferentLastWeek() async throws {
+        let backend = InMemoryChoresBackend()
+        // Wednesday 12 Aug 2026; last week is Mon 3 – Sun 9 Aug.
+        let today = CalendarDay(year: 2026, month: 8, day: 12)
+        let parent = backend.seedDemoFamily(
+            familyName: "Home", parentName: "Mum",
+            childNames: ["Ada", "Oscar", "Iris"], childColors: ["#9084da"],
+            choreNames: ["Bins", "Dishes", "Vacuum", "Make bed", "Feed the cat", "Laundry"],
+            today: today, claimingChildAt: nil)
+
+        let snapshot = try await backend.fetchSnapshot(familyID: parent.familyID, weekOf: today)
+        let lastWeek = Set(WeekCalendar.isoWeek(containing: today.adding(days: -7)))
+        func lastWeekDone(_ child: Profile) -> Int {
+            snapshot.completions.filter { $0.profileID == child.id && lastWeek.contains($0.dueOn) }.count
+        }
+        let children = snapshot.children   // sorted by sortOrder
+        // Three chores a day, seven days: 21 scheduled per child.
+        #expect(lastWeekDone(children[0]) == 21)
+        #expect(lastWeekDone(children[1]) == 19)
+        #expect(lastWeekDone(children[2]) == 11)
+    }
 }
 
 /// The database fills reminder defaults by role in a BEFORE INSERT trigger. The
