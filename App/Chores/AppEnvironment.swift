@@ -9,13 +9,18 @@ final class AppEnvironment {
     let outbox: Outbox
     let appleTokens: any AppleTokenProviding
     let pushRegistrar: PushRegistrar
+    /// What every `FamilyStore` tells the time by. The real clock, except on a
+    /// fixture launched with `-frozenNow`.
+    let clock: @Sendable () -> Date
 
-    init(backend: any ChoresBackend, directory: URL, appleTokens: any AppleTokenProviding) {
+    init(backend: any ChoresBackend, directory: URL, appleTokens: any AppleTokenProviding,
+         clock: @escaping @Sendable () -> Date = { Date() }) {
         self.backend = backend
         self.snapshotCache = SnapshotCache(directory: directory)
         self.outbox = Outbox(directory: directory, backend: backend)
         self.appleTokens = appleTokens
         self.pushRegistrar = PushRegistrar(backend: backend, environment: Self.pushEnvironment)
+        self.clock = clock
     }
 
     /// Debug builds hold sandbox tokens; anything archived — TestFlight or the
@@ -55,6 +60,20 @@ final class AppEnvironment {
     /// not care about.
     static let screenshotParentFlag = "-screenshots-parent"
     static let screenshotKidFlag = "-screenshots-kid"
+
+    /// Pins the fixture's clock: `-frozenNow 2026-09-27T18:30:00+03:00`. The
+    /// simulator's own clock cannot be moved, and the week wrap-up card only
+    /// exists on Sunday evening and Monday, so this is the only way to see it —
+    /// or to photograph it. Read only on the in-memory fixture paths; the live
+    /// app ignores it.
+    static let frozenNowFlag = "-frozenNow"
+
+    private static var frozenNow: Date? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: frozenNowFlag),
+              index + 1 < arguments.count else { return nil }
+        return ISO8601DateFormatter().date(from: arguments[index + 1])
+    }
 
     static var isUITesting: Bool {
         let arguments = ProcessInfo.processInfo.arguments
@@ -121,6 +140,7 @@ final class AppEnvironment {
         }
         if arguments.contains(screenshotParentFlag) || arguments.contains(screenshotKidFlag) {
             let content = screenshotFamily
+            let now = frozenNow ?? Date()
             let backend = InMemoryChoresBackend()
             backend.seedDemoFamily(
                 familyName: content.family,
@@ -128,7 +148,7 @@ final class AppEnvironment {
                 childNames: content.children,
                 childColors: ProfilePalette.options,
                 choreNames: content.chores,
-                today: CalendarDay(Date(), in: .current),
+                today: CalendarDay(now, in: .current),
                 // The second child, whose day is halfway done — the most
                 // informative of the three to photograph.
                 claimingChildAt: arguments.contains(screenshotKidFlag) ? 1 : nil)
@@ -136,9 +156,11 @@ final class AppEnvironment {
                 backend: backend,
                 directory: FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString),
-                appleTokens: StubAppleTokenProvider())
+                appleTokens: StubAppleTokenProvider(),
+                clock: { now })
         }
         if arguments.contains(uiTestKidFlag) {
+            let now = frozenNow ?? Date()
             let backend = InMemoryChoresBackend()
             backend.seedClaimedChild(childName: "Kid",
                                      choreNames: ["Bins", "Dishes"],
@@ -147,7 +169,8 @@ final class AppEnvironment {
                 backend: backend,
                 directory: FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString),
-                appleTokens: StubAppleTokenProvider())
+                appleTokens: StubAppleTokenProvider(),
+                clock: { now })
         }
         if arguments.contains(uiTestFlag) {
             return .preview()

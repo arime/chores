@@ -17,7 +17,8 @@ struct KidRootView: View {
             backend: environment.backend,
             cache: environment.snapshotCache,
             outbox: environment.outbox,
-            familyID: profile.familyID)
+            familyID: profile.familyID,
+            clock: environment.clock)
         _store = State(initialValue: store)
         _selectedDay = State(initialValue: store.today)
     }
