@@ -1,6 +1,26 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ of chores were ticked, %@." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ tehtävistä tehtiin, %2$@."
+          }
+        }
+      }
+    },
+    "%@ of this week's chores ticked so far." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ tämän viikon tehtävistä on tehty."
+          }
+        }
+      }
+    },
     "%@ – %@" : {
       "localizations" : {
         "fi" : {
@@ -77,6 +97,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lapsia: %lld"
+          }
+        }
+      }
+    },
+    "%lld left to tick — there's still time before bed." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vielä %lld tekemättä — ehdit hyvin ennen nukkumaanmenoa."
+          }
+        }
+      }
+    },
+    "%lld of %lld" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld/%2$lld"
           }
         }
       }
@@ -662,6 +702,16 @@
         }
       }
     },
+    "Dismiss" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sulje"
+          }
+        }
+      }
+    },
     "Done" : {
       "localizations" : {
         "fi" : {
@@ -780,6 +830,26 @@
         }
       }
     },
+    "Every chore for this week is ticked." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaikki tämän viikon tehtävät on tehty."
+          }
+        }
+      }
+    },
+    "Every chore, every day. Legend." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joka tehtävä, joka päivä. Legenda."
+          }
+        }
+      }
+    },
     "Expires in 7 days. Generating a new code cancels this one." : {
       "localizations" : {
         "fi" : {
@@ -806,6 +876,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Perheen nimi"
+          }
+        }
+      }
+    },
+    "Good going. New week, fresh start." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hyvin menee. Uusi viikko, uusi alku."
+          }
+        }
+      }
+    },
+    "Great week! Keep it rolling." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mahtava viikko! Samaan malliin."
           }
         }
       }
@@ -870,6 +960,16 @@
         }
       }
     },
+    "Last week" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viime viikko"
+          }
+        }
+      }
+    },
     "Leave" : {
       "localizations" : {
         "fi" : {
@@ -930,6 +1030,16 @@
         }
       }
     },
+    "Nearly the end of the week" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viikko on melkein paketissa"
+          }
+        }
+      }
+    },
     "New code" : {
       "localizations" : {
         "fi" : {
@@ -946,6 +1056,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uusi perhe"
+          }
+        }
+      }
+    },
+    "New week, fresh start!" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uusi viikko, uusi alku!"
           }
         }
       }
@@ -1513,6 +1633,26 @@
         }
       }
     },
+    "This week so far" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viikko tähän mennessä"
+          }
+        }
+      }
+    },
+    "This week, wrapped up" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viikko paketissa"
+          }
+        }
+      }
+    },
     "Today" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1561,6 +1701,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Viikko"
+          }
+        }
+      }
+    },
+    "Week complete!" : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viikko valmis!"
           }
         }
       }
@@ -1621,6 +1771,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "You ticked every single chore. Nice one." : {
+      "localizations" : {
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teit ihan joka ikisen tehtävän. Hienoa!"
           }
         }
       }

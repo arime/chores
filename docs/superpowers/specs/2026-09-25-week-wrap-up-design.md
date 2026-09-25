@@ -154,10 +154,12 @@ Copy, from the family-wide totals:
 | Moment | Condition | Title | Line |
 |---|---|---|---|
 | Sunday | all ticked | This week, wrapped up | Every chore for this week is ticked. |
-| Sunday | some left | This week so far | %lld%% of this week's chores ticked so far. |
-| Monday | — | Last week | %lld%% of chores were ticked, %@. |
+| Sunday | some left | This week so far | %@ of this week's chores ticked so far. |
+| Monday | — | Last week | %@ of chores were ticked, %@. |
 
-The Monday `%@` is the week range in the format `FamilyView` already draws for its kicker.
+The first `%@` is the percentage, formatted with `FormatStyle.percent` ("40%" in English,
+"40 %" in Finnish). The Monday's second `%@` is the week range in the format `FamilyView`
+already draws for its kicker.
 
 Placement in `FamilyView`: after the header and stale card, before the strip. Hidden when the
 family-wide `total == 0`.
@@ -179,13 +181,17 @@ New catalogue entries, English source with Finnish, in the existing `Localizable
 style (Xcode's separators, keys unsorted by hand). Finnish drafts below; the playful lines
 are the author's call and are flagged for review in the plan.
 
+Percentages are formatted with `FormatStyle.percent` and interpolated as strings, so the
+keys carry `%@`, not `%lld%%`: SwiftUI runs an interpolated key through `String(format:)`,
+where a bare `%` followed by a space and a letter is read as a directive.
+
 | Key | Finnish draft |
 |---|---|
 | Week complete! | Viikko valmis! |
 | Nearly the end of the week | Viikko on melkein paketissa |
 | Last week | Viime viikko |
 | You ticked every single chore. Nice one. | Teit ihan joka ikisen tehtävän. Hienoa! |
-| %lld left to tick — there's still time before bed. | %lld tehtävää vielä — ehdit hyvin ennen nukkumaanmenoa. |
+| %lld left to tick — there's still time before bed. | Vielä %lld tekemättä — ehdit hyvin ennen nukkumaanmenoa. |
 | Every chore, every day. Legend. | Joka tehtävä, joka päivä. Legenda. |
 | Great week! Keep it rolling. | Mahtava viikko! Samaan malliin. |
 | Good going. New week, fresh start. | Hyvin menee. Uusi viikko, uusi alku. |
@@ -193,8 +199,8 @@ are the author's call and are flagged for review in the plan.
 | This week, wrapped up | Viikko paketissa |
 | This week so far | Viikko tähän mennessä |
 | Every chore for this week is ticked. | Kaikki tämän viikon tehtävät on tehty. |
-| %lld%% of this week's chores ticked so far. | %lld %% tämän viikon tehtävistä on tehty. |
-| %lld%% of chores were ticked, %@. | %1$lld %% tehtävistä tehtiin, %2$@. |
+| %@ of this week's chores ticked so far. | %@ tämän viikon tehtävistä on tehty. |
+| %@ of chores were ticked, %@. | %1$@ tehtävistä tehtiin, %2$@. |
 | %lld of %lld | %1$lld/%2$lld |
 | Dismiss | Sulje |
 
