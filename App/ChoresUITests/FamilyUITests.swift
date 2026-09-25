@@ -5,6 +5,25 @@ import XCTest
 /// off on the child's behalf.
 final class FamilyUITests: ParentUITestCase {
 
+    /// Monday morning on a frozen clock, over the lived-in screenshot family:
+    /// the wrap-up card reports last week, and the × takes it away. Persistence
+    /// across launches is `@AppStorage`'s promise and is not exercised here.
+    func testWrapUpCardShowsOnMondayAndDismisses() {
+        let app = XCUIApplication()
+        app.launchInEnglish("-screenshots-parent", "-frozenNow", "2026-09-28T08:00:00+03:00")
+        XCTAssertTrue(app.buttons["family.day.1"].waitForExistence(timeout: 30))
+
+        XCTAssertTrue(app.otherElements["family.wrapUp"].waitForExistence(timeout: 5),
+                      "Monday is inside the wrap-up window")
+        XCTAssertTrue(app.staticTexts["Last week"].exists)
+        XCTAssertTrue(app.staticTexts["81% of chores were ticked, Sep 21 – Sep 27."].exists,
+                      "the seed's 51 of 63 rounds to 81%")
+
+        app.buttons["family.wrapUp.dismiss"].tap()
+        XCTAssertTrue(app.otherElements["family.wrapUp"].waitForNonExistence(timeout: 5),
+                      "dismissing should remove the card")
+    }
+
     func testTodayShowsWhatIsScheduledForTodaysWeekday() {
         let app = launchIntoParentMode()
 
