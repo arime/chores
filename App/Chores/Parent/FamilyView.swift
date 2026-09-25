@@ -11,7 +11,7 @@ struct FamilyView: View {
     let parent: Profile
     @Binding var selectedDay: CalendarDay
     /// The reported week this parent last dismissed, e.g. "2026-W39".
-    @AppStorage("wrapUpDismissedWeek") private var dismissedWrapUpKey = ""
+    @AppStorage(AppEnvironment.wrapUpDismissedKeyPrefix) private var dismissedWrapUpKey = ""
 
     private var children: [Profile] { store.snapshot?.children ?? [] }
     private var week: [CalendarDay] { WeekCalendar.isoWeek(containing: store.today) }
