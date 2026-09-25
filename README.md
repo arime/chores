@@ -31,7 +31,7 @@ offline behaviour, and testing strategy.
 
 ## Running the tests
 
-    swift test                                    # 141 unit tests
+    swift test                                    # 215 unit tests
     supabase test db                              # 15 pgTAP assertions (needs Docker)
     xcodebuild -project App/Chores.xcodeproj -scheme Chores \
       -destination 'platform=iOS Simulator,name=iPhone 17' test   # 23 UI tests
