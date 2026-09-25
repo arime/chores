@@ -97,6 +97,29 @@ import Foundation
         #expect(fixture.store.progress(for: fixture.childID, on: monday) == (done: 1, total: 1))
     }
 
+    @Test func nowIsTheInjectedClock() async throws {
+        let fixture = try await makeFixture()
+        #expect(fixture.store.now == FamilyStoreTests.mondayNoon)
+    }
+
+    /// The fixture assigns Bins every Monday from 10 Aug, so the week before has
+    /// nothing scheduled. This proves the sum; the previous-week data path itself
+    /// is proven by the backend and the seed.
+    @Test func weekProgressSumsTheDaysItIsGiven() async throws {
+        let fixture = try await makeFixture()
+        try await fixture.backend.complete(
+            familyID: fixture.familyID, profileID: fixture.childID,
+            choreID: fixture.choreID, dueOn: monday, completedBy: fixture.childID)
+        await fixture.store.start()
+
+        let thisWeek = WeekCalendar.isoWeek(containing: monday)
+        let lastWeek = WeekCalendar.isoWeek(containing: monday.adding(days: -7))
+        #expect(fixture.store.weekProgress(for: fixture.childID, in: thisWeek) == (done: 1, total: 1))
+        #expect(fixture.store.weekProgress(for: fixture.childID, in: lastWeek) == (done: 0, total: 0))
+        #expect(fixture.store.weekProgress(for: fixture.childID, in: lastWeek + thisWeek) == (done: 1, total: 1))
+        #expect(fixture.store.weekProgress(for: fixture.childID, in: []) == (done: 0, total: 0))
+    }
+
     // MARK: - Writing
 
     @Test func completingUpdatesTheUIImmediately() async throws {
