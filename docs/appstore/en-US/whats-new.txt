@@ -1,4 +1,1 @@
-• An evening reminder for the parent when something is still undone.
-• Afternoon and evening reminders for each child, at times the parent picks.
-• The right day is on screen the moment the app is reopened.
-• Editing the schedule no longer changes past days.
+• A week wrap-up from Sunday evening through Monday: each child sees their own week, the parent sees the whole family's.
