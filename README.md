@@ -76,3 +76,10 @@ operations, and what to answer, is in
 
 Migrations live in `supabase/migrations/` and are applied manually — nothing in this repo
 runs `supabase db push` on your behalf. See [`docs/RELEASING.md`](docs/RELEASING.md).
+
+## License
+
+Copyright © 2026 Ari Metsähalme.
+
+Licensed under the GNU Affero General Public License, version 3 only
+(`AGPL-3.0-only`). See [`LICENSE`](LICENSE) for the full text.
