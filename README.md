@@ -1,85 +1,60 @@
-# Chores
+<p align="center">
+  <img src="App/Chores/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" width="128" height="128" alt="Snappy Chores icon">
+</p>
 
-A native iOS app for running a household chore chart.
+<h1 align="center">Snappy Chores</h1>
 
-Children see their own chores for the day and tick them off; a parent maintains the list
-of children and chores, defines a repeating weekly schedule, and sees at a glance who has
-done what.
+<p align="center">A chore chart for one household, on the phones you already have.</p>
 
-- **Client:** SwiftUI (iPhone), English and Finnish
-- **Backend:** Supabase (Postgres, anonymous auth, row-level security)
+A parent keeps the list: who is in the family, what the chores are, and which child does
+which on which day. Each child sees only their own chores for today and ticks them off.
 
-## Status
+## Features
 
-Feature-complete for v1, and the App Store listing is in the repository ready to
-push. Not yet submitted: an App Review phone number has to be filled in and
-GitHub Pages switched on first. See [`docs/RELEASING.md`](docs/RELEASING.md#the-app-store).
+- A repeating weekly schedule, set up once
+- A parent sees every child's day and the week at a glance
+- Children need no account: a parent adds them by first name and a short code
+- An afternoon reminder for the child, and an evening one for the parent
+- Works offline and catches up when the connection returns
+- English and Finnish
+- No ads, no analytics, no tracking, nothing to buy
 
-See [`docs/superpowers/specs/2026-08-10-household-chores-app-design.md`](docs/superpowers/specs/2026-08-10-household-chores-app-design.md)
-for the full design: data model, auth and claim flow, RLS policies, UX for both modes,
-offline behaviour, and testing strategy.
+## Support and privacy
 
-## Layout
+- Help and contact: [arime.github.io/chores/support](https://arime.github.io/chores/support/)
+- Privacy policy: [arime.github.io/chores/privacy](https://arime.github.io/chores/privacy/)
+- Problems and ideas: email [arime-chores@proton.me](mailto:arime-chores@proton.me) or [open an issue](https://github.com/arime/chores/issues)
 
-- `Sources/ChoresCore/` — models, schedule resolution, offline cache and outbox, view
-  models. Everything testable from the command line lives here.
-- `App/` — the Xcode project: SwiftUI screens for both modes, plus the XCUITest suite.
-- `supabase/` — migrations and the pgTAP suite that guards row-level security.
-- `docs/appstore/` — the App Store listing, one file per field, per language.
-- `docs/site/` — the privacy policy and support pages the listing points at,
-  published to GitHub Pages.
+## For developers
 
-## Running the tests
+SwiftUI for iPhone on iOS 17 or later, with a Supabase backend (Postgres, row-level
+security). Copy `App/Chores/Secrets.swift.example` to `App/Chores/Secrets.swift` and fill
+it in before building.
 
-    swift test                                    # 215 unit tests
-    supabase test db                              # 15 pgTAP assertions (needs Docker)
-    xcodebuild -project App/Chores.xcodeproj -scheme Chores \
-      -destination 'platform=iOS Simulator,name=iPhone 17' test   # 23 UI tests
+```sh
+swift test             # unit tests
+supabase test db       # pgTAP tests (needs Docker)
+```
 
-The UI tests launch with `-ui-testing`, which swaps Supabase for an in-memory backend:
-no stack required, no state carried between runs. Two more cases in that target report
-as skipped: they are the App Store screenshot captures, and they run only under
-`tools/screenshots.sh`.
+The UI tests run from Xcode's `Chores` scheme against an in-memory backend.
+Building, releasing and database migrations are covered in
+[docs/RELEASING.md](docs/RELEASING.md).
 
-## Building the app
+| Folder | Contents |
+|---|---|
+| `Sources/ChoresCore` | Models, scheduling, offline cache and outbox, view models |
+| `App` | The Xcode project: SwiftUI screens and UI tests |
+| `supabase` | Migrations, the evening reminder function and pgTAP tests |
+| `docs/site` | The support and privacy pages, published to GitHub Pages |
 
-`App/Chores/Secrets.swift` holds the URL and anon key for both the local stack and the
-hosted project. It is gitignored — copy `App/Chores/Secrets.swift.example` and fill it in.
+## Contributing
 
-Debug builds use the local values, Release builds the hosted ones, and ticking `-hosted`
-in the scheme's Run arguments points a Debug build at the hosted project. See
-[`docs/RELEASING.md`](docs/RELEASING.md) for why it splits that way.
-
-## Shipping to TestFlight
-
-    tools/testflight.sh
-
-Archives, verifies the archive, and uploads to App Store Connect — no Xcode needed. It
-picks its own build number, refuses to build if hosted Supabase has pending migrations,
-and never touches git. The test suites and the manual Sign in with Apple checks are not
-part of it; see [`docs/RELEASING.md`](docs/RELEASING.md) for the full pre-flight and for
-what the script verifies.
-
-## Releasing to the App Store
-
-    tools/screenshots.sh      # regenerate the screenshots from a fixture
-    tools/appstore.sh         # push the listing, attach the newest build
-    tools/appstore.sh --submit
-
-The listing lives in `docs/appstore/` and the privacy policy and support pages in
-`docs/site/`, so what the store shows is reviewable in a diff. Two questionnaires
-stay in the web interface, because Apple has no API for them; the full order of
-operations, and what to answer, is in
-[`docs/RELEASING.md`](docs/RELEASING.md#the-app-store).
-
-## Database migrations
-
-Migrations live in `supabase/migrations/` and are applied manually — nothing in this repo
-runs `supabase db push` on your behalf. See [`docs/RELEASING.md`](docs/RELEASING.md).
+Bug reports and ideas are welcome as [issues](https://github.com/arime/chores/issues).
+Pull requests are accepted only from collaborators.
 
 ## License
 
-Copyright © 2026 Ari Metsähalme.
+Copyright © 2026 Ari Metsähalme. Licensed under the
+[GNU Affero General Public License v3.0](LICENSE).
 
-Licensed under the GNU Affero General Public License, version 3 only
-(`AGPL-3.0-only`). See [`LICENSE`](LICENSE) for the full text.
+The name Snappy Chores and the app icon are not covered by the license.
