@@ -372,7 +372,7 @@ gains nothing by risking. It still runs on an iPad, in iPhone compatibility mode
 Settings → Pages → Build and deployment → Source: **GitHub Actions**. Then any
 push touching `docs/site/` publishes it, and the workflow prints the URL.
 
-The contact address on the pages is `arime-chores@proton.me`, and the workflow
+The contact address on the pages is `metsari+chores@proton.me`, and the workflow
 refuses to publish if a `SUPPORT_EMAIL_TODO` placeholder ever comes back — a
 support page whose only address is a placeholder is worse than no page, and App
 Review reads these.

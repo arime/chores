@@ -23,7 +23,7 @@ which on which day. Each child sees only their own chores for today and ticks th
 
 - Help and contact: [arime.github.io/chores/support](https://arime.github.io/chores/support/)
 - Privacy policy: [arime.github.io/chores/privacy](https://arime.github.io/chores/privacy/)
-- Problems and ideas: email [arime-chores@proton.me](mailto:arime-chores@proton.me) or [open an issue](https://github.com/arime/chores/issues)
+- Problems and ideas: email [metsari+chores@proton.me](mailto:metsari+chores@proton.me) or [open an issue](https://github.com/arime/chores/issues)
 
 ## For developers
 
