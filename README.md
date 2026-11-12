@@ -13,6 +13,7 @@ which on which day. Each child sees only their own chores for today and ticks th
 
 - A repeating weekly schedule, set up once
 - A parent sees every child's day and the week at a glance
+- A week wrap-up from Sunday evening: each child sees their own week, the parent the whole family's
 - Children need no account: a parent adds them by first name and a short code
 - An afternoon reminder for the child, and an evening one for the parent
 - Works offline and catches up when the connection returns
